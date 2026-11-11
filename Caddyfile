@@ -1,0 +1,24 @@
+# Serves the Auto Budget static build.
+# DOMAIN comes from the environment (see docker-compose.yml). With a real domain,
+# Caddy obtains and renews an HTTPS certificate automatically. Defaults to
+# localhost for local testing.
+
+{$DOMAIN:localhost} {
+	root * /srv
+	encode zstd gzip
+
+	# Hashed build assets never change: cache for a year.
+	handle /assets/* {
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Everything else (index.html, manifest.webmanifest, sw.js, icons) must be
+	# revalidated so app updates reach users. Unknown paths fall back to
+	# index.html so client-side routes like /budget work on reload.
+	handle {
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

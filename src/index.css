@@ -1,0 +1,193 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tailwind theme config (Tailwind v4 keeps its config in CSS).
+ * Design tokens from SPEC.md are defined as CSS variables in :root / .dark
+ * and exposed to Tailwind here, so utilities like bg-primary, text-link,
+ * bg-danger-tint etc. follow the active theme.
+ */
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Space Grotesk", "Inter", ui-sans-serif, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* App-specific tokens */
+  --color-link: var(--link);
+  --color-progress: var(--progress);
+  --color-success-tint: var(--success-tint);
+  --color-warning-tint: var(--warning-tint);
+  --color-warning-text: var(--warning-text);
+  --color-warning-bar: var(--warning-bar);
+  --color-danger-tint: var(--danger-tint);
+  --color-danger-text: var(--danger-text);
+  --color-danger-bar: var(--danger-bar);
+  --color-income: var(--income);
+  --color-success-text: var(--success-text);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-hero-muted: var(--hero-muted);
+  --color-hero-divider: var(--hero-divider);
+  --color-hero-chip: var(--hero-chip);
+  --color-hero-link: var(--hero-link);
+  --color-segment-on: var(--segment-on);
+  --color-step-off: var(--step-off);
+  --color-dash-line: var(--dash-line);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-card: 16px;
+  --radius-hero: 20px;
+}
+
+:root {
+  --radius: 12px;
+
+  --background: #f3f5f4;
+  --foreground: #14201b;
+  --card: #ffffff;
+  --card-foreground: #14201b;
+  --popover: #ffffff;
+  --popover-foreground: #14201b;
+  --primary: #0f6b4f;
+  --primary-foreground: #ffffff;
+  --secondary: #e3f1eb;
+  --secondary-foreground: #14201b;
+  --muted: #e9eeeb;
+  --muted-foreground: #55635d;
+  --accent: #e3f1eb;
+  --accent-foreground: #14201b;
+  --destructive: #b42318;
+  --border: #e1e6e3;
+  --input: #b9c3be;
+  --ring: #0f6b4f;
+
+  --link: #0f6b4f;
+  --progress: #0f6b4f;
+  --success-tint: #e3f1eb;
+  --warning-tint: #fbefd9;
+  --warning-text: #7a4700;
+  --warning-bar: #c77700;
+  --danger-tint: #fbe4e1;
+  --danger-text: #8a1c12;
+  --danger-bar: #b42318;
+  --income: #0f6b4f;
+  --success-text: #0a4f3a;
+  --ink: #14201b;
+  --ink-foreground: #ffffff;
+  --hero-muted: #d7ebe2;
+  --hero-divider: #3f8a72;
+  --hero-chip: #ffffff;
+  --hero-link: #0f6b4f;
+  --segment-on: #ffffff;
+  --step-off: #cbd3cf;
+  --dash-line: #7f8c86;
+}
+
+.dark {
+  --background: #0e1512;
+  --foreground: #e8efeb;
+  --card: #18221d;
+  --card-foreground: #e8efeb;
+  --popover: #18221d;
+  --popover-foreground: #e8efeb;
+  --primary: #0f6b4f;
+  --primary-foreground: #ffffff;
+  --secondary: #12382c;
+  --secondary-foreground: #e8efeb;
+  --muted: #222e28;
+  --muted-foreground: #a9b8b1;
+  --accent: #12382c;
+  --accent-foreground: #e8efeb;
+  --destructive: #ff8a7d;
+  --border: #2a3731;
+  --input: #3a4a43;
+  --ring: #5cc6a0;
+
+  --link: #5cc6a0;
+  --progress: #3db389;
+  --success-tint: #12382c;
+  --warning-tint: #3a2a0c;
+  --warning-text: #f2c16b;
+  --warning-bar: #c77700;
+  --danger-tint: #3d1612;
+  --danger-text: #ffb4ab;
+  --danger-bar: #ff8a7d;
+  --income: #5cc6a0;
+  --success-text: #7fd1b2;
+  --ink: #e8efeb;
+  --ink-foreground: #0e1512;
+  --hero-muted: #d7ebe2;
+  --hero-divider: #3f8a72;
+  --hero-chip: #0e1512;
+  --hero-link: #7fd1b2;
+  --segment-on: #3a4a43;
+  --step-off: #3a4a43;
+  --dash-line: #5f7068;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@utility money {
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

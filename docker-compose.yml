@@ -1,0 +1,20 @@
+services:
+  web:
+    build: .
+    image: auto-budget:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      # The public domain, e.g. budget.example.com. Its DNS A/AAAA record must
+      # point at this server so Caddy can get an HTTPS certificate.
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - caddy_data:/data # certificates (keep between deploys)
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
