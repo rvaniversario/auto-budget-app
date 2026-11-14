@@ -36,7 +36,7 @@ export function SubHeader({ title, close = false, to, action }: { title: string;
         >
           {close ? <X className="size-6" /> : <ChevronLeft className="size-6" />}
         </button>
-        <h1 className="font-sans text-[17px] font-bold md:font-heading md:text-[26px] md:tracking-[-0.01em]">{title}</h1>
+        {title && <h1 className="font-sans text-[17px] font-bold md:font-heading md:text-[26px] md:tracking-[-0.01em]">{title}</h1>}
       </div>
       {action ?? <span className="w-11" />}
     </header>

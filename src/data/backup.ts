@@ -2,7 +2,8 @@ import { z } from 'zod'
 import { isValidISODate } from '@/core'
 
 export const BACKUP_APP_ID = 'auto-budget'
-export const BACKUP_SCHEMA_VERSION = 1
+/** 2 adds loans, recurring templates and the debt plan. Version 1 files still import. */
+export const BACKUP_SCHEMA_VERSION = 2
 
 const centavos = z.number().int().safe()
 const nonNegCentavos = centavos.nonnegative()
@@ -29,7 +30,7 @@ export const settingsSchema = z.object({
 export const accountSchema = z.object({
   ...sync,
   name: z.string(),
-  type: z.enum(['cash', 'bank', 'credit_card']),
+  type: z.enum(['cash', 'bank', 'credit_card', 'loan']),
   openingBalance: centavos,
   statementDay: dayOfMonth.nullable(),
   dueDay: dayOfMonth.nullable(),
@@ -63,6 +64,7 @@ export const transactionSchema = z.object({
   note: z.string(),
   fixedBillId: z.string().nullable(),
   isOneTime: z.boolean(),
+  recurringTemplateId: z.string().nullable().optional(),
 })
 
 export const spendingEstimateSchema = z.object({
@@ -78,9 +80,41 @@ export const budgetOverrideSchema = z.object({
   amount: nonNegCentavos,
 })
 
+export const recurringTemplateSchema = z.object({
+  ...sync,
+  type: z.enum(['expense', 'income', 'transfer']),
+  amount: nonNegCentavos,
+  categoryId: z.string().nullable(),
+  accountId: z.string(),
+  toAccountId: z.string().nullable(),
+  note: z.string(),
+  fixedBillId: z.string().nullable(),
+  schedule: z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('monthly'), day: dayOfMonth }),
+    z.object({ kind: z.literal('twiceMonthly'), days: z.tuple([dayOfMonth, dayOfMonth]) }),
+    z.object({ kind: z.literal('weekly'), every: z.number().int().min(1).max(52) }),
+  ]),
+  startDate: isoDate,
+  endDate: isoDate.nullable(),
+  paused: z.boolean(),
+  activeFrom: isoDate,
+})
+
+const yearMonth = z.string().regex(/^\d{4}-\d{2}$/)
+
+export const debtPlanSchema = z.object({
+  ...sync,
+  strategy: z.enum(['highestInterest', 'smallestBalance', 'custom']),
+  customOrder: z.array(z.string()),
+  monthlyAmount: nonNegCentavos.nullable(),
+  extras: z.array(z.object({ id: z.string(), month: yearMonth, amount: nonNegCentavos })),
+  goalMonth: yearMonth.nullable(),
+  inUse: z.boolean(),
+})
+
 export const backupSchema = z.object({
   app: z.literal(BACKUP_APP_ID),
-  schemaVersion: z.literal(BACKUP_SCHEMA_VERSION),
+  schemaVersion: z.union([z.literal(1), z.literal(BACKUP_SCHEMA_VERSION)]),
   exportedAt: z.string(),
   data: z.object({
     settings: z.array(settingsSchema),
@@ -90,6 +124,8 @@ export const backupSchema = z.object({
     transactions: z.array(transactionSchema),
     spendingEstimates: z.array(spendingEstimateSchema),
     budgetOverrides: z.array(budgetOverrideSchema),
+    recurringTemplates: z.array(recurringTemplateSchema).default([]),
+    debtPlans: z.array(debtPlanSchema).default([]),
   }),
 })
 

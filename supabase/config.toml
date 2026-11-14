@@ -1,0 +1,84 @@
+# Supabase CLI configuration for local development (`npx supabase start`).
+# Hosted projects are configured in the Supabase dashboard; see DEPLOY.md.
+
+project_id = "auto-budget"
+
+[api]
+enabled = true
+port = 54331
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54332
+major_version = 17
+
+[db.seed]
+enabled = false
+
+[studio]
+enabled = true
+port = 54333
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/**", "http://localhost:4173/**"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enabled = true
+double_confirm_changes = true
+enable_confirmations = false
+# Sign-in uses a 6-digit code, never a password.
+otp_length = 6
+otp_expiry = 600
+max_frequency = "30s"
+
+# Both templates must contain {{ .Token }} so new and returning users get a code, not a link.
+[auth.email.template.confirmation]
+subject = "Your Auto Budget sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
+
+[auth.email.template.magic_link]
+subject = "Your Auto Budget sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
+
+[auth.external.google]
+enabled = false
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+skip_nonce_check = false
+
+# Every function checks the caller itself (see supabase/functions/_shared/auth.ts),
+# so the gateway's JWT check is off. This works with both legacy and new API keys.
+[functions.sync]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
+[functions.premium]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+# Called by PayMongo (signature-checked) and by the scheduler (CRON_SECRET).
+[functions.payment-webhook]
+verify_jwt = false
+
+[functions.trial-reminders]
+verify_jwt = false
+
+# Local email catcher: open http://localhost:54334 to read sign-in codes during development.
+[local_smtp]
+enabled = true
+port = 54334
+
+[analytics]
+enabled = false

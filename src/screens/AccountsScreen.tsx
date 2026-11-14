@@ -11,7 +11,10 @@ import {
   formatMoney,
   formatShortDate,
   getAccountBalance,
+  isDebtAccount,
+  nextOccurrence,
   ordinal,
+  todayISO,
   type Account,
   type AccountType,
 } from '@/core'
@@ -36,7 +39,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui
 import { moneyField, optionalMoneyField, toCentavos } from '@/lib/forms'
 import { cn } from '@/lib/utils'
 
-const TYPE_LABEL: Record<AccountType, string> = { cash: 'Wallet', bank: 'Bank account', credit_card: 'Credit card' }
+const TYPE_LABEL: Record<AccountType, string> = { cash: 'Wallet', bank: 'Bank account', credit_card: 'Credit card', loan: 'Loan' }
 
 export function AccountsScreen() {
   const { snapshot, model } = useAppData()
@@ -44,7 +47,8 @@ export function AccountsScreen() {
   const [adding, setAdding] = useState(false)
   const openAdd = useAddTransaction()
   const accounts = alive(snapshot.accounts)
-  const money = accounts.filter((a) => a.type !== 'credit_card')
+  const money = accounts.filter((a) => !isDebtAccount(a.type))
+  const loans = accounts.filter((a) => a.type === 'loan')
 
   return (
     <>
@@ -102,6 +106,31 @@ export function AccountsScreen() {
         </section>
       ))}
 
+      {loans.map((loan) => (
+        <section key={loan.id} aria-label={loan.name} className="flex flex-col gap-3.5 rounded-card bg-card p-4 md:col-span-full md:px-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[15px] font-semibold">{loan.name}</span>
+              <span className="text-[13px] text-muted-foreground">Loan · amount owed</span>
+            </div>
+            <span className="money text-[22px] font-bold">{formatMoney(getAccountBalance(loan, snapshot.transactions))}</span>
+          </div>
+          <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-3">
+            <Tile term="Monthly payment" value={formatMoney(loan.minimumDue ?? 0)} />
+            <Tile term="Next due" value={loan.dueDay ? formatShortDate(nextOccurrence(loan.dueDay, todayISO())) : 'Not set'} />
+            <Tile term="Interest rate" value={`${loan.monthlyInterestRate ?? 0}% a month`} />
+          </dl>
+          <div className="grid grid-cols-2 gap-2 lg:max-w-md">
+            <Button variant="outline" className="h-11 bg-card" onClick={() => openAdd({ type: 'transfer', to: loan.id })}>
+              Record a payment
+            </Button>
+            <Button variant="outline" className="h-11 bg-card" onClick={() => setEditing(loan)}>
+              Edit loan
+            </Button>
+          </div>
+        </section>
+      ))}
+
       </div>
       <DashedButton onClick={() => setAdding(true)}>Add account</DashedButton>
 
@@ -128,7 +157,7 @@ const optionalDay = z.string().refine((v) => v === '' || (/^\d+$/.test(v) && Num
 
 const schema = z
   .object({
-    type: z.enum(['cash', 'bank', 'credit_card']),
+    type: z.enum(['cash', 'bank', 'credit_card', 'loan']),
     name: z.string().trim().min(1, 'Give the account a name').max(40),
     balance: moneyField({ allowZero: true, message: 'Enter a balance (0 is fine)' }),
     statementDay: optionalDay,
@@ -137,7 +166,8 @@ const schema = z
     rate: z.string().trim(),
   })
   .superRefine((v, ctx) => {
-    if (v.type !== 'credit_card') return
+    if (!isDebtAccount(v.type)) return
+    if (v.type === 'loan' && !v.minimum) ctx.addIssue({ code: 'custom', path: ['minimum'], message: 'Enter the monthly payment' })
     if (!v.dueDay) ctx.addIssue({ code: 'custom', path: ['dueDay'], message: 'Enter the due day' })
     if (!(/^\d+(\.\d+)?$/.test(v.rate) && Number(v.rate) <= 10)) {
       ctx.addIssue({ code: 'custom', path: ['rate'], message: 'Enter a rate between 0 and 10' })
@@ -168,14 +198,15 @@ function AccountDialog({ open, account, onClose }: { open: boolean; account: Acc
 
   const submit = async (v: Values) => {
     const isCard = v.type === 'credit_card'
+    const isDebt = isDebtAccount(v.type)
     const data = {
       name: v.name,
       type: v.type,
       openingBalance: toCentavos(v.balance),
       statementDay: isCard && v.statementDay ? Number(v.statementDay) : null,
-      dueDay: isCard && v.dueDay ? Number(v.dueDay) : null,
-      minimumDue: isCard ? toCentavos(v.minimum) : null,
-      monthlyInterestRate: isCard ? Number(v.rate) : null,
+      dueDay: isDebt && v.dueDay ? Number(v.dueDay) : null,
+      minimumDue: isDebt ? toCentavos(v.minimum) : null,
+      monthlyInterestRate: isDebt ? Number(v.rate) : null,
     }
     if (account) await repo.updateAccount(account.id, data)
     else await repo.addAccount(data)
@@ -208,7 +239,7 @@ function AccountDialog({ open, account, onClose }: { open: boolean; account: Acc
             <DialogHeader>
               <DialogTitle>{account ? `Edit ${account.name}` : 'Add account'}</DialogTitle>
               <DialogDescription>
-                {account ? 'Changes apply to all your past transactions on this account.' : 'Cash, a bank account or a credit card.'}
+                {account ? 'Changes apply to all your past transactions on this account.' : 'Cash, a bank account, a credit card or a loan.'}
               </DialogDescription>
             </DialogHeader>
             {!account && (
@@ -223,18 +254,23 @@ function AccountDialog({ open, account, onClose }: { open: boolean; account: Acc
                     options={[
                       { value: 'cash', label: 'Cash' },
                       { value: 'bank', label: 'Bank' },
-                      { value: 'credit_card', label: 'Credit card' },
+                      { value: 'credit_card', label: 'Card' },
+                      { value: 'loan', label: 'Loan' },
                     ]}
                   />
                 )}
               />
             )}
-            {field('name', 'Name', (p) => <TextInput placeholder={type === 'credit_card' ? 'My credit card' : 'BDO savings'} {...p} />)}
+            {field('name', 'Name', (p) => <TextInput placeholder={type === 'credit_card' ? 'My credit card' : type === 'loan' ? 'Car loan' : 'BDO savings'} {...p} />)}
             {field(
               'balance',
-              type === 'credit_card' ? 'Amount owed when added (₱)' : 'Starting balance (₱)',
+              isDebtAccount(type) ? 'Amount owed when added (₱)' : 'Starting balance (₱)',
               (p) => <MoneyInput {...p} />,
-              type === 'credit_card' ? 'Card purchases add to this; payments to the card reduce it.' : 'What was in it before you started logging.',
+              type === 'credit_card'
+                ? 'Card purchases add to this; payments to the card reduce it.'
+                : type === 'loan'
+                  ? 'Payments to the loan reduce this.'
+                  : 'What was in it before you started logging.',
             )}
             {type === 'credit_card' && (
               <>
@@ -246,6 +282,15 @@ function AccountDialog({ open, account, onClose }: { open: boolean; account: Acc
                   {field('statementDay', 'Statement day', (p) => <TextInput inputMode="numeric" maxLength={2} placeholder="Optional" {...p} />)}
                   {field('rate', 'Interest a month (%)', (p) => <TextInput inputMode="decimal" {...p} />)}
                 </div>
+              </>
+            )}
+            {type === 'loan' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  {field('minimum', 'Monthly payment (₱)', (p) => <MoneyInput {...p} />)}
+                  {field('dueDay', 'Due day', (p) => <TextInput inputMode="numeric" maxLength={2} {...p} />)}
+                </div>
+                {field('rate', 'Interest a month (%)', (p) => <TextInput inputMode="decimal" {...p} />, 'Check your loan statement. 0 if it has no interest.')}
               </>
             )}
             <DialogFooter className="gap-2">

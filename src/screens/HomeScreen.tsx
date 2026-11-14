@@ -17,6 +17,7 @@ import {
 } from '@/core'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { EditTransactionHost } from '@/components/EditTransactionHost'
+import { PlannedDebtBars, ReportsCard, TrialNotice, usePlannedDebtRows } from '@/components/HomePremium'
 import { amountSign, makeDescriber } from '@/lib/describeTransaction'
 import { useAppData } from '@/hooks/useAppData'
 import { Money } from '@/components/Money'
@@ -38,12 +39,14 @@ export function HomeScreen() {
         eyebrow={`${formatPeriodDash(model.period)} · Day ${model.period.dayIndex} of ${model.period.totalDays}`}
         title={hasAnyTransaction ? `Your ${month} budget` : 'Your first budget is ready'}
       />
+      <TrialNotice />
       <OverspendAlerts />
       <div className="grid gap-4 md:grid-cols-2 md:items-start md:gap-5 lg:gap-6">
         <div className="flex min-w-0 flex-col gap-4 md:gap-5">
           <Hero />
           <MonthSummary />
           <BillsDueCard />
+          <ReportsCard />
         </div>
         <div className="flex min-w-0 flex-col gap-4 md:gap-5">
           {hasAnyTransaction ? <CategoryBudgets /> : <EmptyTransactions />}
@@ -249,6 +252,7 @@ function SummaryStat({ label, value, highlight }: { label: string; value: number
 
 function CategoryBudgets() {
   const { model } = useAppData()
+  const planned = usePlannedDebtRows()
   const rows = [...model.categoryRows].sort((a, b) => Number(b.status === 'over') - Number(a.status === 'over'))
 
   return (
@@ -272,7 +276,8 @@ function CategoryBudgets() {
           quiet
         />
       )}
-      {model.cards.length > 0 && (
+      {planned && <PlannedDebtBars rows={planned} />}
+      {!planned && model.cards.length > 0 && (
         <BudgetBar
           label="Credit card payment"
           spent={model.paidToCardsThisPeriod}
@@ -362,6 +367,7 @@ function NeutralTag({ children }: { children: React.ReactNode }) {
 function BillsDueCard() {
   const { model, snapshot } = useAppData()
   const bills = billsDueThisPeriod(snapshot.fixedBills, snapshot.transactions, model.period, model.today)
+  const planned = usePlannedDebtRows()
 
   type Row = { key: string; name: string; dueDate: string; amount: number; tag: React.ReactNode }
   const rows: Row[] = bills.map((b) => ({
@@ -378,17 +384,29 @@ function BillsDueCard() {
         <NeutralTag>{describeDue(b.daysUntil)}</NeutralTag>
       ),
   }))
-  for (const card of model.cards) {
-    const dueDate = card.account.dueDay ? dueDateInPeriod(card.account.dueDay, model.period) : null
-    if (!dueDate) continue
-    const done = card.allocation.amount > 0 && card.paidThisPeriod >= card.allocation.amount
-    rows.push({
-      key: card.account.id,
-      name: card.account.name,
-      dueDate,
-      amount: card.allocation.amount,
-      tag: done ? <Tag tone="success">Paid</Tag> : <NeutralTag>Planned</NeutralTag>,
-    })
+  if (planned) {
+    // The debt plan decides each card's and loan's payment this month.
+    const accounts = new Map(snapshot.accounts.map((a) => [a.id, a]))
+    for (const p of planned) {
+      const dueDay = accounts.get(p.id)?.dueDay
+      const dueDate = dueDay ? dueDateInPeriod(dueDay, model.period) : null
+      if (!dueDate || p.planned === 0) continue
+      const done = p.paid >= p.planned
+      rows.push({ key: p.id, name: p.name, dueDate, amount: p.planned, tag: done ? <Tag tone="success">Paid</Tag> : <NeutralTag>Planned</NeutralTag> })
+    }
+  } else {
+    for (const card of model.cards) {
+      const dueDate = card.account.dueDay ? dueDateInPeriod(card.account.dueDay, model.period) : null
+      if (!dueDate) continue
+      const done = card.allocation.amount > 0 && card.paidThisPeriod >= card.allocation.amount
+      rows.push({
+        key: card.account.id,
+        name: card.account.name,
+        dueDate,
+        amount: card.allocation.amount,
+        tag: done ? <Tag tone="success">Paid</Tag> : <NeutralTag>Planned</NeutralTag>,
+      })
+    }
   }
   rows.sort((a, b) => a.dueDate.localeCompare(b.dueDate))
 

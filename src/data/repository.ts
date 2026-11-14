@@ -4,7 +4,9 @@ import type {
   BudgetOverride,
   Category,
   Centavos,
+  DebtPlan,
   FixedBill,
+  RecurringTemplate,
   ISODate,
   Settings,
   SpendingEstimate,
@@ -66,6 +68,19 @@ export interface Repository {
   clearBudgetOverride(periodStart: ISODate, key: string): Promise<void>
   /** Apply several overrides atomically. */
   setBudgetOverrides(periodStart: ISODate, entries: { key: string; amount: Centavos }[]): Promise<void>
+
+  // Recurring transactions (Premium)
+  listRecurringTemplates(): Promise<RecurringTemplate[]>
+  addRecurringTemplate(input: NewRecord<RecurringTemplate>): Promise<RecurringTemplate>
+  updateRecurringTemplate(id: string, patch: RecordPatch<RecurringTemplate>): Promise<void>
+  /** Soft-deletes the template. Transactions it already created stay. */
+  deleteRecurringTemplate(id: string): Promise<void>
+  /** Insert generated occurrences whose ids don't exist yet. Returns how many were added. */
+  addRecurringOccurrences(occurrences: Transaction[]): Promise<number>
+
+  // Debt payoff plan (Premium, a single record)
+  getDebtPlan(): Promise<DebtPlan | undefined>
+  saveDebtPlan(patch: RecordPatch<DebtPlan>): Promise<DebtPlan>
 
   /** Everything needed for the month model, read consistently. Null before onboarding starts. */
   getSnapshot(): Promise<AppSnapshot | null>

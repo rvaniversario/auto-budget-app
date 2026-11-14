@@ -1,9 +1,10 @@
-import { ChartPie, CreditCard, House, List, Plus, SlidersHorizontal, type LucideIcon } from 'lucide-react'
+import { ChartPie, CreditCard, House, List, Lock, Plus, SlidersHorizontal, type LucideIcon } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { useShortcuts } from '@/hooks/useShortcuts'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { premiumEnabled, premiumFeature, useEntitlement, type PremiumFeatureId } from '@/premium'
 
 const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/', label: 'Home', icon: House },
@@ -13,8 +14,28 @@ const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/settings', label: 'Settings', icon: SlidersHorizontal },
 ]
 
-/** Screens pushed on top of a tab: on phones they hide the bottom tab bar. */
-const PUSHED = ['/add', '/breakdown', '/settings/']
+/**
+ * Screens pushed on top of a tab: on phones they hide the bottom tab bar.
+ * Entries ending in "/" match every path under them; others match exactly.
+ */
+const PUSHED = [
+  '/add',
+  '/breakdown',
+  '/settings/',
+  '/account',
+  '/account/',
+  '/privacy',
+  '/terms',
+  '/refunds',
+  '/premium',
+  '/premium/',
+  '/debt-planner',
+  '/reports',
+  '/recurring',
+]
+
+/** Premium features listed in the sidebar (laptops and up). */
+const SIDEBAR_PREMIUM: PremiumFeatureId[] = ['reports', 'debtPlanner']
 
 const ring = 'outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
 
@@ -146,6 +167,7 @@ function Sidebar() {
             {label}
           </NavLink>
         ))}
+        <SidebarPremium />
       </div>
       <p className="mx-3 text-xs leading-normal text-muted-foreground">
         Press <kbd className="rounded border border-input px-1.5 py-px font-sans text-xs">N</kbd> to add a transaction
@@ -154,10 +176,42 @@ function Sidebar() {
   )
 }
 
+/** Reports and Debt planner, with a lock for free users. Hidden when Premium is off. */
+function SidebarPremium() {
+  const ent = useEntitlement()
+  if (!premiumEnabled) return null
+  return (
+    <>
+      <div className="mx-3 my-2 border-t border-border" aria-hidden="true" />
+      {SIDEBAR_PREMIUM.map((id) => {
+        const f = premiumFeature(id)
+        const Icon = f.icon
+        return (
+          <NavLink
+            key={id}
+            to={f.path}
+            className={({ isActive }) =>
+              cn(
+                'flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[15px] font-semibold',
+                ring,
+                isActive ? 'bg-success-tint text-success-text' : 'text-foreground hover:bg-muted',
+              )
+            }
+          >
+            <Icon className="size-[22px]" strokeWidth={2} aria-hidden="true" />
+            <span className="flex-1">{f.shortName}</span>
+            {!ent.isPremium && <Lock className="size-4 text-muted-foreground" aria-label="Premium" />}
+          </NavLink>
+        )
+      })}
+    </>
+  )
+}
+
 /** Every signed-in screen: navigation for the current size plus the content column. */
 export function AppLayout() {
   const { pathname } = useLocation()
-  const pushed = PUSHED.some((p) => pathname === p || pathname.startsWith(p))
+  const pushed = PUSHED.some((p) => (p.endsWith('/') ? pathname.startsWith(p) : pathname === p))
   useShortcuts()
 
   return (

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { computeMonthModel, todayISO, type AppSnapshot, type MonthModel } from '@/core'
+import { useRecurringRunner } from './useRecurringRunner'
 
 interface AppData {
   snapshot: AppSnapshot
@@ -26,6 +27,7 @@ export function useToday(): string {
 export function AppDataProvider({ snapshot, children }: { snapshot: AppSnapshot; children: ReactNode }) {
   const today = useToday()
   const model = useMemo(() => computeMonthModel(snapshot, today), [snapshot, today])
+  useRecurringRunner(snapshot, today)
   const value = useMemo(() => ({ snapshot, model }), [snapshot, model])
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>
 }

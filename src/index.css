@@ -108,6 +108,15 @@
   --segment-on: #ffffff;
   --step-off: #cbd3cf;
   --dash-line: #7f8c86;
+
+  /* Report charts: categorical series (always paired with labels, never colour alone). */
+  --chart-1: #0f6b4f;
+  --chart-2: #2f6fb3;
+  --chart-3: #b86e00;
+  --chart-4: #8a4fb5;
+  --chart-5: #c2410c;
+  --chart-6: #3f7d8f;
+  --chart-other: #a3aea9;
 }
 
 .dark {
@@ -150,6 +159,14 @@
   --segment-on: #3a4a43;
   --step-off: #3a4a43;
   --dash-line: #5f7068;
+
+  --chart-1: #3db389;
+  --chart-2: #6ea8e8;
+  --chart-3: #e0a043;
+  --chart-4: #b48ae0;
+  --chart-5: #f07a4a;
+  --chart-6: #7fb8c9;
+  --chart-other: #5f7068;
 }
 
 @layer base {
@@ -189,5 +206,28 @@
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Reports export to PDF through the browser's print dialog. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  nav,
+  .print-hidden,
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .print-plain {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
   }
 }

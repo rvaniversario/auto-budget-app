@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Controller, useForm, useWatch } from 'react-hook-form'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
@@ -26,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import { dayField, moneyField, optionalMoneyField, toCentavos } from '@/lib/forms'
 import { cn } from '@/lib/utils'
+import { cloudEnabled } from '@/sync'
 
 const TOTAL_STEPS = 4
 
@@ -200,6 +202,15 @@ function SalaryStep({ settings, onNext }: { settings: Settings | undefined; onNe
               <span className="text-[13px]">Your first budget month</span>
               <span className="money text-lg font-bold text-success-text">{formatPeriod(preview)}</span>
             </div>
+          )}
+
+          {cloudEnabled && (
+            <p className="text-center text-sm text-muted-foreground">
+              Already use Auto Budget on another device?{' '}
+              <Link to="/account/sign-in" className="font-semibold text-link underline-offset-2 hover:underline">
+                Sign in to restore it
+              </Link>
+            </p>
           )}
         </div>
       </Frame>

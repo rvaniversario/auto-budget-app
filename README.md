@@ -2,9 +2,17 @@
 
 A responsive budgeting web app (phone, tablet, laptop and desktop) for salaried users in the Philippines. Each payday it tells you one number, **how much you can safely pay on your credit card this month**, and builds a budget for every spending category automatically.
 
-It installs to a phone's Home Screen or as a desktop app (Chrome, Edge) as a PWA, and works fully offline. All data stays on the device (IndexedDB).
+It installs to a phone's Home Screen or as a desktop app (Chrome, Edge) as a PWA, and works fully offline. Data lives on the device (IndexedDB); signing in to back it up online and sync between devices is optional.
 
-See [SPEC.md](SPEC.md) for the full specification and [DEPLOY.md](DEPLOY.md) for hosting on Vercel or a VPS.
+**Auto Budget Premium** (version 2) adds a debt payoff planner, reports and trends, and recurring transactions, unlocked with a 14-day free trial or a one-time payment through PayMongo. Everything from version 1 stays free. Premium is off unless the app is built with `VITE_PREMIUM_ENABLED=true` and the Supabase backend.
+
+Docs live in [docs/](docs/):
+
+- [SPEC.md](docs/SPEC.md): version 1 specification
+- [SPEC-V2.md](docs/SPEC-V2.md): version 2 (Premium) specification
+- [PRIVACY.md](docs/PRIVACY.md), [TERMS.md](docs/TERMS.md), [REFUNDS.md](docs/REFUNDS.md): policies shown in the app (complete the `[PLACEHOLDER]`s before going live)
+
+[DEPLOY.md](DEPLOY.md) covers hosting on Vercel or a VPS, and setting up Supabase, PayMongo and going live.
 
 ## Getting started
 
@@ -25,10 +33,18 @@ src/
   data/        Repository interface + Dexie (IndexedDB) implementation, seed data,
                backup schema (Zod). Screens never touch Dexie directly.
   hooks/       useAppData: live snapshot of all records + this month's computed model.
+               useRecurringRunner: creates recurring transactions as they fall due.
+  sync/        Optional sign-in and online backup (Supabase Auth + the sync function).
+  premium/     Feature registry, useEntitlement, the offline entitlement cache,
+               <PremiumGate>, badges and locked views.
   screens/     One file per screen (Home, Add transaction, Breakdown, Budget, ...).
   components/  Shared UI; components/ui holds the shadcn/ui components.
   lib/         Small browser helpers (theme, downloads, form field schemas).
+docs/          Specifications and the policy documents rendered in the app.
+supabase/      Migrations, SQL tests and server functions (sync, Premium, payments).
 ```
+
+Premium calculations are pure functions in `src/core` with unit tests: `debtPlanner.ts` (`simulateDebts`, goal mode), `reports.ts` (budget-month reports, rule-based insights, CSV) and `recurring.ts` (schedules and deterministic occurrence ids). Only the server grants Premium, after a verified payment webhook; screens are gated in the interface with `<PremiumGate>`.
 
 ### How the numbers are worked out
 
@@ -42,9 +58,9 @@ src/
 
 Money is always stored as integer centavos.
 
-### Data and sync readiness
+### Data and sync
 
-Every record has a UUID `id`, `createdAt`, `updatedAt` and `deletedAt`. Deletes are soft. `updatedAt` is indexed on every table, so a later sync can pull changes since a timestamp. To add cloud sync, implement the `Repository` interface in `src/data/repository.ts` against the project's own sync API and swap it in `src/data/index.ts`.
+Every record has a UUID `id`, `createdAt`, `updatedAt` and `deletedAt`. Deletes are soft. `updatedAt` is indexed on every table, and when the user is signed in the sync engine in `src/sync/` pushes and pulls changes since a cursor.
 
 ## Backups
 

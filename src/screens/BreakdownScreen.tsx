@@ -17,6 +17,7 @@ import { repo } from '@/data'
 import { useAppData } from '@/hooks/useAppData'
 import { SubHeader, Tag } from '@/components/layout'
 import { PayoffSchedule } from '@/components/PayoffSchedule'
+import { PremiumEntry } from '@/premium/components'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 
@@ -264,6 +265,10 @@ export function BreakdownScreen() {
             />
           )}
         </section>
+      )}
+
+      {safe.cardBalance > 0 && (
+        <PremiumEntry feature="debtPlanner" title="Plan all your debts" description="Every card and loan in one plan, with your debt-free date" />
       )}
 
       {!safe.paysInFull && safe.cardBalance > 0 && (

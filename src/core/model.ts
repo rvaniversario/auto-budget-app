@@ -29,6 +29,8 @@ import {
   type BudgetOverride,
   type Category,
   type Centavos,
+  type DebtPlan,
+  type RecurringTemplate,
   type FixedBill,
   type ISODate,
   type Settings,
@@ -45,6 +47,10 @@ export interface AppSnapshot {
   transactions: readonly Transaction[]
   estimates: readonly SpendingEstimate[]
   overrides: readonly BudgetOverride[]
+  /** Premium: recurring transaction templates. */
+  recurringTemplates?: readonly RecurringTemplate[]
+  /** Premium: the debt payoff plan, if one was saved. */
+  debtPlan?: DebtPlan | null
 }
 
 export interface CardSummary {

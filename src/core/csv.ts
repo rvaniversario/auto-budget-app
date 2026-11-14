@@ -1,7 +1,7 @@
 import { centavosToInput } from './money'
 import { alive, type Account, type Category, type FixedBill, type Transaction } from './types'
 
-function escapeCell(value: string): string {
+export function escapeCell(value: string): string {
   // Neutralise spreadsheet formula injection, then quote when needed.
   const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
   return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe

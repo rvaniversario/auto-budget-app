@@ -5,7 +5,9 @@ import {
   type AppSnapshot,
   type Category,
   type Centavos,
+  type DebtPlan,
   type FixedBill,
+  type RecurringTemplate,
   type ISODate,
   type Settings,
   type SyncFields,
@@ -13,9 +15,18 @@ import {
 } from '@/core'
 import { BACKUP_APP_ID, BACKUP_SCHEMA_VERSION, type BackupFile } from './backup'
 import { createDatabase, TABLES, type AutoBudgetDB } from './db'
-import { newId, nowISO } from './ids'
+import { newId, nextUpdatedAt, nowISO } from './ids'
 import type { NewRecord, RecordPatch, Repository } from './repository'
 import { defaultCategories } from './seed'
+
+export const DEFAULT_DEBT_PLAN: NewRecord<DebtPlan> = {
+  strategy: 'highestInterest',
+  customOrder: [],
+  monthlyAmount: null,
+  extras: [],
+  goalMonth: null,
+  inUse: false,
+}
 
 export const DEFAULT_SETTINGS: NewRecord<Settings> = {
   monthlySalary: 0,
@@ -40,6 +51,17 @@ async function getAlive<T extends SyncFields>(table: Table<T, string>, id: strin
   return row && !row.deletedAt ? row : undefined
 }
 
+/** Apply a change to one record, moving updatedAt forward (see nextUpdatedAt). */
+async function touch<T extends SyncFields>(table: Table<T, string>, id: string, change: (row: T) => void): Promise<void> {
+  await table
+    .where(':id')
+    .equals(id)
+    .modify((row: T) => {
+      change(row)
+      row.updatedAt = nextUpdatedAt(row.updatedAt)
+    })
+}
+
 async function patch<T extends SyncFields>(table: Table<T, string>, id: string, changes: RecordPatch<T>): Promise<void> {
   // Never let callers overwrite sync fields through a patch.
   const { id: _id, createdAt: _c, updatedAt: _u, deletedAt: _d, ...rest } = changes as Partial<T>
@@ -47,13 +69,13 @@ async function patch<T extends SyncFields>(table: Table<T, string>, id: string, 
   void _c
   void _u
   void _d
-  // Dexie's UpdateSpec typing is stricter than our partial; the shape is correct.
-  await table.update(id, { ...rest, updatedAt: nowISO() } as never)
+  await touch(table, id, (row) => Object.assign(row, rest))
 }
 
 async function softDelete<T extends SyncFields>(table: Table<T, string>, id: string): Promise<void> {
-  const now = nowISO()
-  await table.update(id, { deletedAt: now, updatedAt: now } as never)
+  await touch(table, id, (row) => {
+    row.deletedAt = nowISO()
+  })
 }
 
 export class DexieRepository implements Repository {
@@ -86,7 +108,7 @@ export class DexieRepository implements Repository {
   // ---- Accounts -----------------------------------------------------------
 
   async listAccounts() {
-    const order: Record<Account['type'], number> = { cash: 0, bank: 1, credit_card: 2 }
+    const order: Record<Account['type'], number> = { cash: 0, bank: 1, credit_card: 2, loan: 3 }
     const rows = await listAlive(this.db.accounts)
     return rows.sort((a, b) => order[a.type] - order[b.type] || a.createdAt.localeCompare(b.createdAt))
   }
@@ -162,7 +184,9 @@ export class DexieRepository implements Repository {
     return softDelete(this.db.transactions, id)
   }
   async restoreTransaction(id: string) {
-    await this.db.transactions.update(id, { deletedAt: null, updatedAt: nowISO() })
+    await touch(this.db.transactions, id, (row) => {
+      row.deletedAt = null
+    })
   }
 
   // ---- Spending estimates -------------------------------------------------
@@ -212,21 +236,72 @@ export class DexieRepository implements Repository {
     })
   }
 
+  // ---- Recurring templates (Premium) ---------------------------------------
+
+  async listRecurringTemplates() {
+    const rows = await listAlive(this.db.recurringTemplates)
+    return rows.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  }
+  async addRecurringTemplate(input: NewRecord<RecurringTemplate>) {
+    const record = stamp<RecurringTemplate>(input)
+    await this.db.recurringTemplates.add(record)
+    return record
+  }
+  updateRecurringTemplate(id: string, changes: RecordPatch<RecurringTemplate>) {
+    return patch(this.db.recurringTemplates, id, changes)
+  }
+  deleteRecurringTemplate(id: string) {
+    return softDelete(this.db.recurringTemplates, id)
+  }
+
+  async addRecurringOccurrences(occurrences: Transaction[]): Promise<number> {
+    if (!occurrences.length) return 0
+    return this.db.transaction('rw', this.db.transactions, async () => {
+      // Deterministic ids: skip any that exist, including ones the user deleted.
+      const existing = await this.db.transactions.bulkGet(occurrences.map((o) => o.id))
+      const fresh = occurrences.filter((_, i) => !existing[i])
+      if (fresh.length) await this.db.transactions.bulkAdd(fresh)
+      return fresh.length
+    })
+  }
+
+  // ---- Debt plan (Premium) --------------------------------------------------
+
+  async getDebtPlan() {
+    const all = await listAlive(this.db.debtPlans)
+    return all.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
+  }
+
+  async saveDebtPlan(changes: RecordPatch<DebtPlan>) {
+    return this.db.transaction('rw', this.db.debtPlans, async () => {
+      const existing = await this.getDebtPlan()
+      if (existing) {
+        await patch(this.db.debtPlans, existing.id, changes)
+        return (await this.db.debtPlans.get(existing.id)) as DebtPlan
+      }
+      const created = stamp<DebtPlan>({ ...DEFAULT_DEBT_PLAN, ...changes })
+      await this.db.debtPlans.add(created)
+      return created
+    })
+  }
+
   // ---- Snapshot -----------------------------------------------------------
 
   async getSnapshot(): Promise<AppSnapshot | null> {
     return this.db.transaction('r', TABLES.map((t) => this.db.table(t)), async () => {
       const settings = await this.getSettings()
       if (!settings) return null
-      const [accounts, categories, fixedBills, transactions, estimates, overrides] = await Promise.all([
+      const [accounts, categories, fixedBills, transactions, estimates, overrides, recurringTemplates, debtPlan] = await Promise.all([
         this.listAccounts(),
         this.listCategories(),
         this.listFixedBills(),
         this.listTransactions(),
         this.listSpendingEstimates(),
         this.listBudgetOverrides(),
+        this.listRecurringTemplates(),
+        this.getDebtPlan(),
       ])
-      return { settings, accounts, categories, fixedBills, transactions, estimates, overrides }
+      return { settings, accounts, categories, fixedBills, transactions, estimates, overrides, recurringTemplates, debtPlan: debtPlan ?? null }
     })
   }
 
@@ -245,27 +320,72 @@ export class DexieRepository implements Repository {
         transactions: await this.db.transactions.toArray(),
         spendingEstimates: await this.db.spendingEstimates.toArray(),
         budgetOverrides: await this.db.budgetOverrides.toArray(),
+        recurringTemplates: await this.db.recurringTemplates.toArray(),
+        debtPlans: await this.db.debtPlans.toArray(),
       },
     }))
   }
 
+  /**
+   * True when this device is linked to an online account. Replacing or wiping
+   * data must then leave tombstones, or the next sync would bring it back.
+   */
+  private async isLinked(): Promise<boolean> {
+    return Boolean((await this.db.syncMeta.get('userId'))?.value)
+  }
+
   async importBackup(backup: BackupFile) {
     const { data } = backup
-    await this.db.transaction('rw', TABLES.map((t) => this.db.table(t)), async () => {
-      await Promise.all(TABLES.map((t) => this.db.table(t).clear()))
-      await this.db.settings.bulkAdd(data.settings)
-      await this.db.accounts.bulkAdd(data.accounts)
-      await this.db.categories.bulkAdd(data.categories)
-      await this.db.fixedBills.bulkAdd(data.fixedBills)
-      await this.db.transactions.bulkAdd(data.transactions)
-      await this.db.spendingEstimates.bulkAdd(data.spendingEstimates)
-      await this.db.budgetOverrides.bulkAdd(data.budgetOverrides)
+    const tables = [...TABLES.map((t) => this.db.table(t)), this.db.syncMeta]
+    await this.db.transaction('rw', tables, async () => {
+      if (!(await this.isLinked())) {
+        await Promise.all(TABLES.map((t) => this.db.table(t).clear()))
+        for (const t of TABLES) await this.db.table(t).bulkAdd(data[t])
+        return
+      }
+      // Linked: the backup's records must win over the online copy, and records
+      // missing from the backup are deleted everywhere.
+      const now = nowISO()
+      for (const t of TABLES) {
+        const table = this.db.table<SyncFields, string>(t)
+        const incoming = data[t] as SyncFields[]
+        const keep = new Set(incoming.map((r) => r.id))
+        await table
+          .filter((r) => !keep.has(r.id) && !r.deletedAt)
+          .modify((r) => {
+            r.deletedAt = now
+            r.updatedAt = nextUpdatedAt(r.updatedAt)
+          })
+        const existing = await table.bulkGet(incoming.map((r) => r.id))
+        await table.bulkPut(
+          incoming.map((r, i) => {
+            const prev = existing[i]?.updatedAt
+            const newest = prev && Date.parse(prev) > Date.parse(r.updatedAt) ? prev : r.updatedAt
+            return { ...r, updatedAt: nextUpdatedAt(newest) }
+          }),
+        )
+      }
     })
   }
 
   async deleteAllData() {
-    await this.db.transaction('rw', TABLES.map((t) => this.db.table(t)), async () => {
-      await Promise.all(TABLES.map((t) => this.db.table(t).clear()))
+    const tables = [...TABLES.map((t) => this.db.table(t)), this.db.syncMeta]
+    await this.db.transaction('rw', tables, async () => {
+      if (await this.isLinked()) {
+        // Soft-delete so the deletion reaches the online backup and other devices.
+        const now = nowISO()
+        for (const t of TABLES) {
+          await this.db
+            .table<SyncFields, string>(t)
+            .filter((r) => !r.deletedAt)
+            .modify((r) => {
+              r.deletedAt = now
+              r.updatedAt = nextUpdatedAt(r.updatedAt)
+            })
+        }
+      } else {
+        await Promise.all(TABLES.map((t) => this.db.table(t).clear()))
+      }
       await this.db.categories.bulkAdd(defaultCategories())
     })
   }

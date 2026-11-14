@@ -12,3 +12,15 @@ export function newId(): string {
 export function nowISO(): string {
   return new Date().toISOString()
 }
+
+/**
+ * A new updatedAt for a record that had `previous`: now, but always at least
+ * 1 ms later than before. Sync is last-write-wins by updatedAt, so an edit
+ * must never look older than the version it replaces, even if this device's
+ * clock is behind the one that wrote it.
+ */
+export function nextUpdatedAt(previous: string | null | undefined): string {
+  const prev = previous ? Date.parse(previous) : NaN
+  const now = Date.now()
+  return new Date(Number.isNaN(prev) ? now : Math.max(now, prev + 1)).toISOString()
+}

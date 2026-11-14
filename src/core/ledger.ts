@@ -1,12 +1,12 @@
 import { isInPeriod, type BudgetPeriod } from './dates'
 import { sum } from './money'
-import { alive, type Account, type Centavos, type Transaction } from './types'
+import { alive, isDebtAccount, type Account, type Centavos, type Transaction } from './types'
 
 /**
  * Balance of an account from its opening balance and every live transaction.
  *
  * Cash/bank: money held.  opening + income − expenses − transfers out + transfers in.
- * Credit card: amount owed. opening + card expenses − transfers into the card
+ * Credit card or loan: amount owed. opening + card expenses − transfers into it
  *              (+ transfers out of the card, i.e. cash advances; − income/refunds).
  */
 export function getAccountBalance(account: Account, transactions: readonly Transaction[]): Centavos {
@@ -19,7 +19,7 @@ export function getAccountBalance(account: Account, transactions: readonly Trans
       held += t.type === 'income' ? t.amount : -t.amount
     }
   }
-  return account.type === 'credit_card' ? account.openingBalance - held : account.openingBalance + held
+  return isDebtAccount(account.type) ? account.openingBalance - held : account.openingBalance + held
 }
 
 /** Is this transaction spending? Only expenses are. Transfers (including card payments) never are. */

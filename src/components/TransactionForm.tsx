@@ -169,6 +169,7 @@ export function TransactionForm({
   compact = false,
   submitLabel = 'Save',
   extraActions,
+  extraFields,
   autoFocusAmount = false,
 }: {
   accounts: Account[]
@@ -180,6 +181,8 @@ export function TransactionForm({
   compact?: boolean
   submitLabel?: string
   extraActions?: React.ReactNode
+  /** Extra rows shown above the number pad (Add only: the Repeat row). */
+  extraFields?: React.ReactNode
   /** Focus the amount field on open (keyboard devices). */
   autoFocusAmount?: boolean
 }) {
@@ -229,6 +232,8 @@ export function TransactionForm({
   }
 
   const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name }))
+  // Loans are paid into, never spent from or paid into as income.
+  const sourceOptions = type === 'transfer' ? accountOptions : accounts.filter((a) => a.type !== 'loan').map((a) => ({ value: a.id, label: a.name }))
   const categoryOptions = [
     ...categories.filter((c) => !c.archived).map((c) => ({ value: c.id, label: c.name })),
     { value: BILLS_CHIP, label: 'Bills' },
@@ -331,7 +336,7 @@ export function TransactionForm({
           label={type === 'transfer' ? 'From account' : 'Account'}
           value={accountId}
           onChange={(v) => setValue('accountId', v, { shouldValidate: formState.isSubmitted })}
-          options={accountOptions}
+          options={sourceOptions}
         />
         {formState.errors.accountId && (
           <p role="alert" className="text-sm text-destructive">
@@ -416,6 +421,8 @@ export function TransactionForm({
           )}
         />
       )}
+
+      {extraFields}
 
       {!compact && <NumberPad onKey={onKey} />}
 

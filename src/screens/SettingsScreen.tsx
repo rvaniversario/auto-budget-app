@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Archive, ArchiveRestore, Download, FileJson, FileSpreadsheet, Upload } from 'lucide-react'
+import { Archive, ArchiveRestore, ChevronRight, FileJson, FileSpreadsheet, Sparkles, Upload } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
-import { useNavigate, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
@@ -23,7 +23,7 @@ import { useAppData } from '@/hooks/useAppData'
 import { useIsLg } from '@/hooks/useMedia'
 import { cn } from '@/lib/utils'
 import { BillDialog, BillsList } from '@/components/BillDialog'
-import { DashedButton, RowButton, SectionLabel, SubHeader, TabHeader, Tag } from '@/components/layout'
+import { DashedButton, RowButton, SectionLabel, SubHeader, TabHeader } from '@/components/layout'
 import { MoneyInput, Segmented, TextInput } from '@/components/inputs'
 import {
   AlertDialog,
@@ -39,11 +39,14 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import { downloadFile, safeStorage } from '@/lib/browser'
+import { backupStatus, cloudEnabled, useSync } from '@/sync'
 import { dayField, moneyField, toCentavos } from '@/lib/forms'
+import { formatPrice, premiumEnabled, useEntitlement } from '@/premium'
+import { PremiumBadge } from '@/premium/components'
 
 const LAST_BACKUP_KEY = 'auto-budget:last-backup'
 
-type Open = 'pay' | 'buffer' | 'export' | 'cloud' | 'delete' | null
+type Open = 'pay' | 'buffer' | 'export' | 'delete' | null
 
 type SectionId = 'budget' | 'categories' | 'bills' | 'data' | 'appearance'
 const SECTIONS: { id: SectionId; label: string }[] = [
@@ -62,6 +65,8 @@ export function SettingsScreen() {
   const [pendingImport, setPendingImport] = useState<BackupFile | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const lastBackup = safeStorage.get(LAST_BACKUP_KEY)
+  const sync = useSync()
+  const ent = useEntitlement()
 
   const categories = alive(snapshot.categories)
   const bills = alive(snapshot.fixedBills)
@@ -125,6 +130,18 @@ export function SettingsScreen() {
       <RowButton label="Categories" value={String(categories.filter((c) => !c.archived).length)} onClick={() => go('categories')} />
       <RowButton label="Fixed bills" value={`${bills.length} bill${bills.length === 1 ? '' : 's'}`} onClick={() => go('bills')} />
       <RowButton label="Buffer amount" value={formatMoney(settings.bufferAmount)} onClick={() => setOpen('buffer')} />
+      {premiumEnabled && (
+        <RowButton
+          label={
+            <span className="flex items-center gap-2">
+              Recurring transactions
+              {!ent.isPremium && <PremiumBadge />}
+            </span>
+          }
+          value={ent.isPremium ? String(alive(snapshot.recurringTemplates ?? []).length) : undefined}
+          onClick={() => navigate('/recurring')}
+        />
+      )}
     </section>
   )
 
@@ -139,12 +156,22 @@ export function SettingsScreen() {
         onClick={() => setOpen('export')}
       />
       <RowButton label="Import data" value="From a backup file" onClick={() => fileRef.current?.click()} />
-      <RowButton
-        label="Cloud sync"
-        description="Automatic backup, use on more devices"
-        onClick={() => setOpen('cloud')}
-        trailing={<span className="flex-none rounded-xl bg-ink px-2.5 py-1 text-xs font-bold text-ink-foreground">Paid</span>}
-      />
+      {cloudEnabled &&
+        (sync.user ? (
+          <RowButton
+            label="Backup and sync"
+            description={sync.user.email}
+            value={backupStatus(sync).label}
+            onClick={() => navigate('/account')}
+          />
+        ) : (
+          <RowButton
+            label="Backup and sync"
+            description="Sign in to save your data online"
+            onClick={() => navigate('/account/sign-in')}
+            trailing={<span className="flex-none font-semibold text-link">Sign in</span>}
+          />
+        ))}
     </section>
   )
 
@@ -172,6 +199,7 @@ export function SettingsScreen() {
   return (
     <>
       <TabHeader title="Settings" />
+      <PremiumCard />
       <input
         ref={fileRef}
         type="file"
@@ -216,7 +244,12 @@ export function SettingsScreen() {
         </>
       )}
 
-      <p className="text-center text-xs text-muted-foreground">Auto Budget · Your data stays on this device.</p>
+      <p className="text-center text-xs text-muted-foreground">
+        Auto Budget · {sync.linked ? 'Backed up to your account.' : 'Your data stays on this device.'}{' '}
+        <Link to="/privacy" className="underline underline-offset-2">
+          Privacy Policy
+        </Link>
+      </p>
 
       <PayDialog open={open === 'pay'} onClose={close} />
       <BufferDialog open={open === 'buffer'} onClose={close} />
@@ -240,38 +273,14 @@ export function SettingsScreen() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={open === 'cloud'} onOpenChange={(o) => !o && close()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              Cloud sync <Tag tone="success">Coming soon</Tag>
-            </DialogTitle>
-            <DialogDescription>
-              Automatic backup and the same budget on more devices will be a paid add-on. Until then, use Export data to keep a free
-              backup.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                close()
-                setTimeout(() => setOpen('export'), 0)
-              }}
-            >
-              <Download aria-hidden="true" /> Back up now
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <AlertDialog open={open === 'delete'} onOpenChange={(o) => !o && close()}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete all your data?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes your salary, bills, accounts and every transaction from this device. It can't be undone. Export a backup first if
-              you might want it later.
+              {sync.linked
+                ? 'This removes your salary, bills, accounts and every transaction from this device, your online backup and your other devices. It can\x27t be undone. Export a backup first if you might want it later.'
+                : 'This removes your salary, bills, accounts and every transaction from this device. It can\x27t be undone. Export a backup first if you might want it later.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -309,6 +318,43 @@ export function SettingsScreen() {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+
+/** The Auto Budget Premium card at the top of Settings. Hidden when Premium is off. */
+function PremiumCard() {
+  const ent = useEntitlement()
+  if (!premiumEnabled) return null
+  const status = ent.loading
+    ? ''
+    : ent.isLifetime
+      ? 'Unlocked'
+      : ent.isPremium
+        ? `Free trial: ${ent.daysLeft} day${ent.daysLeft === 1 ? '' : 's'} left`
+        : ent.trialAvailable
+          ? 'Try free for 14 days'
+          : ent.product
+            ? `Unlock for ${formatPrice(ent.product.amount)}, one time`
+            : 'Unlock Premium'
+  return (
+    <Link
+      to="/premium"
+      className="flex min-h-[76px] items-center gap-3.5 rounded-card bg-primary p-4 lg:max-w-[920px] text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 md:px-5"
+    >
+      <span className="flex size-11 flex-none items-center justify-center rounded-lg bg-hero-chip text-hero-link">
+        <Sparkles className="size-[22px]" aria-hidden="true" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex items-center gap-2 text-base font-bold">
+          Auto Budget Premium
+          {!ent.isPremium && <PremiumBadge className="bg-hero-chip text-hero-link" />}
+        </span>
+        <span className="text-sm text-hero-muted">{status || 'Debt planner, reports and recurring transactions'}</span>
+      </span>
+      <ChevronRight className="size-5 flex-none" aria-hidden="true" />
+    </Link>
   )
 }
 

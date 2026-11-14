@@ -17,7 +17,7 @@ export function makeDescriber(snapshot: Pick<AppSnapshot, 'accounts' | 'categori
   const categories = new Map(snapshot.categories.map((c) => [c.id, c.name]))
   const bills = new Map(snapshot.fixedBills.map((b) => [b.id, b.name]))
 
-  return (t: Transaction): TransactionDescription => {
+  const describe = (t: Transaction): TransactionDescription => {
     const from = accounts.get(t.accountId)?.name ?? 'Account'
     if (t.type === 'income') {
       return { title: t.note || 'Income', category: 'Income', account: from, meta: `Income · ${from}` }
@@ -26,10 +26,12 @@ export function makeDescriber(snapshot: Pick<AppSnapshot, 'accounts' | 'categori
       const toAccount = t.toAccountId ? accounts.get(t.toAccountId) : undefined
       const to = toAccount?.name ?? 'Account'
       const isCardPayment = toAccount?.type === 'credit_card'
+      const isLoanPayment = toAccount?.type === 'loan'
+      const kind = isCardPayment ? 'Card payment' : isLoanPayment ? 'Loan payment' : 'Transfer'
       const account = `${from} to ${to}`
       return {
-        title: t.note || (isCardPayment ? 'Card payment' : 'Transfer'),
-        category: isCardPayment ? 'Card payment' : 'Transfer',
+        title: t.note || kind,
+        category: kind,
         account,
         meta: account,
       }
@@ -37,6 +39,11 @@ export function makeDescriber(snapshot: Pick<AppSnapshot, 'accounts' | 'categori
     const category = t.categoryId ? (categories.get(t.categoryId) ?? 'Category') : 'Bills'
     const bill = t.fixedBillId ? bills.get(t.fixedBillId) : undefined
     return { title: t.note || bill || category, category, account: from, meta: `${category} · ${from}` }
+  }
+  // Transactions a recurring template created are marked so they can be told apart.
+  return (t: Transaction): TransactionDescription => {
+    const d = describe(t)
+    return t.recurringTemplateId ? { ...d, meta: `${d.meta} · Recurring` } : d
   }
 }
 
