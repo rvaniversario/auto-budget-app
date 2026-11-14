@@ -2,43 +2,38 @@
 
 **Last updated:** [DATE]
 
-> **Note for the owner:** this is a structure, not legal advice. Fill in every `[PLACEHOLDER]` and check it against the Consumer Act of the Philippines (Republic Act No. 7394) and PayMongo's refund rules before Premium goes live.
+> **Note for the owner:** this is a structure, not legal advice. Fill in every `[PLACEHOLDER]` and check it against the Consumer Act of the Philippines (Republic Act No. 7394) and Google Play's refund policies before Premium goes live.
 
 ## 1. What this policy covers
 
-This policy covers the one-time payment for Auto Budget Premium. Everything free in the app stays free and involves no payment.
+This policy covers the one-time purchase of Auto Budget Premium, which is made in the Auto Budget Android app through Google Play. Everything free in the app stays free and involves no payment.
 
 ## 2. Try before you pay
 
-Each account can use a free 14-day trial of Premium without entering any payment details, so you can check that it suits you before paying.
+Each account can use a free 14-day trial of Premium without entering any payment details, so you can check that it suits you before buying.
 
-## 3. When you can get a refund
+## 3. How refunds work
 
-[PLACEHOLDER: the refund window (number of days after payment) and the situations in which a refund is given, for example a duplicate payment or a feature that does not work as described.]
+Purchases are processed by Google Play, so refunds are requested through Google Play and decided under its refund policies. Shortly after buying, Google Play may refund you directly; after that, contact me and I will review the request. [PLACEHOLDER: check Google Play's current refund window.]
 
-## 4. When a refund is not available
+[PLACEHOLDER: any situations in which you will refund after Google Play's window, for example a feature that does not work as described.]
 
-[PLACEHOLDER: situations where a refund is not given, if any.]
+## 4. How to ask for a refund
 
-## 5. How to ask for a refund
-
-Email [CONTACT EMAIL] from the address you sign in with, and include:
-
-- the date of the payment
-- the payment reference shown under Receipts on the Premium screen
-- [PLACEHOLDER: anything else you need]
+- **Through Google Play:** open your order history at play.google.com (Account > Order history), find Auto Budget Premium, and choose "Request a refund".
+- **From me:** email [CONTACT EMAIL] from the address you sign in with, and include the Google Play order ID shown on the Premium screen (it starts with GPA.).
 
 [PLACEHOLDER: how quickly requests are answered.]
 
-## 6. How refunds are paid
+## 5. How refunds are paid
 
-Refunds go back to the original payment method (GCash, Maya, card or QR Ph) through PayMongo. [PLACEHOLDER: expected processing time, and whether any fees are deducted.]
+Approved refunds go back to the payment method you used in Google Play. Google Play handles the payment and its timing.
 
-## 7. What happens after a refund
+## 6. What happens after a refund
 
 When a refund is processed, Premium features lock again on your account. **None of your data is deleted:** loans, recurring transactions and everything else you entered stay in the app, and you can still export all of it.
 
-## 8. Contact
+## 7. Contact
 
 [YOUR NAME OR BUSINESS NAME]
 [CONTACT EMAIL]

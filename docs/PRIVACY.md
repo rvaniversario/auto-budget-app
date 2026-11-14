@@ -2,7 +2,7 @@
 
 **Last updated:** [DATE]
 
-Auto Budget is a personal budgeting app made by [YOUR NAME] ("I", "me"), an independent developer based in the Philippines. This policy explains what information the app handles, where it is kept, and the choices you have.
+Auto Budget is a personal budgeting app, available on the web and as an Android app, made by [YOUR NAME] ("I", "me"), an independent developer based in the Philippines. This policy explains what information the app handles, where it is kept, and the choices you have.
 
 ## The short version
 
@@ -32,7 +32,7 @@ Signing in is optional. If you do:
   - if you use "Continue with Google", Google also provides your basic profile details; the app keeps only what it needs to identify your account
   - the budget data described in section 1, so it can be backed up and synced
   - technical records needed to run the service, such as sign-in times
-  - if you get Auto Budget Premium: which plan you bought, the amount, the date, the payment status and a payment reference. I never receive or store your card number or e-wallet login; those are handled by the payment provider
+  - if you buy Auto Budget Premium in the Android app: the Google Play order ID, purchase token, date, amount and status of the purchase. Payment is handled entirely by Google Play; I never receive your card, e-wallet or other payment details
 - **Why:** to back up your data, restore it on a new device, keep your devices in sync, and provide Premium features you have paid for. I rely on your consent, which you give by choosing to sign in and can withdraw by deleting your account.
 - **Who can see it:** your data is tied to your account, and access rules on the database allow each account to read and change only its own data. I do not look at individual users' budget data, and would access it only if needed to fix a problem you report, or if required by law.
 
@@ -42,8 +42,8 @@ To run sign-in and online backup, the app uses:
 
 - **Supabase** for sign-in and database storage. Data is stored on servers in [SUPABASE REGION].
 - **Google**, only if you choose "Continue with Google", to confirm your identity.
-- **PayMongo**, only if you buy Premium, to process your payment. PayMongo collects your payment details directly under its own privacy policy.
-- **[EMAIL PROVIDER]** to send sign-in codes, payment receipts and a notice before a free trial ends.
+- **Google Play**, only if you buy Premium in the Android app, to process your payment and confirm the purchase to me. Google collects your payment details under its own privacy policy.
+- **[EMAIL PROVIDER]** to send sign-in codes and a notice before a free trial ends.
 - **[HOSTING PROVIDER]** to deliver the app's files to your browser. Like any web host, it may keep standard server logs such as IP addresses for a limited time.
 
 These providers process data on my behalf and under their own privacy and security terms. Your data may be stored or processed outside the Philippines.
@@ -53,7 +53,7 @@ These providers process data on my behalf and under their own privacy and securi
 - I do not sell or rent your personal information.
 - I do not share your data with advertisers or data brokers.
 - I do not show ads.
-- I do not send marketing emails. The only emails are sign-in codes, payment receipts, and one notice before a free trial ends.
+- I do not send marketing emails. The only emails I send are sign-in codes and one notice before a free trial ends. Purchase receipts come from Google Play.
 - I do not use analytics or tracking tools, and the app sets no advertising or tracking cookies. It uses your browser's storage only to make the app work (your data, your settings, and keeping you signed in).
 
 If any of this changes, I will update this policy and tell you in the app before the change takes effect.

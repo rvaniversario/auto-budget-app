@@ -1,5 +1,5 @@
-// Transactional email: payment receipts and the trial-ending notice. No
-// marketing email is ever sent.
+// Transactional email: the trial-ending notice. Purchase receipts come from
+// Google Play. No marketing email is ever sent.
 //
 // Backends, first configured wins:
 //   RESEND_API_KEY + EMAIL_FROM   production (https://resend.com)
@@ -61,45 +61,9 @@ function layout(title: string, rows: string): string {
 
 const para = (s: string) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.5">${esc(s)}</p>`
 
-/** ₱399 or ₱1,234.50: peso sign, no decimals when whole. */
-export function formatPeso(centavos: number): string {
-  const whole = centavos % 100 === 0
-  return `₱${(centavos / 100).toLocaleString('en-PH', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 })}`
-}
-
 const manila = (d: Date) => d.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'long', year: 'numeric' })
 
-export function receiptEmail(p: { to: string; product: string; amount: number; method: string | null; paidAt: Date; reference: string }): Email {
-  const lines = [
-    ['Item', p.product],
-    ['Amount', `${formatPeso(p.amount)} (one-time payment)`],
-    ['Date', manila(p.paidAt)],
-    ...(p.method ? [['Paid with', p.method]] : []),
-    ['Reference', p.reference],
-  ]
-  const support = Deno.env.get('SUPPORT_EMAIL')
-  const table = `<table style="width:100%;margin:0 0 16px;border-collapse:collapse;font-size:15px">${lines
-    .map(([k, v]) => `<tr><td style="padding:6px 0;color:#55635D">${esc(k)}</td><td style="padding:6px 0;text-align:right;font-weight:600">${esc(v)}</td></tr>`)
-    .join('')}</table>`
-  return {
-    to: p.to,
-    subject: 'Your Auto Budget Premium receipt',
-    text: [
-      'Thank you. Auto Budget Premium is unlocked for good.',
-      '',
-      ...lines.map(([k, v]) => `${k}: ${v}`),
-      '',
-      'Pay once, keep it for good. Nothing renews.',
-      ...(support ? [`Questions? Email ${support}.`] : []),
-    ].join('\n'),
-    html: layout(
-      'Thank you. Premium is unlocked.',
-      table + para('Pay once, keep it for good. Nothing renews.') + (support ? para(`Questions? Email ${support}.`) : ''),
-    ),
-  }
-}
-
-export function trialEndingEmail(p: { to: string; endsAt: Date; price: number; appUrl: string }): Email {
+export function trialEndingEmail(p: { to: string; endsAt: Date; appUrl: string }): Email {
   const when = manila(p.endsAt)
   return {
     to: p.to,
@@ -107,13 +71,14 @@ export function trialEndingEmail(p: { to: string; endsAt: Date; price: number; a
     text: [
       `Your free trial of Auto Budget Premium ends on ${when}.`,
       'Everything free keeps working, and nothing you made with Premium is deleted.',
-      `To keep Premium, unlock it for ${formatPeso(p.price)}, one time: ${p.appUrl}/premium`,
+      `To keep Premium, unlock it once in the Auto Budget Android app. It works on the web too: ${p.appUrl}/premium`,
     ].join('\n\n'),
     html: layout(
       'Your free trial ends tomorrow',
       para(`Your free trial of Auto Budget Premium ends on ${when}.`) +
         para('Everything free keeps working, and nothing you made with Premium is deleted.') +
-        `<p style="margin:0"><a href="${esc(p.appUrl)}/premium" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#0F6B4F;color:#FFFFFF;font-weight:600;text-decoration:none">Unlock Premium for ${esc(formatPeso(p.price))}</a></p>`,
+        para('To keep Premium, unlock it once in the Auto Budget Android app. It works on the web too.') +
+        `<p style="margin:0"><a href="${esc(p.appUrl)}/premium" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#0F6B4F;color:#FFFFFF;font-weight:600;text-decoration:none">See Premium</a></p>`,
     ),
   }
 }

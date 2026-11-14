@@ -1,12 +1,14 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(24);
+select plan(34);
 
-insert into auth.users (id, email, aud, role)
+insert into auth.users (id, email, aud, role, email_confirmed_at)
 values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'a@example.com', 'authenticated', 'authenticated'),
-  ('aaaaaaaa-0000-0000-0000-000000000002', 'b@example.com', 'authenticated', 'authenticated');
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'a@example.com', 'authenticated', 'authenticated', now()),
+  ('aaaaaaaa-0000-0000-0000-000000000002', 'b@example.com', 'authenticated', 'authenticated', now()),
+  ('aaaaaaaa-0000-0000-0000-000000000003', 'tester@example.com', 'authenticated', 'authenticated', now()),
+  ('aaaaaaaa-0000-0000-0000-000000000004', 'unverified@example.com', 'authenticated', 'authenticated', null);
 
 create function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
@@ -14,10 +16,12 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
 end $$;
 
--- ---- Products --------------------------------------------------------------
+create function pg_temp.record(uid uuid, token text, is_test boolean default false) returns text language sql as $$
+  select public.record_play_purchase(uid, token, 'GPA.' || token, 'premium_unlock', 399000000, 'PHP', is_test, false, now(), '{}')
+$$;
+
+-- ---- Guests ----------------------------------------------------------------
 set local role anon;
-select is((select amount from public.products where code = 'premium_lifetime'), 39900, 'anyone can read the price (₱399 in centavos)');
-select throws_ok($$ update public.products set amount = 1 $$, '42501', null, 'nobody can change the price from a client');
 select throws_ok($$ select public.start_trial() $$, '42501', null, 'guests cannot start a trial');
 reset role;
 
@@ -41,8 +45,8 @@ select throws_ok(
 );
 select throws_ok($$ delete from public.entitlements $$, '42501', null, 'a user cannot delete an entitlement');
 select throws_ok(
-  $$ insert into public.purchases (user_id, provider, product_code, amount, status)
-     values ('aaaaaaaa-0000-0000-0000-000000000001', 'paymongo', 'premium_lifetime', 39900, 'paid') $$,
+  $$ insert into public.purchases (user_id, provider, provider_payment_id, status)
+     values ('aaaaaaaa-0000-0000-0000-000000000001', 'google_play', 'tok_fake', 'paid') $$,
   '42501', null, 'a user cannot insert a purchase'
 );
 select throws_ok($$ update public.purchases set status = 'paid' $$, '42501', null, 'a user cannot update a purchase');
@@ -51,51 +55,72 @@ select throws_ok(
   '42501', null, 'a user cannot grant themselves Premium'
 );
 select throws_ok(
-  $$ select public.record_payment(gen_random_uuid(), 'pay_x', 39900, 'PHP', 'gcash', now(), '{}') $$,
-  '42501', null, 'a user cannot record a payment'
+  $$ select public.record_play_purchase('aaaaaaaa-0000-0000-0000-000000000001', 'tok_x', 'GPA.x', 'premium_unlock', 1, 'PHP', false, false, now(), '{}') $$,
+  '42501', null, 'a user cannot record a purchase'
 );
-select throws_ok($$ select * from public.payment_events $$, '42501', null, 'users cannot read webhook events');
+select throws_ok(
+  $$ select public.apply_tester_grant('aaaaaaaa-0000-0000-0000-000000000001') $$,
+  '42501', null, 'a user cannot apply a tester grant'
+);
+select throws_ok($$ select * from public.tester_grants $$, '42501', null, 'users cannot read tester grants');
+select throws_ok($$ select * from public.payment_events $$, '42501', null, 'users cannot read notification events');
+
+-- ---- Purchase (as verify-play-purchase, service role) ----------------------
+reset role;
+set local role service_role;
+select is(pg_temp.record('aaaaaaaa-0000-0000-0000-000000000001', 'tok_1'), 'recorded', 'a verified purchase is recorded');
+select ok(
+  (select plan = 'premium' and source = 'purchase' and expires_at is null from public.entitlements
+   where user_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
+  'buying during a trial unlocks Premium permanently'
+);
+select is(pg_temp.record('aaaaaaaa-0000-0000-0000-000000000001', 'tok_1'), 'already_recorded', 'the same token is processed once');
+select is((select count(*)::int from public.purchases where provider_payment_id = 'tok_1'), 1, 'no duplicate purchase row');
+select is(pg_temp.record('aaaaaaaa-0000-0000-0000-000000000002', 'tok_1'), 'other_account', 'a token belonging to another account is refused');
+select ok(
+  not exists (select 1 from public.entitlements where user_id = 'aaaaaaaa-0000-0000-0000-000000000002' and plan = 'premium'),
+  'the other account gets nothing'
+);
 
 -- ---- Isolation -------------------------------------------------------------
 reset role;
-insert into public.purchases (id, user_id, provider, provider_checkout_id, product_code, amount)
-values ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'paymongo', 'cs_1', 'premium_lifetime', 39900);
-
 select pg_temp.act_as('aaaaaaaa-0000-0000-0000-000000000002');
 select is((select count(*)::int from public.entitlements), 0, 'another user cannot read the entitlement');
 select is((select count(*)::int from public.purchases), 0, 'another user cannot read the purchases');
 select pg_temp.act_as('aaaaaaaa-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.purchases), 1, 'a user reads their own purchases');
+select throws_ok($$ select public.start_trial() $$, 'P0001', 'Premium is already unlocked', 'an account that owns Premium cannot start a trial');
 
--- ---- Payment (as the webhook, service role) -------------------------------
+-- ---- Refund ----------------------------------------------------------------
 reset role;
 set local role service_role;
-select is(
-  public.record_payment('bbbbbbbb-0000-0000-0000-000000000001', 'pay_1', 39900, 'PHP', 'gcash', now(), '{}'),
-  'paid', 'a matching payment is recorded'
-);
-select ok(
-  (select plan = 'premium' and source = 'purchase' and expires_at is null from public.entitlements
-   where user_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
-  'paying during a trial unlocks Premium permanently'
-);
-select is(
-  public.record_payment('bbbbbbbb-0000-0000-0000-000000000001', 'pay_1', 39900, 'PHP', 'gcash', now(), '{}'),
-  'already_processed', 'a duplicate webhook is processed once'
-);
-
-reset role;
-select pg_temp.act_as('aaaaaaaa-0000-0000-0000-000000000001');
-select throws_ok($$ select public.start_trial() $$, 'P0001', 'Premium is already unlocked', 'a paid account cannot start a trial');
-reset role;
-set local role service_role;
-
-select is(public.record_refund('pay_1', 10000, '{}'), 'partial_refund', 'a partial refund keeps Premium');
-select is(public.record_refund('pay_1', 29900, '{}'), 'refunded', 'a full refund is recorded');
+select is(public.record_play_refund('tok_1', '{}'), 'refunded', 'a refund is recorded');
+select is(public.record_play_refund('tok_1', '{}'), 'already_refunded', 'a repeated refund notification is ignored');
 select ok(
   (select plan = 'free' and trial_used from public.entitlements where user_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
   'a refund returns the account to free (trial still used)'
 );
+
+-- ---- Tester grants ---------------------------------------------------------
+insert into public.tester_grants (email, note) values ('tester@example.com', 'closed test'), ('unverified@example.com', 'unverified');
+select ok(public.apply_tester_grant('aaaaaaaa-0000-0000-0000-000000000003'), 'a tester grant applies to the matching verified email');
+select ok(
+  (select plan = 'premium' and source = 'grant' and tester_grant and expires_at is null from public.entitlements
+   where user_id = 'aaaaaaaa-0000-0000-0000-000000000003'),
+  'the tester has permanent Premium'
+);
+select ok(not public.apply_tester_grant('aaaaaaaa-0000-0000-0000-000000000004'), 'an unverified email gets no grant');
+
+delete from public.tester_grants where email = 'tester@example.com';
+select is(public.revoke_tester_grants(), 1, 'revoke_tester_grants removes grants whose row was deleted');
+select ok(
+  (select plan = 'free' from public.entitlements where user_id = 'aaaaaaaa-0000-0000-0000-000000000003'),
+  'the tester is back to free'
+);
+
+-- ---- Test purchases --------------------------------------------------------
+select is(pg_temp.record('aaaaaaaa-0000-0000-0000-000000000002', 'tok_test', true), 'recorded', 'a license-tester purchase grants Premium');
+select is(public.revoke_test_entitlements(), 1, 'revoke_test_entitlements returns test-only Premium to free');
 
 select * from finish();
 rollback;

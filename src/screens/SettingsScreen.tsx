@@ -41,7 +41,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui
 import { downloadFile, safeStorage } from '@/lib/browser'
 import { backupStatus, cloudEnabled, useSync } from '@/sync'
 import { dayField, moneyField, toCentavos } from '@/lib/forms'
-import { formatPrice, premiumEnabled, useEntitlement } from '@/premium'
+import { premiumEnabled, useEntitlement } from '@/premium'
 import { PremiumBadge } from '@/premium/components'
 
 const LAST_BACKUP_KEY = 'auto-budget:last-backup'
@@ -335,9 +335,7 @@ function PremiumCard() {
         ? `Free trial: ${ent.daysLeft} day${ent.daysLeft === 1 ? '' : 's'} left`
         : ent.trialAvailable
           ? 'Try free for 14 days'
-          : ent.product
-            ? `Unlock for ${formatPrice(ent.product.amount)}, one time`
-            : 'Unlock Premium'
+          : 'Unlock in the Android app'
   return (
     <Link
       to="/premium"

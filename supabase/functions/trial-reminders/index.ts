@@ -15,17 +15,14 @@ Deno.serve(async (req) => {
   const now = new Date()
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
 
-  const [{ data: due, error }, { data: product }] = await Promise.all([
-    admin
-      .from('entitlements')
-      .select('user_id, expires_at')
-      .eq('plan', 'premium')
-      .eq('source', 'trial')
-      .is('trial_reminder_sent_at', null)
-      .gt('expires_at', now.toISOString())
-      .lte('expires_at', in24h.toISOString()),
-    admin.from('products').select('amount').eq('code', 'premium_lifetime').single(),
-  ])
+  const { data: due, error } = await admin
+    .from('entitlements')
+    .select('user_id, expires_at')
+    .eq('plan', 'premium')
+    .eq('source', 'trial')
+    .is('trial_reminder_sent_at', null)
+    .gt('expires_at', now.toISOString())
+    .lte('expires_at', in24h.toISOString())
   if (error) {
     console.error('trial-reminders query failed', error)
     return new Response(JSON.stringify({ error: 'query failed' }), { status: 500 })
@@ -36,7 +33,7 @@ Deno.serve(async (req) => {
     const { data: user } = await admin.auth.admin.getUserById(row.user_id)
     const email = user?.user?.email
     if (!email) continue
-    const ok = await sendEmail(trialEndingEmail({ to: email, endsAt: new Date(row.expires_at), price: product?.amount ?? 39900, appUrl }))
+    const ok = await sendEmail(trialEndingEmail({ to: email, endsAt: new Date(row.expires_at), appUrl }))
     if (ok) {
       await admin.from('entitlements').update({ trial_reminder_sent_at: new Date().toISOString() }).eq('user_id', row.user_id)
       sent++

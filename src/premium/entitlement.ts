@@ -48,8 +48,3 @@ export function evaluateEntitlement(raw: RawEntitlement | null, now: Date = new 
   }
 }
 
-/** ₱399, ₱1,234.50: peso sign, no decimals when whole. */
-export function formatPrice(centavos: number): string {
-  const whole = centavos % 100 === 0
-  return `₱${(centavos / 100).toLocaleString('en-PH', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 })}`
-}

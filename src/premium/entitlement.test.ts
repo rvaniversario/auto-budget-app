@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { evaluateEntitlement, formatPrice, type RawEntitlement } from './entitlement'
+import { evaluateEntitlement, type RawEntitlement } from './entitlement'
 
 const now = new Date('2026-11-12T12:00:00.000Z')
 const raw = (over: Partial<RawEntitlement>): RawEntitlement => ({
@@ -41,9 +41,3 @@ describe('evaluateEntitlement', () => {
   })
 })
 
-describe('formatPrice', () => {
-  it('peso sign, no decimals when whole', () => {
-    expect(formatPrice(39900)).toBe('₱399')
-    expect(formatPrice(123450)).toBe('₱1,234.50')
-  })
-})

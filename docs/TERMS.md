@@ -23,7 +23,7 @@ Auto Budget is made by [YOUR NAME OR BUSINESS NAME] ("I", "me"), [BUSINESS REGIS
 ## 5. Auto Budget Premium
 
 - **What you get:** [PLACEHOLDER: the Premium features, and that Premium is tied to the account used to buy it.]
-- **Price and payment:** [PLACEHOLDER: the price is shown in the app before you pay; a one-time payment processed by PayMongo; taxes, if any.]
+- **Price and payment:** Premium is a one-time purchase made in the Auto Budget Android app through Google Play, at the price Google Play shows before you buy. Google Play processes the payment under its own terms. [PLACEHOLDER: taxes, if any.]
 - **Free trial:** [PLACEHOLDER: one 14-day trial per account, no payment details needed, and what happens when it ends.]
 - **How long it lasts:** [PLACEHOLDER: what "keep it for good" means, including what happens if the service is discontinued.]
 - **Refunds:** see the [Refund policy](/refunds).

@@ -1,17 +1,20 @@
 # Auto Budget version 2: Premium
 
-Version 1 (see `SPEC.md`) is deployed and in use. Version 2 adds **Auto Budget Premium**: a set of new paid features, a paywall that explains them, a single one-time payment through a Philippine payment gateway that unlocks them for good, and the entitlement system that locks and unlocks them.
+Version 1 (see `SPEC.md`) is deployed and in use. Version 2 adds **Auto Budget Premium**: a set of new paid features, a paywall that explains them, a single one-time purchase through **Google Play's in-app billing** that unlocks them for good, and the entitlement system that locks and unlocks them.
 
-Everything in `SPEC.md` still applies (architecture rules, design tokens, responsive layout, portability, privacy). Where this document and `SPEC.md` disagree, this document wins for version 2 work.
+Premium is **bought only in the Android app** (see `SPEC-NATIVE.md`). The web app and the Android app share one backend and one database, so a purchase made on Android unlocks Premium on the web too when the user signs in with the same account. The web app never sells Premium.
+
+Everything in `SPEC.md` still applies (architecture rules, design tokens, responsive layout, portability, privacy). The Google Play purchase flow, verification and release steps are specified in `SPEC-NATIVE.md`. Where this document and `SPEC.md` disagree, this document wins for version 2 work.
 
 ## Principles
 
 1. **Nothing free becomes paid.** Every feature that exists in version 1 stays free forever, including optional sign-in, online backup and sync, the safe credit card payment, the breakdown with what-if slider and single-card payoff schedule, the auto-generated budget, and export/import.
 2. **Premium is only new features.** Each one either costs money to run or goes beyond everyday budgeting.
-3. **Locked features are visible, not hidden.** Free users see an entry point with a "Premium" badge. Opening it shows what the feature does and a Subscribe button, never the feature itself.
+3. **Locked features are visible, not hidden.** Free users see an entry point with a "Premium" badge. Opening it shows what the feature does and a "See Premium" button, never the feature itself.
 4. **The user's data is always theirs.** If a free trial ends or a purchase is refunded, premium features lock again but no data is deleted, and export keeps working.
 5. **Premium requires an account.** The entitlement lives on the server, tied to the signed-in user. Guests are asked to sign in first.
-6. **Never trust the client for payment state.** Only server code, after a verified gateway webhook, can grant Premium.
+6. **Never trust the client for payment state.** Only server code, after verifying the purchase with the Google Play Developer API, can grant Premium.
+7. **One entitlement everywhere.** Premium is stored once per user in the shared database and read by both the web and Android apps.
 
 ## Free and Premium
 
@@ -31,37 +34,33 @@ Planned for a later release, also Premium, not built now: shared budget with a p
 
 ## Price and trial
 
-Premium is a **one-time payment that unlocks all premium features permanently** for that account. There are no plans to choose between, no renewals and no expiry.
+Premium is a **one-time purchase that unlocks all premium features permanently** for that account. There are no plans to choose between, no renewals and no expiry.
 
-| Product code | Price | Shown as |
-|---|---|---|
-| `premium_lifetime` | ₱399 | "₱399 once" |
-
-- The price is the owner's decision; ₱399 is a default kept in one server-side config so it can change without a code release. Never hard-code it in the client.
-- **Free trial:** 14 days, once per account, no payment details. It starts when the user taps "Start 14-day free trial". When it ends without a purchase, premium features lock.
-- Paying during a trial unlocks Premium permanently straight away.
-- A paid account cannot buy again; the paywall is replaced by the Premium status screen.
-- Add `VITE_PREMIUM_ENABLED`. When it is not `true`, the app shows no premium entry points, badges or paywall and behaves exactly like version 1.
+- **Google Play product:** one one-time (non-consumable) product, ID `premium_unlock`. Its price is set in Play Console (default suggestion ₱399), so it can change without an app release. The Android app always shows the localised price returned by Google Play; never hard-code it.
+- **Free trial:** 14 days, once per account, no payment details. It can be started in **either app**, because it is granted by our own server, not by Google Play. When it ends without a purchase, premium features lock.
+- Buying during a trial unlocks Premium permanently straight away.
+- An account that owns Premium cannot buy again; the paywall is replaced by the Premium status screen.
+- Feature flags: `VITE_PREMIUM_ENABLED` (web) and `EXPO_PUBLIC_PREMIUM_ENABLED` (Android). When a flag is not `true`, that app shows no premium entry points, badges or paywall and behaves like version 1.
 
 ## Entitlements
 
 ### Server (PostgreSQL, new migrations only; never edit version 1 migrations)
 
 - `entitlements`: `user_id` (primary key, references the auth user), `plan` (`free` | `premium`), `source` (`trial` | `purchase` | `grant`), `starts_at`, `expires_at` (set for a trial; **null means permanent**), `trial_used` (boolean), `updated_at`.
-- `purchases`: `id`, `user_id`, `provider`, `provider_payment_id` (unique), `product_code`, `amount` (integer centavos), `currency`, `status` (`pending` | `paid` | `failed` | `refunded`), `paid_at`, `created_at`, `raw` (the provider's event, JSON).
-- `products`: `code`, `amount`, `active`. Seed with the table above.
-- Row-level security: a user may **select** only their own rows in `entitlements` and `purchases`. No client may insert, update or delete in these tables. Only server functions using the service role write to them. `products` is readable by everyone.
+- `purchases`: `id`, `user_id`, `provider` (`google_play`), `provider_payment_id` (the Google Play purchase token, unique), `order_id`, `product_id`, `amount_micros` and `currency` (as reported by Google, for records only), `status` (`pending` | `paid` | `refunded`), `acknowledged` (boolean), `is_test` (boolean, true for Google Play test purchases), `paid_at`, `created_at`, `raw` (Google's response, JSON).
+- Row-level security: a user may **select** only their own rows in `entitlements` and `purchases`. No client may insert, update or delete in these tables. Only server functions using the service role write to them.
 - `start_trial()`: a security-definer function. If the caller has not used a trial, set `plan = premium`, `source = trial`, `expires_at = now() + 14 days`, `trial_used = true`. Otherwise raise an error.
-- `grant_premium(user_id)`: service role only, for support cases; sets a permanent entitlement with `source = grant`.
+- `grant_premium(user_id, expires_at)`: service role only, for support cases and testers; sets `source = grant`, with `expires_at` null for permanent.
+- `tester_grants`, `revoke_tester_grants()` and `revoke_test_entitlements()`: see "Premium for testers" in `SPEC-NATIVE.md`. Service role only.
 - Add tests that a user cannot write to `entitlements` or `purchases` and cannot read another user's rows.
 
 ### Client
 
-- `src/premium/features.ts` is the single registry of premium features: `id`, `name`, one-line `benefit`, longer `description`, icon. The paywall, locked screens and Settings all read from it, so the list of benefits is written once.
+- `packages/premium/features.ts` (shared by both apps) is the single registry of premium features: `id`, `name`, one-line `benefit`, longer `description`, icon. The paywall, locked screens and Settings all read from it, so the list of benefits is written once.
 - `useEntitlement()` returns `{ isPremium, source, expiresAt, daysLeft, trialAvailable, loading }`. `isPremium` is true when `plan = premium` and `expires_at` is either null (purchased) or in the future (trial). Also return `isLifetime`.
-- Cache the last known entitlement in IndexedDB. Offline, a purchased Premium keeps working indefinitely; a trial keeps working until the cached `expiresAt`, then locks.
+- Cache the last known entitlement locally (IndexedDB on web, SQLite on Android). Offline, a purchased Premium keeps working indefinitely; a trial keeps working until the cached `expiresAt`, then locks.
 - `<PremiumGate feature="reports">` renders its children for Premium users and the locked view otherwise. Use it for every premium screen and control. Do not scatter `isPremium` checks through components.
-- Refresh the entitlement on app open, after sign-in, after returning from checkout, and when the app regains focus.
+- Refresh the entitlement on app open, after sign-in, after a purchase or restore, and when the app returns to the foreground.
 - All premium features run on the device and are gated in the interface. The server's only premium job is granting the entitlement.
 
 ### When a trial ends or a purchase is refunded
@@ -73,39 +72,21 @@ Premium is a **one-time payment that unlocks all premium features permanently** 
 
 ## Payments
 
-### Approach
-
-- Use **PayMongo hosted Checkout** for one-time payments with GCash, Maya, cards and QR Ph. The app never sees or stores card or wallet details.
-- Put all gateway code behind a `PaymentProvider` interface on the server so the gateway can be replaced.
-- **Read PayMongo's current API documentation before writing this code** and follow it for endpoints, payload shapes, webhook event names and signature verification. Do not rely on memory.
-- Secret keys live only in server environment variables. Use test keys in development and document the switch to live keys in `DEPLOY.md`.
-
-### Flow
-
-1. The signed-in user taps Pay. The client calls the server function `create-checkout`.
-2. `create-checkout` checks the user's session, refuses if the user already owns Premium, loads the price from `products` (never from the client), inserts a `pending` purchase, creates a checkout session with the purchase id and user id in its metadata, and returns the checkout URL.
-3. The browser goes to the hosted checkout page. Success returns to `/premium/success`, cancel returns to `/premium`.
-4. The gateway calls the `payment-webhook` server function. It verifies the signature, ignores events it has already processed (`provider_payment_id` is unique), marks the purchase `paid`, and sets the entitlement to `plan = premium`, `source = purchase`, `expires_at = null`.
-5. `/premium/success` shows "Confirming your payment…" and re-checks the entitlement every 2 seconds for up to 60 seconds. When Premium is active it shows the success state. If it times out, it says the payment is still being confirmed, that Premium will unlock automatically, and gives the support email.
-6. On a refund event, mark the purchase `refunded` and set the entitlement back to `free`.
-
-### Other requirements
-
-- A "Receipts" list on the Premium status screen, read from `purchases`: date, item, amount, payment method if provided, status.
-- Email a receipt after each successful payment.
-- All amounts are integer centavos in PHP.
-- Log webhook failures on the server so they can be investigated.
-- If the app is later wrapped for the Google Play or Apple stores, in-app digital purchases generally must use the store's own billing. Keep `PaymentProvider` and the product config abstract enough that a store billing provider can be added.
+- Premium is sold only through **Google Play Billing in the Android app**. `SPEC-NATIVE.md` ("Google Play billing") defines the Play Console product, the `StoreBilling` interface, the purchase flow, the `verify-play-purchase` and `play-notifications` server functions, restore, refunds and tester setup.
+- The web app has no checkout, no payment provider and no payment links. Its paywall explains that Premium is unlocked in the Android app (see "Web paywall" below).
+- In the Android app, do not mention or link to any other way of paying.
+- Google Play sends the purchase receipt; the app does not email receipts.
+- Log verification and notification failures on the server so they can be investigated.
 
 ## Paywall and locked states
 
 ### Entry points (all hidden when `VITE_PREMIUM_ENABLED` is off)
 
-- **Settings:** a prominent "Auto Budget Premium" card at the top. Free: "Try free for 14 days" (or "Unlock for ₱399, one time" when the trial is used). Trial: "Free trial: [N] days left". Purchased: "Unlocked".
+- **Settings:** a prominent "Auto Budget Premium" card at the top. Free: "Try free for 14 days" (or, when the trial is used, "Unlock for [price], one time" on Android and "Unlock in the Android app" on web). Trial: "Free trial: [N] days left". Purchased: "Unlocked".
 - **Home:** a "Reports" card with a Premium badge.
 - **Credit card breakdown:** a "Plan all your debts" card with a Premium badge under the payoff schedule.
 - **Add transaction:** a "Repeat" row with a Premium badge.
-- **Navigation on `lg` and up:** "Reports" and "Debt planner" in the sidebar with a small lock icon for free users.
+- **Navigation on wider screens:** a "Premium" section with "Reports" and "Debt planner" in the sidebar or navigation rail, with a small lock icon for free users.
 
 Tapping any locked entry opens that feature's locked view.
 
@@ -116,38 +97,47 @@ Tapping any locked entry opens that feature's locked view.
 - A static, non-interactive preview illustration of the feature. Never render the user's real premium results behind a blur.
 - Primary button "See Premium" opening the paywall with this feature listed first.
 
-### Paywall screen (`/premium`)
+### Android paywall
 
 In this order:
 
 1. Title "Auto Budget Premium" and one line of value: "Clear your debts faster and see where your money goes."
 2. The benefits list from the feature registry: name and one-line benefit for each, with a check icon.
-3. One price card: "One-time payment", the price, and "Pay once, keep it for good. No monthly fees."
-4. Payment note: "Pay with GCash, Maya, card or QR Ph."
-5. Primary button. If the trial is available: "Start 14-day free trial", with "No payment needed" under it and a secondary "Skip trial and pay ₱399". If the trial is running or used: "Unlock Premium for ₱399".
-6. Reassurance: "Everything you use today stays free."
-7. Links to Terms, Refund policy and Privacy Policy.
+3. One price card: "One-time purchase", the localised price from Google Play, and "Pay once, keep it for good. No monthly fees."
+4. Payment note: "Paid securely through Google Play."
+5. Primary button. If the trial is available: "Start 14-day free trial", with "No payment needed" under it and a secondary "Skip trial and buy for [price]". If the trial is running or used: "Unlock Premium for [price]".
+6. "Restore purchase" link.
+7. Reassurance: "Everything you use today stays free."
+8. Links to Terms, Refunds and Privacy Policy.
 
-If the user is a guest, the primary button first opens Sign in with the message "Sign in so your Premium is saved to your account", then returns to the paywall.
+If the user is a guest, the primary button first opens Sign in with the message "Sign in so your Premium is saved to your account", then returns to the paywall. If Google Play is unavailable, show "Google Play isn't available right now" and disable the purchase button (the trial button still works).
 
-On `md` and larger the paywall is a centred card up to 560px wide, with benefits and the price card side by side from `lg`.
+### Web paywall (`/premium`)
+
+1. The same title, value line and benefits list.
+2. If the trial is available: "Start 14-day free trial" with "No payment needed".
+3. An explanation card: "Premium is unlocked in the Auto Budget Android app. Buy it once there and it works here too when you sign in with the same account."
+4. A "Get the Android app" button linking to the Google Play listing (`VITE_PLAY_STORE_URL`), and for signed-in users a "Already bought it? Refresh" link that re-checks the entitlement.
+5. Reassurance: "Everything you use today stays free." No price is shown on the web.
+
+On `md` and larger both paywalls are centred cards up to 560px wide, with benefits and the price or explanation side by side from `lg`.
 
 ### Premium status screen (signed in with Premium or a trial)
 
 - **Purchased:** "Premium unlocked" badge, "Yours for good", and "One-time payment · nothing to renew".
 - **Trial:** "Free trial" badge, "Ends [date]", days left, and an "Unlock Premium for ₱399" button with "Pay once, keep it for good".
 - The benefits list, each linking to its feature.
-- Receipts list.
+- Purchase record: "Bought through Google Play on [date]" with the order ID, and a note that refunds are requested through Google Play. On the web, the same record without the Restore link.
 
 ### Copy rules
 
-- Say "Premium" for the product and "one-time payment" for the purchase. Never say "subscription", "subscribe", "plan" or "renew" in the interface. Use "Unlock Premium" or "Pay" on buttons.
+- Say "Premium" for the product and "one-time purchase" for the purchase. Never say "subscription", "subscribe", "plan" or "renew" in the interface. Use "Unlock Premium" or "Buy" on buttons.
 - No countdown timers, fake discounts or pressure wording.
 - Show prices with the peso sign and no decimals when whole.
 
 ## Premium features
 
-All calculation code goes in `src/core/` as pure TypeScript with unit tests, as in version 1.
+All calculation code goes in `packages/core/` as pure TypeScript with unit tests, shared by both apps.
 
 ### 1. Debt payoff planner
 
@@ -178,41 +168,58 @@ All calculation code goes in `src/core/` as pure TypeScript with unit tests, as 
 
 ## Legal and policy pages
 
-- Add `/terms` (Terms of Service) and `/refunds` (Refund policy) pages rendering `TERMS.md` and `REFUNDS.md` from the project root. Create both files with clear section headings and `[PLACEHOLDER]` markers for the owner to complete; do not invent legal terms or a refund period.
-- `PRIVACY.md` has been updated for payments; render it as before.
+- Add `/terms` (Terms of Service) and `/refunds` pages in both apps, rendering `TERMS.md` and `REFUNDS.md` from the repository root. Create both with clear section headings and `[PLACEHOLDER]` markers for the owner to complete; do not invent legal terms. The refunds page explains that purchases are made through Google Play and refunds are requested through Google Play under its policies.
+- `PRIVACY.md` has been updated for Google Play purchases; render it as before in both apps.
 - The app still has no analytics or tracking. Measure Premium uptake from the `entitlements` and `purchases` tables.
 
 ## Compatibility with version 1
 
 - Existing users and data must keep working with no action on their part.
-- Server changes are additive migrations. The local database gets a new Dexie version with an upgrade step; never drop or rename existing stores or fields.
-- A version 1 client that has not updated yet must still sync correctly with the version 2 server.
-- With `VITE_PREMIUM_ENABLED` off, the deployed app is indistinguishable from version 1 apart from the new `loan` account type.
+- Server changes are additive migrations in the shared `supabase/migrations/`. The web app's local database gets a new Dexie version with an upgrade step; never drop or rename existing stores or fields.
+- A version 1 web client that has not updated yet must still sync correctly with the version 2 server, as must older Android versions.
+- With the premium flag off, each app is indistinguishable from version 1 apart from the new `loan` account type.
+
+## Design reference
+
+The design canvas "Auto Budget mobile app" includes version 2 screens. Treat them as the visual reference; where they disagree with this document, this document wins.
+
+- **Phone (Light and Dark pages):** the Android paywall, the web paywall, a locked feature (Reports), Premium unlocked, the debt payoff planner, reports and trends, and recurring transactions. Home, the credit card breakdown and Add transaction show the free-user entry points ("Reports and trends", "Plan all your debts", "Repeat"), each with a Premium badge.
+- **Tablet and desktop pages:** the Android paywall on tablet, the web paywall on desktop, the debt payoff planner and reports, plus a "Premium" section in the sidebar and navigation rail.
+
+Sample figures for the debt planner, usable as a test fixture: credit card ₱50,000 at 3% a month with a ₱2,500 minimum; personal loan ₱30,000 at 1.5% a month with a ₱2,000 minimum; ₱15,000 a month toward debts; one extra payment of ₱10,000 in December 2026; first payment in November 2026. Each month, pay every minimum, put the remainder toward the first debt in the order, then add interest on what is left. Expected results:
+
+- Highest interest first: card cleared Feb 2027, loan Mar 2027; debt-free in 5 months; about ₱3,020 interest.
+- Smallest balance first: loan cleared Dec 2026, card Mar 2027; debt-free in 5 months; about ₱4,190 interest.
+- Minimums only: 30 months; about ₱27,400 interest.
 
 ## Build order
 
-Keep the app deployable after each step, with premium hidden behind the flag until step 5 is verified with test payments.
+This work runs alongside `SPEC-NATIVE.md`: its steps 1 to 5 (monorepo, Android app, shared sign-in and sync, first test release) come first, then the steps below, then its Google Play billing step.
 
-1. Migrations for `products`, `entitlements`, `purchases`, the trial and grant functions, and their security tests.
-2. Feature registry, `useEntitlement`, entitlement cache, `PremiumGate`, and the flag.
-3. Paywall, locked feature view, Premium status screen and all entry points, with the trial working end to end.
-4. `PaymentProvider`, `create-checkout` and `payment-webhook` with PayMongo test keys, the success page, receipts and the receipt email.
-5. Trial end and refunds: locking, notices, the trial-ending email, and blocking a second purchase.
-6. Debt payoff planner.
-7. Reports and trends.
-8. Recurring transactions.
-9. Terms and refund pages, `DEPLOY.md` updates (keys, webhook URL, going live), and a full pass of free and premium flows at all testing widths in light and dark.
+1. Migrations for `entitlements`, `purchases`, the trial and grant functions, and their security tests.
+2. Feature registry, entitlement logic, local entitlement cache and `PremiumGate` in `packages/premium`, used by both apps, plus the flags.
+3. Paywalls (Android and web), locked feature view, Premium status screen and all entry points, with the trial working end to end in both apps.
+4. Trial end and refunds: locking, notices, the trial-ending email, and blocking a second purchase.
+5. Debt payoff planner.
+6. Reports and trends.
+7. Recurring transactions.
+8. Google Play billing (from `SPEC-NATIVE.md`), tested with license testers.
+9. Terms and refunds pages, `DEPLOY.md` updates, and a full pass of free and premium flows in both apps at all testing widths in light and dark.
 
 ## Test scenarios
 
-- Guest taps a locked feature, signs in, starts the trial, and the feature unlocks without a reload.
-- Trial cannot be started twice on one account.
-- Paying during a trial unlocks Premium permanently at once.
-- An account that already owns Premium cannot start a second checkout.
-- A duplicate webhook is processed only once.
-- A webhook with a bad signature is rejected.
+- Guest taps a locked feature, signs in, starts the trial, and the feature unlocks without a reload, in both apps.
+- Trial cannot be started twice on one account, even across web and Android.
+- Buying during a trial unlocks Premium permanently at once.
+- An account that already owns Premium cannot start a second purchase.
+- Buying on Android unlocks Premium on the web after signing in with the same account.
+- The same purchase token sent twice is processed only once.
+- A purchase token belonging to another account is refused.
 - A tampered client cannot grant itself Premium on the server.
 - A trial ends while the app is offline: features lock at the cached expiry time. A purchased Premium keeps working offline indefinitely.
 - After a trial ends: loans and recurring templates still exist; nothing is deleted.
-- A refund returns the account to free.
+- A Google Play refund returns the account to free in both apps.
+- The web app shows no price, checkout or payment link anywhere.
 - With the flag off, no premium interface appears anywhere.
+- A license tester's test purchase grants Premium and is stored with `is_test = true`.
+- A tester grant applies on first sign-in with the matching email, and is removed by `revoke_tester_grants()`.

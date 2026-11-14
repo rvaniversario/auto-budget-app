@@ -1,24 +1,11 @@
-// Premium status.
+// Premium status. Premium is bought only through Google Play in the Android
+// app (verify-play-purchase); this function reads it for both apps.
 //
-//   GET  /premium/status       -> { entitlement, product, receipts, serverTime }
-//                                 Without sign-in: { entitlement: null, product, receipts: [] }
+//   GET  /premium/status       -> { entitlement, purchases, serverTime }
+//                                 Without sign-in: { entitlement: null, purchases: [] }
 //   POST /premium/start-trial  -> { entitlement }  (409 when already used or owned)
 
 import { adminClient, errorResponse, getCaller, json, preflight } from '../_shared/http.ts'
-import { methodLabel } from '../_shared/payments.ts'
-
-const PRODUCT = 'premium_lifetime'
-
-async function activeProduct() {
-  const { data, error } = await adminClient()
-    .from('products')
-    .select('code, name, amount, currency')
-    .eq('code', PRODUCT)
-    .eq('active', true)
-    .maybeSingle()
-  if (error) throw error
-  return data
-}
 
 Deno.serve(async (req) => {
   const pre = preflight(req)
@@ -28,14 +15,17 @@ Deno.serve(async (req) => {
 
   try {
     if (route === 'status' && req.method === 'GET') {
-      const product = await activeProduct()
-      if (!caller) return json(req, { entitlement: null, product, receipts: [], serverTime: new Date().toISOString() })
+      if (!caller) return json(req, { entitlement: null, purchases: [], serverTime: new Date().toISOString() })
+
+      // Testers listed in tester_grants get Premium on sign-in with a matching verified email.
+      const grant = await adminClient().rpc('apply_tester_grant', { p_user_id: caller.user.id })
+      if (grant.error) console.error('apply_tester_grant failed', { user: caller.user.id, err: grant.error })
 
       const [ent, purchases] = await Promise.all([
         caller.db.from('entitlements').select('plan, source, starts_at, expires_at, trial_used').maybeSingle(),
         caller.db
           .from('purchases')
-          .select('id, product_code, amount, currency, status, payment_method, paid_at, created_at')
+          .select('id, provider, order_id, status, paid_at, created_at')
           .in('status', ['paid', 'refunded'])
           .order('created_at', { ascending: false }),
       ])
@@ -43,14 +33,11 @@ Deno.serve(async (req) => {
       if (purchases.error) throw purchases.error
       return json(req, {
         entitlement: ent.data ?? { plan: 'free', source: null, starts_at: null, expires_at: null, trial_used: false },
-        product,
-        receipts: (purchases.data ?? []).map((p) => ({
+        purchases: (purchases.data ?? []).map((p) => ({
           id: p.id,
-          item: product?.name ?? 'Auto Budget Premium',
-          amount: p.amount,
-          currency: p.currency,
+          provider: p.provider,
+          orderId: p.order_id,
           status: p.status,
-          method: methodLabel(p.payment_method),
           date: p.paid_at ?? p.created_at,
         })),
         serverTime: new Date().toISOString(),

@@ -4,15 +4,16 @@ A responsive budgeting web app (phone, tablet, laptop and desktop) for salaried 
 
 It installs to a phone's Home Screen or as a desktop app (Chrome, Edge) as a PWA, and works fully offline. Data lives on the device (IndexedDB); signing in to back it up online and sync between devices is optional.
 
-**Auto Budget Premium** (version 2) adds a debt payoff planner, reports and trends, and recurring transactions, unlocked with a 14-day free trial or a one-time payment through PayMongo. Everything from version 1 stays free. Premium is off unless the app is built with `VITE_PREMIUM_ENABLED=true` and the Supabase backend.
+**Auto Budget Premium** (version 2) adds a debt payoff planner, reports and trends, and recurring transactions, unlocked with a 14-day free trial or a one-time purchase through Google Play in the Android app (the web app reads the same entitlement and never sells Premium). Everything from version 1 stays free. Premium is off unless the app is built with `VITE_PREMIUM_ENABLED=true` and the Supabase backend.
 
 Docs live in [docs/](docs/):
 
 - [SPEC.md](docs/SPEC.md): version 1 specification
 - [SPEC-V2.md](docs/SPEC-V2.md): version 2 (Premium) specification
+- [SPEC-NATIVE.md](docs/SPEC-NATIVE.md): Android app (React Native) and Google Play billing
 - [PRIVACY.md](docs/PRIVACY.md), [TERMS.md](docs/TERMS.md), [REFUNDS.md](docs/REFUNDS.md): policies shown in the app (complete the `[PLACEHOLDER]`s before going live)
 
-[DEPLOY.md](DEPLOY.md) covers hosting on Vercel or a VPS, and setting up Supabase, PayMongo and going live.
+[DEPLOY.md](DEPLOY.md) covers hosting on Vercel or a VPS, and setting up Supabase and going live.
 
 ## Getting started
 
@@ -41,7 +42,7 @@ src/
   components/  Shared UI; components/ui holds the shadcn/ui components.
   lib/         Small browser helpers (theme, downloads, form field schemas).
 docs/          Specifications and the policy documents rendered in the app.
-supabase/      Migrations, SQL tests and server functions (sync, Premium, payments).
+supabase/      Migrations, SQL tests and server functions (sync, Premium status and trial, trial reminders).
 ```
 
 Premium calculations are pure functions in `src/core` with unit tests: `debtPlanner.ts` (`simulateDebts`, goal mode), `reports.ts` (budget-month reports, rule-based insights, CSV) and `recurring.ts` (schedules and deterministic occurrence ids). Only the server grants Premium, after a verified payment webhook; screens are gated in the interface with `<PremiumGate>`.

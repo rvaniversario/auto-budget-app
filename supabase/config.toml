@@ -65,13 +65,7 @@ verify_jwt = false
 [functions.premium]
 verify_jwt = false
 
-[functions.create-checkout]
-verify_jwt = false
-
-# Called by PayMongo (signature-checked) and by the scheduler (CRON_SECRET).
-[functions.payment-webhook]
-verify_jwt = false
-
+# Called by the scheduler (CRON_SECRET).
 [functions.trial-reminders]
 verify_jwt = false
 

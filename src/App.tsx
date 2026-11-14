@@ -21,7 +21,7 @@ import { HomeScreen } from '@/screens/HomeScreen'
 import { LegalScreen } from '@/screens/LegalScreen'
 import { DebtPlannerScreen } from '@/screens/DebtPlannerScreen'
 import { Onboarding } from '@/screens/onboarding/Onboarding'
-import { PremiumScreen, PremiumSuccessScreen } from '@/screens/premium/PremiumScreens'
+import { PremiumScreen } from '@/screens/premium/PremiumScreens'
 import { RecurringScreen } from '@/screens/RecurringScreen'
 import { ReportsScreen } from '@/screens/ReportsScreen'
 import { BillsScreen, CategoriesScreen, SettingsScreen } from '@/screens/SettingsScreen'
@@ -57,7 +57,6 @@ const SHARED_SCREENS: { path: string; element: ReactNode }[] = [
 const PREMIUM_SCREENS: { path: string; element: ReactNode }[] = premiumEnabled
   ? [
       { path: 'premium', element: <PremiumScreen /> },
-      { path: 'premium/success', element: <PremiumSuccessScreen /> },
       { path: 'debt-planner', element: <DebtPlannerScreen /> },
       { path: 'reports', element: <ReportsScreen /> },
       { path: 'recurring', element: <RecurringScreen /> },

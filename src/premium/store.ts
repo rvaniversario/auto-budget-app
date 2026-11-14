@@ -8,28 +8,19 @@ import { ApiError, OfflineError, apiCall, getSyncState, subscribeSync } from '@/
 import { premiumEnabled } from './config'
 import type { RawEntitlement } from './entitlement'
 
-export interface Product {
-  code: string
-  name: string
-  /** Integer centavos. */
-  amount: number
-  currency: string
-}
-
-export interface Receipt {
+/** A Premium purchase record. Purchases happen in the Android app through Google Play. */
+export interface PurchaseRecord {
   id: string
-  item: string
-  amount: number
-  currency: string
+  provider: string
+  /** Google Play order ID. */
+  orderId: string | null
   status: 'paid' | 'refunded'
-  method: string | null
   date: string
 }
 
 interface StatusResponse {
   entitlement: RawEntitlement | null
-  product: Product | null
-  receipts: Receipt[]
+  purchases: PurchaseRecord[]
 }
 
 export interface PremiumState {
@@ -37,12 +28,11 @@ export interface PremiumState {
   loading: boolean
   userId: string | null
   raw: RawEntitlement | null
-  product: Product | null
-  receipts: Receipt[]
+  purchases: PurchaseRecord[]
   fetchedAt: string | null
 }
 
-let state: PremiumState = { loading: premiumEnabled, userId: null, raw: null, product: null, receipts: [], fetchedAt: null }
+let state: PremiumState = { loading: premiumEnabled, userId: null, raw: null, purchases: [], fetchedAt: null }
 const listeners = new Set<() => void>()
 
 function set(patch: Partial<PremiumState>) {
@@ -86,7 +76,7 @@ export function refreshPremium(): Promise<void> {
       const res = await apiCall<StatusResponse>('premium/status', {}, { anonymous: true })
       if (userId !== state.userId) return // signed in or out meanwhile; that change refreshes again
       const fetchedAt = new Date().toISOString()
-      set({ loading: false, raw: res.entitlement, product: res.product, receipts: res.receipts, fetchedAt })
+      set({ loading: false, raw: res.entitlement, purchases: res.purchases ?? [], fetchedAt })
       await writeCache(userId, { ...res, fetchedAt })
     } catch (err) {
       if (!(err instanceof OfflineError) && !(err instanceof ApiError && err.status === 401)) console.warn('Premium status refresh failed', err)
@@ -104,8 +94,7 @@ async function onUser(userId: string | null) {
   set({
     userId,
     raw: cached?.entitlement ?? null,
-    product: cached?.product ?? state.product,
-    receipts: cached?.receipts ?? [],
+    purchases: cached?.purchases ?? [],
     fetchedAt: cached?.fetchedAt ?? null,
     loading: !cached,
   })
@@ -150,17 +139,3 @@ export async function startTrial(): Promise<{ ok: true } | { ok: false; error: s
   }
 }
 
-/** Create a checkout and go to the payment page. */
-export async function payForPremium(): Promise<{ ok: false; error: string } | void> {
-  try {
-    const { url } = await apiCall<{ url: string }>('create-checkout', { method: 'POST', body: '{}' })
-    window.location.assign(url)
-  } catch (err) {
-    if (err instanceof OfflineError) return { ok: false, error: "You're offline. Connect to the internet to pay." }
-    if (err instanceof ApiError) {
-      if (err.status === 409) await refreshPremium()
-      return { ok: false, error: err.message }
-    }
-    return { ok: false, error: "Couldn't start the payment. Try again." }
-  }
-}

@@ -12,8 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_GOOGLE_SIGN_IN?: string
   /** "true" to show Auto Budget Premium. Needs the backend; off means the app behaves like version 1. */
   readonly VITE_PREMIUM_ENABLED?: string
-  /** Shown when a payment is still being confirmed. */
-  readonly VITE_SUPPORT_EMAIL?: string
+  /** Google Play listing of the Android app, where Premium is bought. Without it the web paywall shows no store button. */
+  readonly VITE_PLAY_STORE_URL?: string
 }
 
 interface ImportMeta {
