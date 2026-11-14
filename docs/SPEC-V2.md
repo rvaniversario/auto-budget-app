@@ -1,6 +1,6 @@
 # Auto Budget version 2: Premium
 
-Version 1 (see `SPEC.md`) is deployed and in use. Version 2 adds **Auto Budget Premium**: a set of new paid features, a paywall that explains them, a single one-time purchase through **Google Play's in-app billing** that unlocks them for good, and the entitlement system that locks and unlocks them.
+Version 1 (see `SPEC.md`) is deployed and in use. Version 2 adds **Auto Budget Premium**: cross-device sync plus a set of new paid features, a paywall that explains them, a single one-time purchase through **Google Play's in-app billing** that unlocks them for good, and the entitlement system that locks and unlocks them.
 
 Premium is **bought only in the Android app** (see `SPEC-NATIVE.md`). The web app and the Android app share one backend and one database, so a purchase made on Android unlocks Premium on the web too when the user signs in with the same account. The web app never sells Premium.
 
@@ -8,13 +8,14 @@ Everything in `SPEC.md` still applies (architecture rules, design tokens, respon
 
 ## Principles
 
-1. **Nothing free becomes paid.** Every feature that exists in version 1 stays free forever, including optional sign-in, online backup and sync, the safe credit card payment, the breakdown with what-if slider and single-card payoff schedule, the auto-generated budget, and export/import.
-2. **Premium is only new features.** Each one either costs money to run or goes beyond everyday budgeting.
-3. **Locked features are visible, not hidden.** Free users see an entry point with a "Premium" badge. Opening it shows what the feature does and a "See Premium" button, never the feature itself.
-4. **The user's data is always theirs.** If a free trial ends or a purchase is refunded, premium features lock again but no data is deleted, and export keeps working.
-5. **Premium requires an account.** The entitlement lives on the server, tied to the signed-in user. Guests are asked to sign in first.
-6. **Never trust the client for payment state.** Only server code, after verifying the purchase with the Google Play Developer API, can grant Premium.
-7. **One entitlement everywhere.** Premium is stored once per user in the shared database and read by both the web and Android apps.
+1. **Free stays useful on its own.** Tracking, the safe credit card payment, the breakdown with what-if slider and single-card payoff schedule, the auto-generated budget, manual backup files, and automatic Android backup to the user's own Google account are free forever.
+2. **Sync is Premium, with one exception.** Sync across devices through our server becomes a Premium feature. This replaces `SPEC.md`'s rule that sign-in, online backup and sync are free. **Any account that already synced before version 2 is released keeps sync free permanently** (see "Accounts that synced before version 2").
+3. **Premium is sync plus new features.** Each one either costs money to run or goes beyond everyday budgeting.
+4. **Locked features are visible, not hidden.** Free users see an entry point with a "Premium" badge. Opening it shows what the feature does and a "See Premium" button, never the feature itself.
+5. **The user's data is always theirs.** If a free trial ends or a purchase is refunded, premium features lock again but no data is deleted, and export keeps working.
+6. **Premium requires an account.** The entitlement lives on the server, tied to the signed-in user. Guests are asked to sign in first.
+7. **Never trust the client for payment state.** Only server code, after verifying the purchase with the Google Play Developer API, can grant Premium.
+8. **One entitlement everywhere.** Premium is stored once per user in the shared database and read by both the web and Android apps.
 
 ## Free and Premium
 
@@ -24,13 +25,29 @@ Everything in `SPEC.md` still applies (architecture rules, design tokens, respon
 | Auto-generated monthly budget | Yes | Yes |
 | Safe credit card payment, breakdown, what-if slider | Yes | Yes |
 | Payoff schedule for one card at a fixed payment | Yes | Yes |
-| Sign-in, online backup and sync | Yes | Yes |
-| Export and import | Yes | Yes |
+| Manual backup file: save, share and restore | Yes | Yes |
+| Automatic Android backup to the user's own Google account (Android app) | Yes | Yes |
+| **Sync across devices** (phone, tablet and web, through our server; needs sign-in) | Locked | Yes |
 | **Debt payoff planner** (all cards and loans, strategies, debt-free date goal) | Locked | Yes |
 | **Reports and trends** (month-to-month comparisons, yearly summary, PDF export) | Locked | Yes |
 | **Recurring transactions** | Locked | Yes |
 
 Planned for a later release, also Premium, not built now: shared budget with a partner, savings goals, AI budget advice. Email or push reminders are deliberately excluded: with a one-time price they would be an open-ended running cost.
+
+## Free backup
+
+Free users keep their data safe without an account:
+
+- **Manual backup file** (both apps): "Save a backup file" writes the JSON export from `SPEC.md` to the device (Downloads on Android, a file download on the web); "Share a backup file" (Android) opens the share sheet so the user can send it to their own Google Drive, email or another app; "Restore from a file" imports it after confirmation. Show the date of the last saved backup file.
+- **Automatic Android backup** (Android app): the app's database is included in Android's built-in backup to the user's Google account, so it comes back after a reinstall or on a new Android phone signed in to the same Google account. See "Free backup on Android" in `SPEC-NATIVE.md`.
+- **Reminder:** if a free user has not saved a backup file for 30 days and has more than 20 transactions, show a dismissible Home card: "Back up your data" with "Save a backup file" and a secondary "Sync across devices with Premium". This replaces the version 1 card that suggested signing in.
+- The app does **not** write backups through the Google Drive API: Google's Drive API terms list backing up an app's content to Drive among uses that need Google's prior written consent. If the owner later obtains that consent, an in-app Google Drive backup can be added as a free feature.
+
+## Accounts that synced before version 2
+
+- When version 2 is released, a migration marks every account that has synced at least once with `legacy_sync = true` on its entitlement row.
+- `canSync(user)` is true for these accounts forever, whatever their Premium status. They keep every other Premium feature locked unless they buy or trial Premium.
+- Show these users a one-time notice: "Sync is now part of Premium. Because you were already using it, it stays free for you."
 
 ## Price and trial
 
@@ -46,7 +63,9 @@ Premium is a **one-time purchase that unlocks all premium features permanently**
 
 ### Server (PostgreSQL, new migrations only; never edit version 1 migrations)
 
-- `entitlements`: `user_id` (primary key, references the auth user), `plan` (`free` | `premium`), `source` (`trial` | `purchase` | `grant`), `starts_at`, `expires_at` (set for a trial; **null means permanent**), `trial_used` (boolean), `updated_at`.
+- `entitlements`: `user_id` (primary key, references the auth user), `plan` (`free` | `premium`), `source` (`trial` | `purchase` | `grant`), `starts_at`, `expires_at` (set for a trial; **null means permanent**), `trial_used` (boolean), `legacy_sync` (boolean), `updated_at`.
+- `can_sync(uid)`: a security-definer SQL function, true when the user has an active Premium entitlement (purchase, grant or unexpired trial) or `legacy_sync`.
+- **Sync is enforced on the server.** Row-level security on every synced data table allows select, insert, update and delete only where `user_id = auth.uid()` **and** `can_sync(auth.uid())`. A modified client cannot sync without Premium.
 - `purchases`: `id`, `user_id`, `provider` (`google_play`), `provider_payment_id` (the Google Play purchase token, unique), `order_id`, `product_id`, `amount_micros` and `currency` (as reported by Google, for records only), `status` (`pending` | `paid` | `refunded`), `acknowledged` (boolean), `is_test` (boolean, true for Google Play test purchases), `paid_at`, `created_at`, `raw` (Google's response, JSON).
 - Row-level security: a user may **select** only their own rows in `entitlements` and `purchases`. No client may insert, update or delete in these tables. Only server functions using the service role write to them.
 - `start_trial()`: a security-definer function. If the caller has not used a trial, set `plan = premium`, `source = trial`, `expires_at = now() + 14 days`, `trial_used = true`. Otherwise raise an error.
@@ -61,12 +80,15 @@ Premium is a **one-time purchase that unlocks all premium features permanently**
 - Cache the last known entitlement locally (IndexedDB on web, SQLite on Android). Offline, a purchased Premium keeps working indefinitely; a trial keeps working until the cached `expiresAt`, then locks.
 - `<PremiumGate feature="reports">` renders its children for Premium users and the locked view otherwise. Use it for every premium screen and control. Do not scatter `isPremium` checks through components.
 - Refresh the entitlement on app open, after sign-in, after a purchase or restore, and when the app returns to the foreground.
-- All premium features run on the device and are gated in the interface. The server's only premium job is granting the entitlement.
+- `canSync(entitlement)` in `packages/premium` mirrors `can_sync`. The sync engine runs only when it is true; otherwise it does nothing and the interface shows sync as a Premium feature.
+- Sync is enforced by the server (above). The other premium features run on the device and are gated in the interface.
 
 ### When a trial ends or a purchase is refunded
 
 - Premium screens return to their locked view.
-- Data created with premium features is kept and still syncs: loans stay as accounts, recurring templates are kept but stop creating transactions.
+- **Sync stops** (unless the account has `legacy_sync`). Every device keeps its own local copy and keeps working fully offline. The copy on the server is kept, untouched, so syncing resumes where it left off if the user unlocks Premium later. The user can still delete the account and online data at any time.
+- Before a trial ends, remind the user to choose one device as their main one, or to save a backup file, because devices stop exchanging changes.
+- Data created with premium features is kept: loans stay as accounts, recurring templates are kept but stop creating transactions.
 - Show one dismissible notice on Home: "Your free trial ended on [date]. Everything free still works." with an "Unlock Premium" button.
 - Show an in-app notice 3 days before a trial ends, and send one email the day before.
 
@@ -82,6 +104,7 @@ Premium is a **one-time purchase that unlocks all premium features permanently**
 
 ### Entry points (all hidden when `VITE_PREMIUM_ENABLED` is off)
 
+- **Settings, Backup section:** "Sync across devices" with a Premium badge for free users (opens the paywall with sync listed first), and "Backup and restore" (free) opening the backup screen.
 - **Settings:** a prominent "Auto Budget Premium" card at the top. Free: "Try free for 14 days" (or, when the trial is used, "Unlock for [price], one time" on Android and "Unlock in the Android app" on web). Trial: "Free trial: [N] days left". Purchased: "Unlocked".
 - **Home:** a "Reports" card with a Premium badge.
 - **Credit card breakdown:** a "Plan all your debts" card with a Premium badge under the payoff schedule.
@@ -102,7 +125,7 @@ Tapping any locked entry opens that feature's locked view.
 In this order:
 
 1. Title "Auto Budget Premium" and one line of value: "Clear your debts faster and see where your money goes."
-2. The benefits list from the feature registry: name and one-line benefit for each, with a check icon.
+2. The benefits list from the feature registry, with **Sync across devices first**: name and one-line benefit for each, with a check icon.
 3. One price card: "One-time purchase", the localised price from Google Play, and "Pay once, keep it for good. No monthly fees."
 4. Payment note: "Paid securely through Google Play."
 5. Primary button. If the trial is available: "Start 14-day free trial", with "No payment needed" under it and a secondary "Skip trial and buy for [price]". If the trial is running or used: "Unlock Premium for [price]".
@@ -110,7 +133,7 @@ In this order:
 7. Reassurance: "Everything you use today stays free."
 8. Links to Terms, Refunds and Privacy Policy.
 
-If the user is a guest, the primary button first opens Sign in with the message "Sign in so your Premium is saved to your account", then returns to the paywall. If Google Play is unavailable, show "Google Play isn't available right now" and disable the purchase button (the trial button still works).
+If the user is a guest, the primary button first opens Sign in with the message "Sign in so your Premium and your synced data are saved to your account", then returns to the paywall. If Google Play is unavailable, show "Google Play isn't available right now" and disable the purchase button (the trial button still works).
 
 ### Web paywall (`/premium`)
 
@@ -136,6 +159,12 @@ On `md` and larger both paywalls are centred cards up to 560px wide, with benefi
 - Show prices with the peso sign and no decimals when whole.
 
 ## Premium features
+
+### 0. Sync across devices
+
+- The sign-in, sync and Account and backup behaviour from `SPEC.md` ("Optional account and online backup") and `SPEC-NATIVE.md`, available to Premium, trial and legacy-sync accounts.
+- Sign-in itself stays available to everyone, because it is needed to start the trial and to buy Premium. Signing in without Premium does not upload any data.
+- On first sync, the device's local data uploads; on a new device, the account's data downloads, with the merge-or-replace choice from `SPEC.md`.
 
 All calculation code goes in `packages/core/` as pure TypeScript with unit tests, shared by both apps.
 
@@ -183,7 +212,7 @@ All calculation code goes in `packages/core/` as pure TypeScript with unit tests
 
 The design canvas "Auto Budget mobile app" includes version 2 screens. Treat them as the visual reference; where they disagree with this document, this document wins.
 
-- **Phone (Light and Dark pages):** the Android paywall, the web paywall, a locked feature (Reports), Premium unlocked, the debt payoff planner, reports and trends, and recurring transactions. Home, the credit card breakdown and Add transaction show the free-user entry points ("Reports and trends", "Plan all your debts", "Repeat"), each with a Premium badge.
+- **Phone (Light and Dark pages):** Backup and restore (free), Settings with the Premium sync row, Sign in for sync, the Android paywall, the web paywall, a locked feature (Reports), Premium unlocked, the debt payoff planner, reports and trends, and recurring transactions. Home, the credit card breakdown and Add transaction show the free-user entry points ("Reports and trends", "Plan all your debts", "Repeat"), each with a Premium badge.
 - **Tablet and desktop pages:** the Android paywall on tablet, the web paywall on desktop, the debt payoff planner and reports, plus a "Premium" section in the sidebar and navigation rail.
 
 Sample figures for the debt planner, usable as a test fixture: credit card ₱50,000 at 3% a month with a ₱2,500 minimum; personal loan ₱30,000 at 1.5% a month with a ₱2,000 minimum; ₱15,000 a month toward debts; one extra payment of ₱10,000 in December 2026; first payment in November 2026. Each month, pay every minimum, put the remainder toward the first debt in the order, then add interest on what is left. Expected results:
@@ -196,15 +225,16 @@ Sample figures for the debt planner, usable as a test fixture: credit card ₱50
 
 This work runs alongside `SPEC-NATIVE.md`: its steps 1 to 5 (monorepo, Android app, shared sign-in and sync, first test release) come first, then the steps below, then its Google Play billing step.
 
-1. Migrations for `entitlements`, `purchases`, the trial and grant functions, and their security tests.
-2. Feature registry, entitlement logic, local entitlement cache and `PremiumGate` in `packages/premium`, used by both apps, plus the flags.
-3. Paywalls (Android and web), locked feature view, Premium status screen and all entry points, with the trial working end to end in both apps.
-4. Trial end and refunds: locking, notices, the trial-ending email, and blocking a second purchase.
-5. Debt payoff planner.
-6. Reports and trends.
-7. Recurring transactions.
-8. Google Play billing (from `SPEC-NATIVE.md`), tested with license testers.
-9. Terms and refunds pages, `DEPLOY.md` updates, and a full pass of free and premium flows in both apps at all testing widths in light and dark.
+1. Migrations for `entitlements` (with `legacy_sync` set for accounts that already synced), `purchases`, `can_sync`, the sync row-level security change, the trial and grant functions, and their security tests.
+2. Free backup: backup screen, save, share and restore backup files, the backup reminder card, and Android backup rules.
+3. Feature registry, entitlement logic, local entitlement cache and `PremiumGate` in `packages/premium`, used by both apps, plus the flags.
+4. Paywalls (Android and web), locked feature view, Premium status screen and all entry points, with the trial working end to end in both apps.
+5. Trial end and refunds: locking, notices, the trial-ending email, and blocking a second purchase.
+6. Debt payoff planner.
+7. Reports and trends.
+8. Recurring transactions.
+9. Google Play billing (from `SPEC-NATIVE.md`), tested with license testers.
+10. Terms and refunds pages, `DEPLOY.md` updates, and a full pass of free and premium flows in both apps at all testing widths in light and dark.
 
 ## Test scenarios
 
@@ -221,5 +251,10 @@ This work runs alongside `SPEC-NATIVE.md`: its steps 1 to 5 (monorepo, Android a
 - A Google Play refund returns the account to free in both apps.
 - The web app shows no price, checkout or payment link anywhere.
 - With the flag off, no premium interface appears anywhere.
+- A signed-in free user cannot sync: the app does not try, and direct requests to the synced tables are refused by the server.
+- An account that synced before version 2 keeps syncing after the release without Premium.
+- When a trial ends, sync stops, both devices keep their data, and unlocking Premium later resumes sync without duplicates.
+- A backup file saved on one device restores the same data on another.
+- After reinstalling the Android app on a phone with Android backup on, the data comes back.
 - A license tester's test purchase grants Premium and is stored with `is_test = true`.
 - A tester grant applies on first sign-in with the matching email, and is removed by `revoke_tester_grants()`.

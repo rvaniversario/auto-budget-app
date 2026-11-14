@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Archive, ArchiveRestore, ChevronRight, FileJson, FileSpreadsheet, Sparkles, Upload } from 'lucide-react'
+import { Archive, ArchiveRestore, ChevronRight, Sparkles } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
@@ -11,14 +11,12 @@ import {
   formatLongDate,
   formatMoney,
   ordinal,
-  todayISO,
-  transactionsToCSV,
   type Category,
   type CategoryKind,
   type FixedBill,
   type ThemePreference,
 } from '@/core'
-import { parseBackup, repo, type BackupFile } from '@/data'
+import { repo } from '@/data'
 import { useAppData } from '@/hooks/useAppData'
 import { useIsLg } from '@/hooks/useMedia'
 import { cn } from '@/lib/utils'
@@ -38,15 +36,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
-import { downloadFile, safeStorage } from '@/lib/browser'
+import { forgetLastBackupFile, lastBackupFile } from '@/lib/backupFile'
 import { backupStatus, cloudEnabled, useSync } from '@/sync'
 import { dayField, moneyField, toCentavos } from '@/lib/forms'
 import { premiumEnabled, useEntitlement } from '@/premium'
 import { PremiumBadge } from '@/premium/components'
 
-const LAST_BACKUP_KEY = 'auto-budget:last-backup'
-
-type Open = 'pay' | 'buffer' | 'export' | 'delete' | null
+type Open = 'pay' | 'buffer' | 'delete' | null
 
 type SectionId = 'budget' | 'categories' | 'bills' | 'data' | 'appearance'
 const SECTIONS: { id: SectionId; label: string }[] = [
@@ -62,53 +58,13 @@ export function SettingsScreen() {
   const navigate = useNavigate()
   const { settings } = snapshot
   const [open, setOpen] = useState<Open>(null)
-  const [pendingImport, setPendingImport] = useState<BackupFile | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const lastBackup = safeStorage.get(LAST_BACKUP_KEY)
+  const lastBackup = lastBackupFile()
   const sync = useSync()
   const ent = useEntitlement()
 
   const categories = alive(snapshot.categories)
   const bills = alive(snapshot.fixedBills)
   const close = () => setOpen(null)
-
-  const exportJSON = async () => {
-    const backup = await repo.exportBackup()
-    downloadFile(`auto-budget-backup-${todayISO()}.json`, JSON.stringify(backup, null, 2), 'application/json')
-    safeStorage.set(LAST_BACKUP_KEY, todayISO())
-    toast.success('Backup saved', { description: 'Keep the file somewhere safe, like Google Drive or email.' })
-    close()
-  }
-
-  const exportCSV = () => {
-    const csv = transactionsToCSV(snapshot.transactions, {
-      categories: snapshot.categories,
-      accounts: snapshot.accounts,
-      fixedBills: snapshot.fixedBills,
-    })
-    downloadFile(`auto-budget-transactions-${todayISO()}.csv`, csv, 'text/csv;charset=utf-8')
-    toast.success('Transactions exported')
-    close()
-  }
-
-  const onFile = async (file: File | undefined) => {
-    if (!file) return
-    const result = parseBackup(await file.text())
-    if (fileRef.current) fileRef.current.value = ''
-    if (!result.ok) {
-      toast.error("Couldn't import that file", { description: result.error })
-      return
-    }
-    setPendingImport(result.backup)
-  }
-
-  const confirmImport = async () => {
-    if (!pendingImport) return
-    await repo.importBackup(pendingImport)
-    setPendingImport(null)
-    toast.success('Backup imported')
-    navigate('/')
-  }
 
   const setTheme = (theme: ThemePreference) => repo.saveSettings({ theme })
   const isLg = useIsLg()
@@ -150,28 +106,12 @@ export function SettingsScreen() {
       <SectionLabel className="my-1">Your data</SectionLabel>
       <RowButton
         first
-        label="Export data"
-        description={lastBackup ? `Last backup ${formatLongDate(lastBackup)}` : 'No backup yet. Your data lives only on this device.'}
-        value="CSV or JSON"
-        onClick={() => setOpen('export')}
+        label="Backup and restore"
+        description={lastBackup ? `Backup file saved ${formatLongDate(lastBackup.date)}` : 'Backup file. No backup saved yet.'}
+        onClick={() => navigate('/backup')}
+        trailing={<ChevronRight className="size-[18px] flex-none text-muted-foreground" aria-hidden="true" />}
       />
-      <RowButton label="Import data" value="From a backup file" onClick={() => fileRef.current?.click()} />
-      {cloudEnabled &&
-        (sync.user ? (
-          <RowButton
-            label="Backup and sync"
-            description={sync.user.email}
-            value={backupStatus(sync).label}
-            onClick={() => navigate('/account')}
-          />
-        ) : (
-          <RowButton
-            label="Backup and sync"
-            description="Sign in to save your data online"
-            onClick={() => navigate('/account/sign-in')}
-            trailing={<span className="flex-none font-semibold text-link">Sign in</span>}
-          />
-        ))}
+      {cloudEnabled && <SyncRow />}
     </section>
   )
 
@@ -200,15 +140,6 @@ export function SettingsScreen() {
     <>
       <TabHeader title="Settings" />
       <PremiumCard />
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/json,.json"
-        className="sr-only"
-        tabIndex={-1}
-        aria-label="Choose a backup file"
-        onChange={(e) => onFile(e.target.files?.[0])}
-      />
 
       {isLg ? (
         <div className="flex items-start gap-6">
@@ -245,7 +176,7 @@ export function SettingsScreen() {
       )}
 
       <p className="text-center text-xs text-muted-foreground">
-        Auto Budget · {sync.linked ? 'Backed up to your account.' : 'Your data stays on this device.'}{' '}
+        Auto Budget · {sync.linked && sync.allowed ? 'Synced with your account.' : 'Your data stays on this device.'}{' '}
         <Link to="/privacy" className="underline underline-offset-2">
           Privacy Policy
         </Link>
@@ -254,33 +185,14 @@ export function SettingsScreen() {
       <PayDialog open={open === 'pay'} onClose={close} />
       <BufferDialog open={open === 'buffer'} onClose={close} />
 
-      <Dialog open={open === 'export'} onOpenChange={(o) => !o && close()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Export your data</DialogTitle>
-            <DialogDescription>
-              A full backup restores everything on a new phone. The spreadsheet has just your transactions.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-2">
-            <Button className="h-12 justify-start gap-3" onClick={exportJSON}>
-              <FileJson aria-hidden="true" /> Full backup (JSON)
-            </Button>
-            <Button variant="outline" className="h-12 justify-start gap-3" onClick={exportCSV}>
-              <FileSpreadsheet aria-hidden="true" /> Transactions (CSV)
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <AlertDialog open={open === 'delete'} onOpenChange={(o) => !o && close()}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete all your data?</AlertDialogTitle>
             <AlertDialogDescription>
               {sync.linked
-                ? 'This removes your salary, bills, accounts and every transaction from this device, your online backup and your other devices. It can\x27t be undone. Export a backup first if you might want it later.'
-                : 'This removes your salary, bills, accounts and every transaction from this device. It can\x27t be undone. Export a backup first if you might want it later.'}
+                ? 'This removes your salary, bills, accounts and every transaction from this device, your synced data and your other devices. It can\x27t be undone. Save a backup file first if you might want it later.'
+                : 'This removes your salary, bills, accounts and every transaction from this device. It can\x27t be undone. Save a backup file first if you might want it later.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -289,7 +201,7 @@ export function SettingsScreen() {
               variant="destructive"
               onClick={async () => {
                 await repo.deleteAllData()
-                safeStorage.set(LAST_BACKUP_KEY, '')
+                forgetLastBackupFile()
                 toast.success('All data deleted')
                 navigate('/')
               }}
@@ -300,28 +212,45 @@ export function SettingsScreen() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={pendingImport !== null} onOpenChange={(o) => !o && setPendingImport(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Replace your data with this backup?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingImport &&
-                `The backup from ${formatLongDate(pendingImport.exportedAt.slice(0, 10))} has ${alive(pendingImport.data.transactions).length} transactions. Everything currently on this device will be replaced.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmImport}>
-              <Upload aria-hidden="true" /> Replace and import
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
 
 // ---------------------------------------------------------------------------
+
+/**
+ * "Sync across devices": Premium (or legacy) accounts open Account and sync;
+ * everyone else sees a Premium badge and the paywall with sync listed first.
+ */
+function SyncRow() {
+  const sync = useSync()
+  const ent = useEntitlement()
+  const navigate = useNavigate()
+  const allowed = sync.user ? ent.canSync : false
+  if (sync.user && (allowed || !premiumEnabled)) {
+    return (
+      <RowButton
+        label="Sync across devices"
+        description={sync.user.email}
+        value={backupStatus(sync).label}
+        onClick={() => navigate('/account')}
+      />
+    )
+  }
+  return (
+    <RowButton
+      label={
+        <span className="flex items-center gap-2">
+          Sync across devices
+          {premiumEnabled && <PremiumBadge />}
+        </span>
+      }
+      description="Phone, tablet and the web"
+      onClick={() => navigate(premiumEnabled ? '/premium?feature=sync' : sync.user ? '/account' : '/account/sign-in')}
+      trailing={<ChevronRight className="size-[18px] flex-none text-muted-foreground" aria-hidden="true" />}
+    />
+  )
+}
 
 /** The Auto Budget Premium card at the top of Settings. Hidden when Premium is off. */
 function PremiumCard() {

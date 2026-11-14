@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
       if (grant.error) console.error('apply_tester_grant failed', { user: caller.user.id, err: grant.error })
 
       const [ent, purchases] = await Promise.all([
-        caller.db.from('entitlements').select('plan, source, starts_at, expires_at, trial_used').maybeSingle(),
+        caller.db.from('entitlements').select('plan, source, starts_at, expires_at, trial_used, legacy_sync').maybeSingle(),
         caller.db
           .from('purchases')
           .select('id, provider, order_id, status, paid_at, created_at')
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       if (ent.error) throw ent.error
       if (purchases.error) throw purchases.error
       return json(req, {
-        entitlement: ent.data ?? { plan: 'free', source: null, starts_at: null, expires_at: null, trial_used: false },
+        entitlement: ent.data ?? { plan: 'free', source: null, starts_at: null, expires_at: null, trial_used: false, legacy_sync: false },
         purchases: (purchases.data ?? []).map((p) => ({
           id: p.id,
           provider: p.provider,

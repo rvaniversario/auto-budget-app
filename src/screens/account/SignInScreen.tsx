@@ -8,6 +8,7 @@ import { SubHeader } from '@/components/layout'
 import { TextInput } from '@/components/inputs'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { premiumEnabled } from '@/premium'
 import { cloudConfig, sendSignInCode, signInWithGoogle, useSync } from '@/sync'
 
 /** Optional state passed when another screen sends the user here. */
@@ -52,10 +53,12 @@ export function SignInScreen() {
     <div className="flex w-full max-w-[560px] flex-col gap-5 md:mx-auto">
       <SubHeader title="" />
       <div className="flex flex-col gap-2">
-        <h1 className="text-[28px] leading-[1.15] font-bold tracking-[-0.01em]">Back up your data</h1>
+        <h1 className="text-[28px] leading-[1.15] font-bold tracking-[-0.01em]">Sync across your devices</h1>
         <p className="text-[15px] leading-normal text-muted-foreground">
           {nav.message ??
-            'Sign in to save your budget online. This is optional: without an account, everything stays on this device and the app works the same.'}
+            (premiumEnabled
+              ? 'Sync is part of Premium. Sign in so your Premium and your data are saved to your account. Without signing in, everything stays on this device and all free features work the same.'
+              : 'Sign in to use your account. Without signing in, everything stays on this device and the app works the same.')}
         </p>
       </div>
 

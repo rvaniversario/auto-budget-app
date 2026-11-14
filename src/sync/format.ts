@@ -12,12 +12,13 @@ export function formatWhen(iso: string | null, now = new Date()): string {
   return `${d.toLocaleDateString('en-PH', { day: 'numeric', month: 'short' })}, ${time}`
 }
 
-/** Short backup status for tags and the Settings row. */
+/** Short sync status for tags and the Settings row. */
 export function backupStatus(sync: SyncState): { label: string; tone: 'success' | 'warning' | 'danger' } {
   if (sync.choice) return { label: 'Waiting for your choice', tone: 'warning' }
-  if (sync.phase === 'syncing') return { label: 'Backing up…', tone: 'success' }
+  if (sync.phase === 'syncing') return { label: 'Syncing…', tone: 'success' }
   if (sync.phase === 'offline') return { label: sync.pending ? 'Offline: changes waiting' : 'Offline', tone: 'warning' }
-  if (sync.phase === 'error' || !sync.linked) return { label: 'Not backed up', tone: 'danger' }
+  if (sync.allowed === false) return { label: 'Paused', tone: 'warning' }
+  if (sync.phase === 'error' || !sync.linked) return { label: 'Not synced', tone: 'danger' }
   if (sync.pending) return { label: 'Changes waiting', tone: 'warning' }
   return { label: 'Up to date', tone: 'success' }
 }

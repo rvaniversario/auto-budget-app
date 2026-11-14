@@ -2,11 +2,14 @@
  * Premium state on the device. The server decides; this keeps the last known
  * answer in IndexedDB so Premium works offline (a purchase indefinitely, a
  * trial until its cached end date) and refreshes it when it can.
+ *
+ * It runs whenever online features are available, even with the Premium flag
+ * off, because sync across devices depends on it: it tells the sync engine
+ * whether the signed-in account may sync (setSyncAllowed).
  */
 import { localDatabase } from '@/data'
-import { ApiError, OfflineError, apiCall, getSyncState, subscribeSync } from '@/sync'
-import { premiumEnabled } from './config'
-import type { RawEntitlement } from './entitlement'
+import { ApiError, OfflineError, apiCall, cloudEnabled, getSyncState, setSyncAllowed, subscribeSync } from '@/sync'
+import { evaluateEntitlement, type RawEntitlement } from './entitlement'
 
 /** A Premium purchase record. Purchases happen in the Android app through Google Play. */
 export interface PurchaseRecord {
@@ -32,12 +35,19 @@ export interface PremiumState {
   fetchedAt: string | null
 }
 
-let state: PremiumState = { loading: premiumEnabled, userId: null, raw: null, purchases: [], fetchedAt: null }
+let state: PremiumState = { loading: cloudEnabled, userId: null, raw: null, purchases: [], fetchedAt: null }
 const listeners = new Set<() => void>()
 
 function set(patch: Partial<PremiumState>) {
   state = { ...state, ...patch }
   for (const l of listeners) l()
+  reportSync()
+}
+
+/** Tell the sync engine whether the signed-in account may sync, once that is known. */
+function reportSync() {
+  if (!state.userId || state.loading) return
+  setSyncAllowed(state.userId, evaluateEntitlement(state.raw).canSync)
 }
 
 export const getPremiumState = () => state
@@ -69,7 +79,7 @@ let lastRefresh = 0
 
 /** Ask the server for the current entitlement. Keeps the cached answer when offline. */
 export function refreshPremium(): Promise<void> {
-  if (!premiumEnabled) return Promise.resolve()
+  if (!cloudEnabled) return Promise.resolve()
   inflight ??= (async () => {
     const userId = state.userId
     try {
@@ -105,7 +115,7 @@ let started = false
 
 /** Follow sign-in, and refresh on open, after sign-in and when the app regains focus. */
 export function startPremium(): void {
-  if (started || !premiumEnabled) return
+  if (started || !cloudEnabled) return
   started = true
   let lastUser: string | null | undefined
   const check = () => {
@@ -124,6 +134,8 @@ export function startPremium(): void {
   window.addEventListener('focus', onFocus)
   document.addEventListener('visibilitychange', onFocus)
   window.addEventListener('online', () => void refreshPremium())
+  // A trial can end while the app is open: re-check every minute.
+  window.setInterval(reportSync, 60_000)
 }
 
 /** Start the one free trial. */

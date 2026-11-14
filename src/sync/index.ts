@@ -7,6 +7,7 @@ export {
   deleteAccount,
   loadRemoteStatus,
   resolveChoice,
+  setSyncAllowed,
   signOut,
   startSync,
   syncNow,
@@ -21,7 +22,7 @@ export { sendSignInCode, signInWithGoogle, verifySignInCode, type CloudUser } fr
 export { describeDevices } from './device'
 export { backupStatus, formatWhen } from './format'
 
-/** Live sign-in and backup state. */
+/** Live sign-in and sync state. */
 export function useSync(): SyncState {
   return useSyncExternalStore(subscribeSync, getSyncState, getSyncState)
 }

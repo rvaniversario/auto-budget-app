@@ -17,7 +17,7 @@ import {
 } from '@/core'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { EditTransactionHost } from '@/components/EditTransactionHost'
-import { PlannedDebtBars, ReportsCard, TrialNotice, usePlannedDebtRows } from '@/components/HomePremium'
+import { BackupReminder, LegacySyncNotice, PlannedDebtBars, ReportsCard, TrialNotice, usePlannedDebtRows } from '@/components/HomePremium'
 import { amountSign, makeDescriber } from '@/lib/describeTransaction'
 import { useAppData } from '@/hooks/useAppData'
 import { Money } from '@/components/Money'
@@ -40,6 +40,8 @@ export function HomeScreen() {
         title={hasAnyTransaction ? `Your ${month} budget` : 'Your first budget is ready'}
       />
       <TrialNotice />
+      <LegacySyncNotice />
+      <BackupReminder />
       <OverspendAlerts />
       <div className="grid gap-4 md:grid-cols-2 md:items-start md:gap-5 lg:gap-6">
         <div className="flex min-w-0 flex-col gap-4 md:gap-5">

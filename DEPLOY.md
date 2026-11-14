@@ -78,13 +78,13 @@ Upload the contents of `dist/` and configure:
 
 ## Backend: sign-in, online backup and Premium (optional)
 
-The app works with no backend at all. Sign-in, online backup and sync, and Auto Budget Premium run on [Supabase](https://supabase.com): PostgreSQL with row-level security, Supabase Auth, and the server functions in `supabase/functions/`.
+The app works with no backend at all. Free users back up with backup files (Settings → Backup and restore). Sign-in, sync across devices (a Premium feature) and Auto Budget Premium run on [Supabase](https://supabase.com): PostgreSQL with row-level security, Supabase Auth, and the server functions in `supabase/functions/`.
 
 **Premium is bought only in the Android app, through Google Play** (see `docs/SPEC-V2.md` and `docs/SPEC-NATIVE.md`). The web app has no checkout, price or payment link: it offers the free trial and reads the same entitlement, so a purchase made on Android unlocks Premium here when the user signs in with the same account. The Google Play functions (`verify-play-purchase`, `play-notifications`) arrive with the Android app; until then, Premium on the web comes from the trial or a grant.
 
 | Function | What it does |
 |---|---|
-| `sync` | Pushes and pulls the user's records. |
+| `sync` | Pushes and pulls the user's records. Only for accounts that can sync (Premium, a running trial, or `legacy_sync`); others get 403 `sync_requires_premium`. |
 | `delete-account` | Deletes the account and its online data. |
 | `premium` | `GET /premium/status` (entitlement and purchase records; applies a tester grant for the signed-in user) and `POST /premium/start-trial`. |
 | `trial-reminders` | Run hourly by a scheduler: emails users whose trial ends within 24 hours, once. |
@@ -99,7 +99,7 @@ npx supabase link --project-ref <your-project-ref>
 npx supabase db push          # applies supabase/migrations/*, in order
 ```
 
-Migrations are additive: never edit one that has already been applied; add a new file instead. `20261114000000_google_play.sql` replaces the PayMongo tables and functions with the Google Play purchase fields, tester grants and their functions.
+Migrations are additive: never edit one that has already been applied; add a new file instead. `20261114000000_google_play.sql` replaces the PayMongo tables and functions with the Google Play purchase fields, tester grants and their functions. `20261115000000_premium_sync.sql` makes sync a Premium feature: it adds `can_sync()`, checks it in the sync functions and row-level security, and marks every account that has already synced with `legacy_sync = true`, so sync stays free for them permanently. **Applying it is the "version 2 release" for sync:** only accounts that synced before that moment get `legacy_sync`.
 
 If you deployed the PayMongo functions earlier, remove them: `npx supabase functions delete create-checkout` and `npx supabase functions delete payment-webhook`, and unset their secrets: `npx supabase secrets unset PAYMONGO_SECRET_KEY PAYMONGO_WEBHOOK_SECRET SUPPORT_EMAIL`.
 
@@ -159,7 +159,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
 # VITE_PREMIUM_ENABLED=true   # only after step 6
 ```
 
-With `VITE_PREMIUM_ENABLED` unset, the app shows no Premium entry points, badges or paywall, and behaves like version 1 apart from the loan account type. Without `VITE_PLAY_STORE_URL`, the web paywall explains that Premium is unlocked in the Android app but shows no store button.
+With `VITE_PREMIUM_ENABLED` unset, the app shows no Premium entry points, badges or paywall. Sync is still enforced by the server, so new accounts can sign in but cannot sync (legacy accounts keep syncing). Turn Premium on when you apply the sync migration, so users can start the trial. Without `VITE_PLAY_STORE_URL`, the web paywall explains that Premium is unlocked in the Android app but shows no store button.
 
 ### 6. Test Premium on the web
 
@@ -168,7 +168,9 @@ Build a staging copy with `VITE_PREMIUM_ENABLED=true` and check:
 - A guest opens a locked feature, signs in, starts the trial, and the feature unlocks without a reload. A second trial is refused.
 - The paywall shows no price, checkout or payment link; "Already bought it? Refresh" re-checks the entitlement.
 - A tester grant (below) unlocks Premium on the next sign-in or refresh, and `revoke_tester_grants()` removes it.
-- When the trial ends, features lock, the Home notice appears, and nothing is deleted.
+- When the trial ends, features lock, sync stops (the Account screen shows "Sync is part of Premium"), the Home notice appears, and nothing is deleted. Unlocking again resumes sync without duplicates.
+- A signed-in free account does not sync, and a legacy account keeps syncing without Premium.
+- Backup and restore: saving a backup file on one device and restoring it on another gives the same data.
 
 Buying, restoring and refunds are tested in the Android app with license testers (`docs/SPEC-NATIVE.md`, "Premium for testers").
 
@@ -183,6 +185,7 @@ Buying, restoring and refunds are tested in the Android app with license testers
 - **Price:** set in Play Console for the `premium_unlock` product; no release needed.
 - **Grant Premium** for a support case (SQL editor, service role): `select grant_premium('<user-uuid>');` or with an end date: `select grant_premium('<user-uuid>', '2027-01-31');`
 - **Tester grants:** `insert into tester_grants (email, note) values ('tester@example.com', 'closed test');` (lower-case email, optional `expires_at`). It applies when that user signs in with the verified email. Delete the row and run `select revoke_tester_grants();` to remove it. At production launch, `select revoke_test_entitlements();` optionally returns accounts whose only Premium is a test purchase or a tester grant to free.
+- **Sync for an account** without Premium (support case): `update entitlements set legacy_sync = true where user_id = '<user-uuid>';` (insert a `free` row first if the user has none).
 - **Measure uptake** (the app has no analytics): count rows in `entitlements` by `source`, and `purchases` by `status`.
 
 ### Local development

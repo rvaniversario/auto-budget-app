@@ -10,7 +10,7 @@ An iOS version is out of scope for now. Keep the code free of Android-only assum
 
 - **One Supabase project** serves both apps: the same PostgreSQL database, the same auth users, the same row-level security, the same server functions. Never create a separate project or database for mobile.
 - **Same accounts.** A user who signs in with the same Google account or email on web and Android is the same user, with the same data.
-- **Same tables and sync protocol.** Both apps push and pull the same tables with the same rules from `SPEC.md` (dirty flag, `updatedAt` last-write-wins, `deletedAt` soft deletes). Changes made on the phone appear on the web after sync, and the reverse.
+- **Same tables and sync protocol.** For accounts allowed to sync (Premium, trial or legacy sync; see `SPEC-V2.md`), both apps push and pull the same tables with the same rules from `SPEC.md` (dirty flag, `updatedAt` last-write-wins, `deletedAt` soft deletes). Changes made on the phone appear on the web after sync, and the reverse.
 - **Same entitlement.** Premium is stored once per user on the server. It is bought in the Android app and works in both apps.
 - **Migrations live in one place** (`supabase/migrations/`) and are applied once. Both apps must tolerate columns added by a newer migration, so an older app version keeps syncing.
 - **Server functions** (Supabase Edge Functions in `supabase/functions/`) are shared: account deletion, Google Play purchase verification, Google Play notifications.
@@ -53,7 +53,7 @@ supabase/
 
 ## What the Android app includes
 
-Feature parity with the web app at the time of release: onboarding, Home, Add transaction (with the on-screen number pad), credit card breakdown with what-if, budget plan, transactions, accounts, settings, the special states, light and dark mode, export and import, optional sign-in and sync, and the privacy page. Follow the phone designs on the design canvas.
+Feature parity with the web app at the time of release: onboarding, Home, Add transaction (with the on-screen number pad), credit card breakdown with what-if, budget plan, transactions, accounts, settings, the special states, light and dark mode, backup and restore, sign-in, sync for accounts allowed to sync, and the privacy page. Follow the phone designs on the design canvas.
 
 Native-specific behaviour:
 
@@ -62,9 +62,21 @@ Native-specific behaviour:
 - **Tablets:** follow the tablet layouts from `SPEC.md` (navigation rail at 600dp and wider). Do not lock orientation.
 - **Dark mode:** follow the system setting by default, with the app's Appearance setting overriding it.
 - **Offline:** the app is fully usable offline; sync pauses and resumes as in `SPEC.md`.
-- **Export:** uses the Android share sheet. **Import:** uses the document picker.
+- **Backup files:** "Save a backup file" writes to Downloads; "Share a backup file" uses the Android share sheet; "Restore from a file" uses the document picker.
 - **Deep links:** register a scheme (for example `autobudget://`) and the web domain's App Links so sign-in redirects return to the app.
 - **App lock:** out of scope for now.
+
+## Free backup on Android
+
+- **Android Auto Backup:** keep Android's built-in app data backup enabled and include the SQLite database in it, so Android backs it up to the user's own Google account and restores it after a reinstall or on a new Android phone. Use backup rules (and data extraction rules for newer Android versions) to:
+  - include the database file;
+  - **exclude** the signed-in session and anything in encrypted or Keystore-backed storage, which cannot be restored on another device;
+  - exclude caches.
+- Make sure the database is in a consistent state for backup (for example, checkpoint SQLite's write-ahead log after writes).
+- On first launch, if a restored database exists, skip onboarding and open Home with a notice: "Welcome back. Your data was restored by Android backup."
+- Android's app backup has a size limit per app (25 MB when this was written); a text-only budget database stays far below it. If the database ever approaches it, show a notice suggesting a backup file.
+- This backup happens on Android's schedule (typically daily when charging and on Wi-Fi) and depends on the user's device backup setting. The app cannot show the exact last backup time; the Backup and restore screen explains this and offers a button that opens Android's backup settings.
+- No account, server or Drive API is involved, so there is no running cost and nothing for the developer to store.
 
 ## Sign-in on Android
 
@@ -146,7 +158,7 @@ Test cases: successful purchase, cancelled purchase, declined payment, pending p
 - Store listing text in English, written from the design canvas copy.
 - **Privacy policy URL:** the web app's `/privacy` page.
 - **Account deletion:** in-app (Settings) and a **web link** where users can request deletion without the app (the web app's account page or a dedicated page), as Google Play requires for apps with accounts.
-- **Data safety form:** declare what is collected when signed in (email, budget data entered by the user, purchase history), that data is encrypted in transit, that users can request deletion, and that nothing is shared or sold. Keep it consistent with `PRIVACY.md`.
+- **Data safety form:** declare what is collected when signed in (email; budget data entered by the user, only for accounts that sync; purchase history), that data is encrypted in transit, that users can request deletion, and that nothing is shared or sold. Keep it consistent with `PRIVACY.md`.
 - Content rating questionnaire and target audience (adults; not directed at children).
 - Target the API level Google Play currently requires for new apps; check Play Console before the first upload.
 
@@ -176,7 +188,7 @@ Keep the web app deployable throughout.
 1. Monorepo conversion: move the web app to `apps/web`, extract `packages/core` and `packages/data`, update builds. Verify the deployed web app is unchanged.
 2. Create the Expo app with a development build, Expo Router, NativeWind tokens, fonts, and the SQLite repository.
 3. Screens to parity with the web app, phone first, then tablet layouts.
-4. Sign-in (email code and native Google) and sync against the shared Supabase project. Verify a change on the phone appears on the web and the reverse.
+4. Sign-in (email code and native Google), sync against the shared Supabase project for accounts allowed to sync, and free backup (Android Auto Backup rules and backup files). Verify a change on the phone appears on the web and the reverse for a syncing account, and that a reinstall restores data through Android backup.
 5. Store listing assets, privacy URL, deletion link, Data safety form; first internal testing release; start the closed test as early as possible, because the waiting period runs while you build Premium.
 6. Premium features and entitlements from `SPEC-V2.md`, shared by both apps.
 7. Google Play billing: Play Console product, `StoreBilling`, `verify-play-purchase`, `play-notifications`, restore, and license-tester purchases.
@@ -184,7 +196,8 @@ Keep the web app deployable throughout.
 
 ## Test scenarios
 
-- Sign in on Android and web with the same Google account: both show the same data.
+- Sign in on Android and web with the same Google account with Premium: both show the same data. Without Premium, nothing syncs.
+- Reinstall the app with Android backup on: data returns without signing in.
 - Add a transaction offline on the phone, reconnect, and it appears on the web.
 - Buy Premium on Android; sign in on the web and Premium features unlock there.
 - Reinstall the app, sign in, tap Restore purchase: Premium returns without paying again.

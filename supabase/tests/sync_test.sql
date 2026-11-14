@@ -9,6 +9,11 @@ values
   ('11111111-1111-1111-1111-111111111111', 'a@example.com', 'authenticated', 'authenticated'),
   ('22222222-2222-2222-2222-222222222222', 'b@example.com', 'authenticated', 'authenticated');
 
+-- Sync is Premium: both users may sync (tests for the gate are in sync_premium_test.sql).
+insert into public.entitlements (user_id, plan, legacy_sync) values
+  ('11111111-1111-1111-1111-111111111111', 'free', true),
+  ('22222222-2222-2222-2222-222222222222', 'free', true);
+
 create function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
   perform set_config('role', 'authenticated', true);

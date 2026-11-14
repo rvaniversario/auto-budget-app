@@ -6,6 +6,8 @@ export interface RawEntitlement {
   /** Null means permanent. */
   expires_at: string | null
   trial_used: boolean
+  /** Synced before version 2: sync stays free for good. Missing in older caches. */
+  legacy_sync?: boolean
 }
 
 export interface Entitlement {
@@ -20,6 +22,10 @@ export interface Entitlement {
   trialAvailable: boolean
   /** When a trial ran out without a purchase; null otherwise. */
   trialEndedAt: string | null
+  /** Sync across devices is allowed: Premium, a running trial, or a legacy account. Mirrors can_sync on the server. */
+  canSync: boolean
+  /** Sync is free for this account because it synced before version 2. */
+  legacySync: boolean
 }
 
 const DAY = 86_400_000
@@ -30,7 +36,7 @@ const DAY = 86_400_000
  */
 export function evaluateEntitlement(raw: RawEntitlement | null, now: Date = new Date()): Entitlement {
   if (!raw) {
-    return { isPremium: false, isLifetime: false, source: null, expiresAt: null, daysLeft: null, trialAvailable: true, trialEndedAt: null }
+    return { isPremium: false, isLifetime: false, source: null, expiresAt: null, daysLeft: null, trialAvailable: true, trialEndedAt: null, canSync: false, legacySync: false }
   }
   const expires = raw.expires_at ? Date.parse(raw.expires_at) : null
   const isPremium = raw.plan === 'premium' && (expires === null || expires > now.getTime())
@@ -45,6 +51,8 @@ export function evaluateEntitlement(raw: RawEntitlement | null, now: Date = new 
     daysLeft: runningTrial ? Math.max(1, Math.ceil((expires! - now.getTime()) / DAY)) : null,
     trialAvailable: !raw.trial_used && !isPremium,
     trialEndedAt: trialEnded ? raw.expires_at : null,
+    canSync: isPremium || raw.legacy_sync === true,
+    legacySync: raw.legacy_sync === true,
   }
 }
 

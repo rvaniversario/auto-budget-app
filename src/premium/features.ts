@@ -1,6 +1,6 @@
-import { ChartColumn, Landmark, Repeat, type LucideIcon } from 'lucide-react'
+import { ChartColumn, Landmark, RefreshCw, Repeat, type LucideIcon } from 'lucide-react'
 
-export type PremiumFeatureId = 'debtPlanner' | 'reports' | 'recurring'
+export type PremiumFeatureId = 'sync' | 'debtPlanner' | 'reports' | 'recurring'
 
 export interface PremiumFeature {
   id: PremiumFeatureId
@@ -23,6 +23,17 @@ export interface PremiumFeature {
  * and the status screen all read from here, so each benefit is written once.
  */
 export const PREMIUM_FEATURES: readonly PremiumFeature[] = [
+  {
+    id: 'sync',
+    name: 'Sync across devices',
+    shortName: 'Sync',
+    benefit: 'Phone, tablet and the web, always up to date',
+    description:
+      'Use Auto Budget on your phone, tablet and the web with the same data everywhere. Changes made on one device show up on the others, and your budget comes back when you sign in on a new phone.',
+    highlights: ['Same budget on your phone, tablet and the web', 'Get everything back on a new phone', 'Only your account can read your data'],
+    icon: RefreshCw,
+    path: '/account',
+  },
   {
     id: 'debtPlanner',
     name: 'Debt payoff planner',

@@ -63,7 +63,7 @@ select throws_ok(
   '42501', null, 'a user cannot apply a tester grant'
 );
 select throws_ok($$ select * from public.tester_grants $$, '42501', null, 'users cannot read tester grants');
-select throws_ok($$ select * from public.payment_events $$, '42501', null, 'users cannot read notification events');
+select throws_ok($$ insert into public.tester_grants (email) values ('me@example.com') $$, '42501', null, 'users cannot add tester grants');
 
 -- ---- Purchase (as verify-play-purchase, service role) ----------------------
 reset role;

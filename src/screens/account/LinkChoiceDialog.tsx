@@ -28,7 +28,7 @@ export function LinkChoiceDialog() {
     setBusy(true)
     await resolveChoice(keep)
     setBusy(false)
-    toast.success(keep === 'online' ? 'Your online budget is on this device' : 'This device’s budget is now backed up')
+    toast.success(keep === 'online' ? 'Your synced budget is on this device' : 'This device’s budget is now synced')
   }
 
   return (

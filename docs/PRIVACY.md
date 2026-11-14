@@ -7,7 +7,7 @@ Auto Budget is a personal budgeting app, available on the web and as an Android 
 ## The short version
 
 - You can use Auto Budget without an account. In that case, everything you enter stays on your device and I never receive it.
-- If you choose to sign in, your budget data and your email address are stored online so you can back it up and use it on other devices.
+- If you sign in, your email address is stored. Your budget data is stored online only if you use sync across devices, a Premium feature.
 - I do not sell your data, share it with advertisers, or show ads. The app has no tracking or analytics.
 - You can export your data or delete your account and online data at any time.
 
@@ -19,26 +19,30 @@ When you are not signed in:
 - **Where it is stored:** only in your browser's storage on your own device.
 - **Who can see it:** only people who can use your device. I cannot see, access, or recover it.
 
-Because this data never leaves your device, clearing your browser data or removing the app from your Home Screen can delete it. Use **Settings > Export data** to keep your own backup.
+Because this data never leaves your device, clearing your browser data, uninstalling the app or losing your phone can delete it. Use **Settings > Backup and restore** to save a backup file you keep yourself.
+
+**Android backup.** On Android, if your phone's backup setting is on, Android may include Auto Budget's data in your device backup in your own Google account, so it can be restored after a reinstall or on a new phone. That backup is made and stored by Google under your Google account; I cannot see or access it. You can turn it off in your phone's settings.
+
+**Backup files.** A backup file you save or share goes wherever you choose (for example your Downloads folder, Google Drive or email). I never receive it.
 
 Auto Budget never asks for your card number, bank login, or passwords, and does not connect to your bank.
 
-## 2. If you sign in (optional online backup)
+## 2. If you sign in
 
-Signing in is optional. If you do:
+Signing in is optional. You need it to start a free trial, buy Premium, or sync across devices. If you sign in:
 
 - **What is collected:**
   - your email address, used to identify your account and send sign-in codes
   - if you use "Continue with Google", Google also provides your basic profile details; the app keeps only what it needs to identify your account
-  - the budget data described in section 1, so it can be backed up and synced
+  - **only if you use sync across devices (Premium):** the budget data described in section 1, so it can be kept in sync between your devices
   - technical records needed to run the service, such as sign-in times
   - if you buy Auto Budget Premium in the Android app: the Google Play order ID, purchase token, date, amount and status of the purchase. Payment is handled entirely by Google Play; I never receive your card, e-wallet or other payment details
-- **Why:** to back up your data, restore it on a new device, keep your devices in sync, and provide Premium features you have paid for. I rely on your consent, which you give by choosing to sign in and can withdraw by deleting your account.
+- **Why:** to identify your account, keep your devices in sync if you use sync, and provide Premium features you have paid for or are trying. I rely on your consent, which you give by choosing to sign in and can withdraw by deleting your account.
 - **Who can see it:** your data is tied to your account, and access rules on the database allow each account to read and change only its own data. I do not look at individual users' budget data, and would access it only if needed to fix a problem you report, or if required by law.
 
 ## 3. Service providers
 
-To run sign-in and online backup, the app uses:
+To run sign-in, sync and purchases, the app uses:
 
 - **Supabase** for sign-in and database storage. Data is stored on servers in [SUPABASE REGION].
 - **Google**, only if you choose "Continue with Google", to confirm your identity.
@@ -61,7 +65,7 @@ If any of this changes, I will update this policy and tell you in the app before
 ## 5. How long data is kept
 
 - **On your device:** until you delete it, clear your browser data, or remove the app.
-- **Online:** for as long as your account exists. When you delete your account, your online budget data and account are deleted from the live database promptly. Copies in routine backups are removed as those backups expire, within [BACKUP RETENTION, FOR EXAMPLE 30 DAYS]. Payment records may be kept longer where tax or accounting law requires it, for [PAYMENT RECORD RETENTION].
+- **Online:** if you have used sync, your synced data is kept for as long as your account exists, even if your Premium trial ends, so sync can resume if you unlock Premium later. You can delete it at any time. When you delete your account, your online budget data and account are deleted from the live database promptly. Copies in routine backups are removed as those backups expire, within [BACKUP RETENTION, FOR EXAMPLE 30 DAYS]. Payment records may be kept longer where tax or accounting law requires it, for [PAYMENT RECORD RETENTION].
 
 ## 6. Your choices and rights
 
@@ -69,7 +73,8 @@ In the app, you can:
 
 - **Export your data** from Settings > Export data.
 - **Correct your data** by editing it in the app.
-- **Sign out**, which stops backup and keeps your data on your device.
+- **Save, share or restore a backup file** from Settings > Backup and restore.
+- **Sign out**, which stops sync and keeps your data on your device.
 - **Delete your account and online data** from Settings > Account and backup.
 - **Delete everything on your device** from Settings > Delete all my data.
 

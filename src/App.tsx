@@ -24,6 +24,7 @@ import { Onboarding } from '@/screens/onboarding/Onboarding'
 import { PremiumScreen } from '@/screens/premium/PremiumScreens'
 import { RecurringScreen } from '@/screens/RecurringScreen'
 import { ReportsScreen } from '@/screens/ReportsScreen'
+import { BackupScreen } from '@/screens/BackupScreen'
 import { BillsScreen, CategoriesScreen, SettingsScreen } from '@/screens/SettingsScreen'
 import { TransactionsScreen } from '@/screens/TransactionsScreen'
 import { premiumEnabled } from '@/premium'
@@ -106,6 +107,7 @@ export default function App() {
             <Route path="breakdown" element={<BreakdownScreen />} />
             <Route path="settings/categories" element={<CategoriesScreen />} />
             <Route path="settings/bills" element={<BillsScreen />} />
+            <Route path="backup" element={<BackupScreen />} />
             {[...SHARED_SCREENS, ...PREMIUM_SCREENS].map(({ path, element }) => (
               <Route key={path} path={path} element={element} />
             ))}

@@ -123,7 +123,7 @@ export function VerifyCodeScreen() {
           </p>
         )}
         <Button type="submit" className="h-[54px] rounded-[14px] text-base font-semibold" disabled={busy || code.length !== LENGTH}>
-          {busy ? 'Checking…' : 'Verify and back up'}
+          {busy ? 'Checking…' : 'Verify and sign in'}
         </Button>
         {wait > 0 ? (
           <p className="text-center text-sm text-muted-foreground" aria-live="polite">

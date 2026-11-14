@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Clock, X } from 'lucide-react'
+import { Clock, HardDriveDownload, RefreshCw, X } from 'lucide-react'
 import { Link } from 'react-router'
-import { alive, formatLongDate, formatMoney, isInPeriod, percentUsed, sum } from '@/core'
+import { toast } from 'sonner'
+import { alive, formatLongDate, formatMoney, isInPeriod, percentUsed, sum, todayISO } from '@/core'
 import { useAppData } from '@/hooks/useAppData'
+import { daysSinceBackupFile, saveBackupFile } from '@/lib/backupFile'
 import { safeStorage } from '@/lib/browser'
 import { useDebtPlan } from '@/lib/debtPlan'
 import { cn } from '@/lib/utils'
@@ -36,7 +38,7 @@ export function TrialNotice() {
   const date = formatLongDate(localDay(expiresAt))
   const message =
     kind === 'ending'
-      ? `Your free trial ends on ${date}. Pay once to keep Premium for good.`
+      ? `Your free trial ends on ${date}.${ent.legacySync ? '' : ' Sync stops then, so pick one device as your main one or save a backup file.'} Unlock Premium to keep it for good.`
       : `Your free trial ended on ${date}. Everything free still works.`
 
   return (
@@ -59,6 +61,103 @@ export function TrialNotice() {
       >
         <X className="size-5" aria-hidden="true" />
       </button>
+    </section>
+  )
+}
+
+function DismissButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Dismiss"
+      className="-mt-2 -mr-2 flex size-11 flex-none items-center justify-center rounded-lg hover:bg-black/5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <X className="size-5" aria-hidden="true" />
+    </button>
+  )
+}
+
+const LEGACY_NOTICE_KEY = 'auto-budget:legacy-sync-notice'
+
+/** One-time notice for accounts that synced before sync became Premium. */
+export function LegacySyncNotice() {
+  const ent = useEntitlement()
+  const [, rerender] = useState(0)
+  if (!premiumEnabled || ent.loading || !ent.legacySync || ent.isPremium || safeStorage.get(LEGACY_NOTICE_KEY)) return null
+  const dismiss = () => {
+    safeStorage.set(LEGACY_NOTICE_KEY, '1')
+    rerender((n) => n + 1)
+  }
+  return (
+    <section aria-label="Sync stays free" className="flex items-start gap-3 rounded-card bg-success-tint p-4 text-success-text">
+      <RefreshCw className="mt-0.5 size-5 flex-none" aria-hidden="true" />
+      <p className="min-w-0 flex-1 text-[15px] leading-snug text-foreground">
+        Sync is now part of Premium. Because you were already using it, it stays free for you.
+      </p>
+      <DismissButton onClick={dismiss} />
+    </section>
+  )
+}
+
+const REMINDER_KEY = 'auto-budget:backup-reminder-dismissed'
+const REMINDER_DAYS = 30
+const REMINDER_MIN_TRANSACTIONS = 20
+
+/**
+ * "Back up your data": for users who don't sync, have more than 20
+ * transactions and haven't saved a backup file in 30 days. Dismissing hides
+ * it for another 30 days.
+ */
+export function BackupReminder() {
+  const { snapshot } = useAppData()
+  const ent = useEntitlement()
+  const [, rerender] = useState(0)
+  if (ent.loading || ent.canSync) return null
+  if (alive(snapshot.transactions).length <= REMINDER_MIN_TRANSACTIONS) return null
+  const since = daysSinceBackupFile()
+  if (since !== null && since < REMINDER_DAYS) return null
+  const dismissed = safeStorage.get(REMINDER_KEY)
+  if (dismissed && (Date.parse(todayISO()) - Date.parse(dismissed)) / 86_400_000 < REMINDER_DAYS) return null
+
+  const dismiss = () => {
+    safeStorage.set(REMINDER_KEY, todayISO())
+    rerender((n) => n + 1)
+  }
+  const save = async () => {
+    await saveBackupFile()
+    rerender((n) => n + 1)
+    toast.success('Backup file saved', { description: 'Keep it somewhere safe, like Google Drive or email.' })
+  }
+
+  return (
+    <section aria-labelledby="backup-reminder-title" className="flex items-start gap-3 rounded-card bg-card p-4">
+      <HardDriveDownload className="mt-0.5 size-5 flex-none text-link" aria-hidden="true" />
+      <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+        <div className="flex flex-col gap-0.5">
+          <h2 id="backup-reminder-title" className="font-sans text-[15px] font-bold">
+            Back up your data
+          </h2>
+          <p className="text-sm leading-snug text-muted-foreground">
+            {since === null ? "You haven't saved a backup file yet." : `Your last backup file is ${since} days old.`} Your data lives only on this device.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <button
+            type="button"
+            onClick={save}
+            className="flex h-11 items-center justify-center rounded-lg bg-primary px-4 text-[15px] font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            Save a backup file
+          </button>
+          {premiumEnabled && (
+            <Link to="/premium?feature=sync" className="min-h-11 py-2.5 text-[15px] font-semibold text-link underline-offset-2 hover:underline">
+              Sync across devices with Premium
+            </Link>
+          )}
+        </div>
+      </div>
+      <DismissButton onClick={dismiss} />
     </section>
   )
 }

@@ -1,7 +1,11 @@
 /**
- * Runs online backup in the background: follows the sign-in state, links the
- * device to the account, and syncs after local changes, on reconnect, when
+ * Runs sync across devices in the background: follows the sign-in state, links
+ * the device to the account, and syncs after local changes, on reconnect, when
  * the app comes back to the foreground, and every few minutes.
+ *
+ * Sync is a Premium feature (legacy accounts keep it free). The Premium store
+ * reports whether the signed-in account may sync with setSyncAllowed(); until
+ * it does, nothing is uploaded. The server enforces the same rule.
  *
  * Screens read its state with useSync() and call the exported actions.
  */
@@ -20,8 +24,10 @@ export interface SyncState {
   /** The sign-in state is known (false only briefly at start-up). */
   ready: boolean
   user: CloudUser | null
-  /** This device's data is linked to the signed-in account and syncing. */
+  /** This device's data is linked to the signed-in account. */
   linked: boolean
+  /** The signed-in account may sync (Premium, trial or legacy). Null until known. */
+  allowed: boolean | null
   phase: SyncPhase
   /** Changes on this device not yet backed up. */
   pending: number
@@ -38,6 +44,7 @@ let state: SyncState = {
   ready: cloudConfig === null,
   user: null,
   linked: false,
+  allowed: null,
   phase: 'idle',
   pending: 0,
   lastSyncedAt: null,
@@ -86,15 +93,22 @@ async function refreshLocalStatus() {
 
 function describe(err: unknown): { phase: SyncPhase; error: string | null } {
   if (err instanceof OfflineError) return { phase: 'offline', error: null }
-  if (err instanceof ApiError && err.status === 401) return { phase: 'error', error: 'Your sign-in expired. Sign in again to keep backing up.' }
-  console.error('Backup failed', err)
-  return { phase: 'error', error: "Couldn't back up. We'll try again automatically." }
+  if (err instanceof ApiError && err.status === 401) return { phase: 'error', error: 'Your sign-in expired. Sign in again to keep syncing.' }
+  console.error('Sync failed', err)
+  return { phase: 'error', error: "Couldn't sync. We'll try again automatically." }
 }
 
-/** Back up now (and download changes from other devices). */
+/** The server refused because the account cannot sync (for example, a trial ended). */
+function refused(err: unknown): boolean {
+  if (!(err instanceof ApiError) || err.status !== 403) return false
+  set({ allowed: false, phase: 'idle', error: null })
+  return true
+}
+
+/** Sync now: upload changes and download changes from other devices. */
 export async function syncNow(): Promise<void> {
   window.clearTimeout(syncTimer)
-  if (!engine || !state.linked) return
+  if (!engine || !state.linked || !state.allowed) return
   if (!isOnline()) {
     set({ phase: 'offline' })
     await refreshLocalStatus()
@@ -106,7 +120,7 @@ export async function syncNow(): Promise<void> {
     await engine.sync()
     set({ phase: 'idle', error: null })
   } catch (err) {
-    set(describe(err))
+    if (!refused(err)) set(describe(err))
   }
   await refreshLocalStatus()
 }
@@ -118,7 +132,7 @@ function scheduleSync(delay = DEBOUNCE_MS) {
 
 /** Link this device to the signed-in account, asking the user first if both have a budget. */
 async function linkAccount(user: CloudUser) {
-  if (!engine) return
+  if (!engine || !state.allowed) return
   if (!isOnline()) {
     set({ phase: 'offline' })
     return
@@ -133,7 +147,7 @@ async function linkAccount(user: CloudUser) {
     await engine.link(user.id, plan.kind)
     set({ phase: 'idle', linked: true })
   } catch (err) {
-    set(describe(err))
+    if (!refused(err)) set(describe(err))
   }
   await refreshLocalStatus()
 }
@@ -146,7 +160,7 @@ export async function resolveChoice(keep: 'device' | 'online'): Promise<void> {
     await engine.link(state.user.id, keep === 'device' ? 'useLocal' : 'useRemote')
     set({ phase: 'idle', linked: true })
   } catch (err) {
-    set(describe(err))
+    if (!refused(err)) set(describe(err))
   }
   await refreshLocalStatus()
 }
@@ -154,7 +168,8 @@ export async function resolveChoice(keep: 'device' | 'online'): Promise<void> {
 async function onUser(user: CloudUser | null) {
   if (!engine) return
   const previous = state.user
-  set({ user, ready: true })
+  // Whether this account may sync is not known yet: the Premium store reports it.
+  set({ user, ready: true, allowed: null })
   if (!user) {
     if (previous) await engine.unlink()
     set({ linked: false, choice: null, remote: null, phase: 'idle', error: null })
@@ -162,12 +177,27 @@ async function onUser(user: CloudUser | null) {
     return
   }
   const linkedId = await engine.linkedUserId()
-  if (linkedId === user.id) {
-    set({ linked: true })
-    await syncNow()
-  } else if (!state.choice) {
-    await linkAccount(user)
-  }
+  set({ linked: linkedId === user.id })
+  await resume()
+}
+
+/** Start or continue syncing once the account is allowed to. */
+async function resume() {
+  if (!engine || !state.user || !state.allowed) return
+  if (state.linked) await syncNow()
+  else if (!state.choice) await linkAccount(state.user)
+}
+
+/**
+ * Called by the Premium store whenever it knows whether the signed-in account
+ * may sync. Turning it on links or resumes; turning it off pauses (the link,
+ * the cursor and the server copy are kept, so sync resumes where it left off).
+ */
+export function setSyncAllowed(userId: string | null, allowed: boolean): void {
+  if (!userId || userId !== state.user?.id || state.allowed === allowed) return
+  set({ allowed, ...(allowed ? {} : { phase: 'idle' as const, error: null }) })
+  if (allowed) void resume()
+  else window.clearTimeout(syncTimer)
 }
 
 /** Start background backup. Safe to call more than once. */
@@ -195,13 +225,10 @@ export function startSync(): void {
     if (engine?.applying) return
     window.clearTimeout(pendingTimer)
     pendingTimer = window.setTimeout(() => void refreshLocalStatus(), 300)
-    if (state.linked) scheduleSync()
+    if (state.linked && state.allowed) scheduleSync()
   })
 
-  window.addEventListener('online', () => {
-    if (state.linked) void syncNow()
-    else if (state.user && !state.choice) void linkAccount(state.user)
-  })
+  window.addEventListener('online', () => void resume())
   window.addEventListener('offline', () => set({ phase: 'offline' }))
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && state.linked && Date.now() - lastAttempt > 60_000) void syncNow()
@@ -228,15 +255,16 @@ export function thisDeviceId(): Promise<string | null> {
 
 /** Load what is saved online, for the Account screen. */
 export async function loadRemoteStatus(): Promise<void> {
-  if (!http || !state.linked || !isOnline()) return
+  if (!http || !state.linked || !state.allowed || !isOnline()) return
   try {
     set({ remote: await callApi<RemoteStatus>(http, 'sync/status') })
-  } catch {
+  } catch (err) {
     // Keep showing the last known status.
+    refused(err)
   }
 }
 
-/** Sign out on this device. Data stays here; backup stops. */
+/** Sign out on this device. Data stays here; sync stops. */
 export async function signOut(): Promise<void> {
   await signOutLocally()
   await onUser(null)
@@ -244,7 +272,7 @@ export async function signOut(): Promise<void> {
 
 /** Permanently delete the account and everything saved online. Data on this device is kept. */
 export async function deleteAccount(): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!http) return { ok: false, error: 'Online backup is not available.' }
+  if (!http) return { ok: false, error: 'Sync is not available.' }
   if (!isOnline()) return { ok: false, error: "You're offline. Connect to the internet to delete your account." }
   try {
     await callApi(http, 'delete-account', { method: 'POST', body: '{}' })

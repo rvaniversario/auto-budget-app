@@ -6,7 +6,7 @@ import { startPremium } from './premium'
 import { startSync } from './sync'
 import './index.css'
 
-// Online backup runs in the background when the app is built with a backend.
+// Sync across devices (Premium) runs in the background when the app is built with a backend.
 startSync()
 // Premium status follows sign-in and refreshes on open and focus (when switched on).
 startPremium()

@@ -159,7 +159,7 @@ function Paywall() {
     // Premium is tied to an account: guests sign in first and come back here.
     if (!ent.signedIn) {
       navigate('/account/sign-in', {
-        state: { message: 'Sign in so your Premium is saved to your account', returnTo: `${location.pathname}${location.search}` },
+        state: { message: 'Sign in so your Premium and your synced data are saved to your account', returnTo: `${location.pathname}${location.search}` },
       })
       return
     }

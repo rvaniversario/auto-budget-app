@@ -7,8 +7,17 @@
 //
 // Every request needs `Authorization: Bearer <access token>` and an
 // `X-Device-Id` header (plus an optional `X-Device-Label`, e.g. "iPhone").
+//
+// Sync is a Premium feature: accounts that cannot sync (see can_sync) get
+// 403 with code "sync_requires_premium".
 
 import { errorResponse, getCaller, json, preflight } from '../_shared/http.ts'
+
+const SYNC_REQUIRES_PREMIUM = 'sync_requires_premium'
+
+function premiumRequired(req: Request): Response {
+  return json(req, { error: 'Sync is part of Premium.', code: SYNC_REQUIRES_PREMIUM }, 403)
+}
 
 const MAX_RECORDS = 500
 const COLLECTION = /^[A-Za-z][A-Za-z0-9_]{0,39}$/
@@ -56,7 +65,10 @@ Deno.serve(async (req) => {
   try {
     if (route === 'status' && req.method === 'GET') {
       const { data, error } = await caller.db.rpc('sync_status')
-      if (error) throw error
+      if (error) {
+        if (error.hint === SYNC_REQUIRES_PREMIUM) return premiumRequired(req)
+        throw error
+      }
       return json(req, data)
     }
 
@@ -77,7 +89,10 @@ Deno.serve(async (req) => {
         p_device_label: dev.label,
         p_records: records,
       })
-      if (error) throw error
+      if (error) {
+        if (error.hint === SYNC_REQUIRES_PREMIUM) return premiumRequired(req)
+        throw error
+      }
       return json(req, data)
     }
 
@@ -92,7 +107,10 @@ Deno.serve(async (req) => {
         p_since: since,
         p_limit: Number.isSafeInteger(limit) ? limit : 500,
       })
-      if (error) throw error
+      if (error) {
+        if (error.hint === SYNC_REQUIRES_PREMIUM) return premiumRequired(req)
+        throw error
+      }
       return json(req, data)
     }
 
