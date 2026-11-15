@@ -6,11 +6,10 @@ import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
-  alive,
   centavosToInput,
   formatMoney,
   formatShortDate,
-  getAccountBalance,
+  groupAccounts,
   isDebtAccount,
   nextOccurrence,
   ordinal,
@@ -21,7 +20,7 @@ import {
 import { repo } from '@/data'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { useAppData } from '@/hooks/useAppData'
-import { DashedButton, TabHeader } from '@/components/layout'
+import { DashedButton, SectionLabel, TabHeader } from '@/components/layout'
 import { ChoiceChips, MoneyInput, TextInput } from '@/components/inputs'
 import {
   AlertDialog,
@@ -39,7 +38,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui
 import { moneyField, optionalMoneyField, toCentavos } from '@/lib/forms'
 import { cn } from '@/lib/utils'
 
-const TYPE_LABEL: Record<AccountType, string> = { cash: 'Cash', bank: 'Bank account', ewallet: 'E-wallet', credit_card: 'Credit card', loan: 'Loan' }
+const TYPE_LABEL: Record<AccountType, string> = { cash: 'Cash', bank: 'Deposit', ewallet: 'E-wallet', credit_card: 'Credit card', loan: 'Loan' }
 
 const PLACEHOLDER: Record<AccountType, string> = {
   cash: 'Wallet',
@@ -54,98 +53,133 @@ export function AccountsScreen() {
   const [editing, setEditing] = useState<Account | null>(null)
   const [adding, setAdding] = useState(false)
   const openAdd = useAddTransaction()
-  const accounts = alive(snapshot.accounts)
-  const money = accounts.filter((a) => !isDebtAccount(a.type))
-  const loans = accounts.filter((a) => a.type === 'loan')
+  const overview = groupAccounts(snapshot.accounts, snapshot.transactions)
+  const cardById = new Map(model.cards.map((c) => [c.account.id, c]))
 
   return (
     <>
       <TabHeader title="Accounts" />
-      <div className="grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
 
-      {money.map((a) => (
-        <button
-          key={a.id}
-          type="button"
-          onClick={() => setEditing(a)}
-          aria-label={`${a.name}, ${formatMoney(getAccountBalance(a, snapshot.transactions))}. Edit`}
-          className="flex min-h-[76px] items-center justify-between rounded-card bg-card p-4 text-left outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 md:px-5"
-        >
-          <span className="flex flex-col gap-0.5">
-            <span className="text-[15px] font-semibold">{a.name}</span>
-            <span className="text-[13px] text-muted-foreground">{TYPE_LABEL[a.type]}</span>
-          </span>
-          <span className={cn('money text-lg font-semibold', getAccountBalance(a, snapshot.transactions) < 0 && 'text-danger-bar')}>
-            {formatMoney(getAccountBalance(a, snapshot.transactions))}
-          </span>
-        </button>
-      ))}
-
-      {model.cards.map((c) => (
-        <section key={c.account.id} aria-label={c.account.name} className="flex flex-col gap-3.5 rounded-card bg-card p-4 md:col-span-full md:px-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[15px] font-semibold">{c.account.name}</span>
-              <span className="text-[13px] text-muted-foreground">Amount owed</span>
-            </div>
-            <span className="money text-[22px] font-bold">{formatMoney(c.balance)}</span>
-          </div>
-          <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-4">
-            <Tile term="Statement date" value={c.account.statementDay ? `${ordinal(c.account.statementDay)} of the month` : 'Not set'} />
-            <Tile term="Due date" value={c.nextDueDate ? formatShortDate(c.nextDueDate) : 'Not set'} />
-            <Tile term="Minimum due" value={formatMoney(c.minimumDue)} />
-            <Tile term="Interest rate" value={`${c.monthlyInterestRate}% a month`} />
-          </dl>
-          <Link
-            to="/breakdown"
-            className="flex min-h-12 items-center justify-between rounded-lg bg-success-tint px-4 text-[15px] font-semibold text-success-text"
-          >
-            Safe to pay this month: {formatMoney(c.allocation.amount)}
-            <ChevronRight className="size-[18px]" aria-hidden="true" />
-          </Link>
-          <div className="grid grid-cols-2 gap-2 lg:max-w-md">
-            <Button variant="outline" className="h-11 bg-card" onClick={() => openAdd({ type: 'transfer', to: c.account.id })}>
-              Record a payment
-            </Button>
-            <Button variant="outline" className="h-11 bg-card" onClick={() => setEditing(c.account)}>
-              Edit card
-            </Button>
-          </div>
+      {overview.groups.length > 0 && (
+        <section aria-label="Totals" className="grid grid-cols-3 gap-2 rounded-card bg-card p-4 md:px-5">
+          <Total label="Assets" value={overview.assets} />
+          <Total label="Liabilities" value={overview.liabilities} />
+          <Total label="Net worth" value={overview.netWorth} highlight />
         </section>
-      ))}
+      )}
 
-      {loans.map((loan) => (
-        <section key={loan.id} aria-label={loan.name} className="flex flex-col gap-3.5 rounded-card bg-card p-4 md:col-span-full md:px-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[15px] font-semibold">{loan.name}</span>
-              <span className="text-[13px] text-muted-foreground">Loan · amount owed</span>
+      {overview.groups.map((g) => {
+        const headingId = `group-${g.type}`
+        const owed = isDebtAccount(g.type)
+        return (
+          <section key={g.type} aria-labelledby={headingId} className="flex flex-col gap-2.5">
+            <div className="flex min-h-9 items-center justify-between gap-3 px-1">
+              <SectionLabel className="mb-0 truncate">
+                <span id={headingId}>{g.name}</span>
+              </SectionLabel>
+              <span
+                className={cn('money text-[15px] font-semibold', (owed || g.total < 0) && 'text-danger-bar')}
+                aria-label={`${g.name} ${owed ? 'owed' : 'total'} ${formatMoney(g.total)}`}
+              >
+                {owed ? `Owed ${formatMoney(g.total)}` : formatMoney(g.total)}
+              </span>
             </div>
-            <span className="money text-[22px] font-bold">{formatMoney(getAccountBalance(loan, snapshot.transactions))}</span>
-          </div>
-          <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-3">
-            <Tile term="Monthly payment" value={formatMoney(loan.minimumDue ?? 0)} />
-            <Tile term="Next due" value={loan.dueDay ? formatShortDate(nextOccurrence(loan.dueDay, todayISO())) : 'Not set'} />
-            <Tile term="Interest rate" value={`${loan.monthlyInterestRate ?? 0}% a month`} />
-          </dl>
-          <div className="grid grid-cols-2 gap-2 lg:max-w-md">
-            <Button variant="outline" className="h-11 bg-card" onClick={() => openAdd({ type: 'transfer', to: loan.id })}>
-              Record a payment
-            </Button>
-            <Button variant="outline" className="h-11 bg-card" onClick={() => setEditing(loan)}>
-              Edit loan
-            </Button>
-          </div>
-        </section>
-      ))}
 
-      </div>
+            <div className="grid gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
+              {g.rows.map(({ account: a, balance }) => {
+                if (a.type === 'credit_card') {
+                  const c = cardById.get(a.id)
+                  if (!c) return null
+                  return (
+                    <section key={a.id} aria-label={a.name} className="flex flex-col gap-3.5 rounded-card bg-card p-4 md:col-span-full md:px-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[15px] font-semibold">{a.name}</span>
+                          <span className="text-[13px] text-muted-foreground">Credit card · amount owed</span>
+                        </div>
+                        <span className="money text-[22px] font-bold">{formatMoney(c.balance)}</span>
+                      </div>
+                      <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-4">
+                        <Tile term="Statement date" value={a.statementDay ? `${ordinal(a.statementDay)} of the month` : 'Not set'} />
+                        <Tile term="Due date" value={c.nextDueDate ? formatShortDate(c.nextDueDate) : 'Not set'} />
+                        <Tile term="Minimum due" value={formatMoney(c.minimumDue)} />
+                        <Tile term="Interest rate" value={`${c.monthlyInterestRate}% a month`} />
+                      </dl>
+                      <Link
+                        to="/breakdown"
+                        className="flex min-h-12 items-center justify-between rounded-lg bg-success-tint px-4 text-[15px] font-semibold text-success-text"
+                      >
+                        Safe to pay this month: {formatMoney(c.allocation.amount)}
+                        <ChevronRight className="size-[18px]" aria-hidden="true" />
+                      </Link>
+                      <div className="grid grid-cols-2 gap-2 lg:max-w-md">
+                        <Button variant="outline" className="h-11 bg-card" onClick={() => openAdd({ type: 'transfer', to: a.id })}>
+                          Record a payment
+                        </Button>
+                        <Button variant="outline" className="h-11 bg-card" onClick={() => setEditing(a)}>
+                          Edit card
+                        </Button>
+                      </div>
+                    </section>
+                  )
+                }
+                if (a.type === 'loan') {
+                  return (
+                    <section key={a.id} aria-label={a.name} className="flex flex-col gap-3.5 rounded-card bg-card p-4 md:col-span-full md:px-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[15px] font-semibold">{a.name}</span>
+                          <span className="text-[13px] text-muted-foreground">Loan · amount owed</span>
+                        </div>
+                        <span className="money text-[22px] font-bold">{formatMoney(balance)}</span>
+                      </div>
+                      <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-3">
+                        <Tile term="Monthly payment" value={formatMoney(a.minimumDue ?? 0)} />
+                        <Tile term="Next due" value={a.dueDay ? formatShortDate(nextOccurrence(a.dueDay, todayISO())) : 'Not set'} />
+                        <Tile term="Interest rate" value={`${a.monthlyInterestRate ?? 0}% a month`} />
+                      </dl>
+                      <div className="grid grid-cols-2 gap-2 lg:max-w-md">
+                        <Button variant="outline" className="h-11 bg-card" onClick={() => openAdd({ type: 'transfer', to: a.id })}>
+                          Record a payment
+                        </Button>
+                        <Button variant="outline" className="h-11 bg-card" onClick={() => setEditing(a)}>
+                          Edit loan
+                        </Button>
+                      </div>
+                    </section>
+                  )
+                }
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => setEditing(a)}
+                    aria-label={`${a.name}, ${formatMoney(balance)}. Edit`}
+                    className="flex min-h-[76px] items-center justify-between rounded-card bg-card p-4 text-left outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 md:px-5"
+                  >
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-[15px] font-semibold">{a.name}</span>
+                      <span className="text-[13px] text-muted-foreground">{TYPE_LABEL[a.type]}</span>
+                    </span>
+                    <span className={cn('money text-lg font-semibold', balance < 0 && 'text-danger-bar')}>{formatMoney(balance)}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })}
+
       <DashedButton onClick={() => setAdding(true)}>Add account</DashedButton>
 
-      <AccountDialog open={adding || editing !== null} account={editing} onClose={() => {
-        setAdding(false)
-        setEditing(null)
-      }} />
+      <AccountDialog
+        open={adding || editing !== null}
+        account={editing}
+        onClose={() => {
+          setAdding(false)
+          setEditing(null)
+        }}
+      />
     </>
   )
 }
@@ -155,6 +189,17 @@ function Tile({ term, value }: { term: string; value: string }) {
     <div className="flex flex-col gap-1 rounded-lg bg-background p-3">
       <dt className="text-xs text-muted-foreground">{term}</dt>
       <dd className="m-0 text-[15px] font-semibold">{value}</dd>
+    </div>
+  )
+}
+
+function Total({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className={cn('money truncate text-lg font-semibold', highlight && (value < 0 ? 'text-danger-bar' : 'text-link'))}>
+        {formatMoney(value, { decimals: 'never' })}
+      </span>
     </div>
   )
 }
@@ -183,7 +228,16 @@ const schema = z
   })
 type Values = z.infer<typeof schema>
 
-function AccountDialog({ open, account, onClose }: { open: boolean; account: Account | null; onClose: () => void }) {
+function AccountDialog({
+  open,
+  account,
+  onClose,
+}: {
+  open: boolean
+  account: Account | null
+  onClose: () => void
+}) {
+
   const [confirmDelete, setConfirmDelete] = useState(false)
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -247,7 +301,7 @@ function AccountDialog({ open, account, onClose }: { open: boolean; account: Acc
             <DialogHeader>
               <DialogTitle>{account ? `Edit ${account.name}` : 'Add account'}</DialogTitle>
               <DialogDescription>
-                {account ? 'Changes apply to all your past transactions on this account.' : 'Cash, a bank account, a credit card or a loan.'}
+                {account ? 'Changes apply to all your past transactions on this account.' : 'Cash, a deposit account, an e-wallet, a credit card or a loan.'}
               </DialogDescription>
             </DialogHeader>
             {!account && (
@@ -255,19 +309,24 @@ function AccountDialog({ open, account, onClose }: { open: boolean; account: Acc
                 name="type"
                 control={form.control}
                 render={({ field: f }) => (
-                  <ChoiceChips
-                    label="Account type"
-                    columns={3}
-                    value={f.value}
-                    onChange={f.onChange}
-                    options={[
-                      { value: 'cash', label: 'Cash' },
-                      { value: 'bank', label: 'Bank' },
-                      { value: 'ewallet', label: 'E-wallet' },
-                      { value: 'credit_card', label: 'Card' },
-                      { value: 'loan', label: 'Loan' },
-                    ]}
-                  />
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold" aria-hidden="true">
+                      Account group
+                    </span>
+                    <ChoiceChips
+                      label="Account group"
+                      columns={3}
+                      value={f.value}
+                      onChange={f.onChange}
+                      options={[
+                        { value: 'cash', label: 'Cash' },
+                        { value: 'bank', label: 'Deposit' },
+                        { value: 'ewallet', label: 'E-wallet' },
+                        { value: 'credit_card', label: 'Card' },
+                        { value: 'loan', label: 'Loan' },
+                      ]}
+                    />
+                  </div>
                 )}
               />
             )}
