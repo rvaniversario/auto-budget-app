@@ -38,7 +38,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui
 import { moneyField, optionalMoneyField, toCentavos } from '@/lib/forms'
 import { cn } from '@/lib/utils'
 
-const TYPE_LABEL: Record<AccountType, string> = { cash: 'Cash', bank: 'Deposit', ewallet: 'E-wallet', credit_card: 'Credit card', loan: 'Loan' }
+const TYPE_LABEL: Record<AccountType, string> = { cash: 'Cash', bank: 'Deposit', ewallet: 'E-wallet', credit_card: 'Credit card', loan: 'Loan', debt: 'Debt' }
 
 const PLACEHOLDER: Record<AccountType, string> = {
   cash: 'Wallet',
@@ -46,6 +46,7 @@ const PLACEHOLDER: Record<AccountType, string> = {
   ewallet: 'GCash, Maya or PalawanPay',
   credit_card: 'My credit card',
   loan: 'Car loan',
+  debt: 'Owed to Mom',
 }
 
 export function AccountsScreen() {
@@ -123,27 +124,28 @@ export function AccountsScreen() {
                     </section>
                   )
                 }
-                if (a.type === 'loan') {
+                if (a.type === 'loan' || a.type === 'debt') {
+                  const isDebt = a.type === 'debt'
                   return (
                     <section key={a.id} aria-label={a.name} className="flex flex-col gap-3.5 rounded-card bg-card p-4 md:col-span-full md:px-5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-[15px] font-semibold">{a.name}</span>
-                          <span className="text-[13px] text-muted-foreground">Loan · amount owed</span>
+                          <span className="text-[13px] text-muted-foreground">{isDebt ? 'Debt' : 'Loan'} · amount owed</span>
                         </div>
                         <span className="money text-[22px] font-bold">{formatMoney(balance)}</span>
                       </div>
                       <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-3">
-                        <Tile term="Monthly payment" value={formatMoney(a.minimumDue ?? 0)} />
+                        <Tile term="Monthly payment" value={isDebt && !a.minimumDue ? 'Not set' : formatMoney(a.minimumDue ?? 0)} />
                         <Tile term="Next due" value={a.dueDay ? formatShortDate(nextOccurrence(a.dueDay, todayISO())) : 'Not set'} />
-                        <Tile term="Interest rate" value={`${a.monthlyInterestRate ?? 0}% a month`} />
+                        <Tile term="Interest rate" value={isDebt && !a.monthlyInterestRate ? 'None' : `${a.monthlyInterestRate ?? 0}% a month`} />
                       </dl>
                       <div className="grid grid-cols-2 gap-2 lg:max-w-md">
                         <Button variant="outline" className="h-11 bg-card" onClick={() => openAdd({ type: 'transfer', to: a.id })}>
                           Record a payment
                         </Button>
                         <Button variant="outline" className="h-11 bg-card" onClick={() => setEditing(a)}>
-                          Edit loan
+                          {isDebt ? 'Edit debt' : 'Edit loan'}
                         </Button>
                       </div>
                     </section>
@@ -210,7 +212,7 @@ const optionalDay = z.string().refine((v) => v === '' || (/^\d+$/.test(v) && Num
 
 const schema = z
   .object({
-    type: z.enum(['cash', 'bank', 'ewallet', 'credit_card', 'loan']),
+    type: z.enum(['cash', 'bank', 'ewallet', 'credit_card', 'loan', 'debt']),
     name: z.string().trim().min(1, 'Give the account a name').max(40),
     balance: moneyField({ allowZero: true, message: 'Enter a balance (0 is fine)' }),
     statementDay: optionalDay,
@@ -220,6 +222,13 @@ const schema = z
   })
   .superRefine((v, ctx) => {
     if (!isDebtAccount(v.type)) return
+    // A personal debt needs only the amount owed; payment, due day and interest are optional.
+    if (v.type === 'debt') {
+      if (v.rate && !(/^\d+(\.\d+)?$/.test(v.rate) && Number(v.rate) <= 10)) {
+        ctx.addIssue({ code: 'custom', path: ['rate'], message: 'Enter a rate between 0 and 10, or leave it empty' })
+      }
+      return
+    }
     if (v.type === 'loan' && !v.minimum) ctx.addIssue({ code: 'custom', path: ['minimum'], message: 'Enter the monthly payment' })
     if (!v.dueDay) ctx.addIssue({ code: 'custom', path: ['dueDay'], message: 'Enter the due day' })
     if (!(/^\d+(\.\d+)?$/.test(v.rate) && Number(v.rate) <= 10)) {
@@ -258,6 +267,12 @@ function AccountDialog({
     })
   }, [open, account, form])
 
+  // Cards and loans suggest 3% interest; a personal debt usually has none.
+  useEffect(() => {
+    if (account || form.getFieldState('rate').isDirty) return
+    form.setValue('rate', type === 'debt' ? '' : '3')
+  }, [type, account, form])
+
   const submit = async (v: Values) => {
     const isCard = v.type === 'credit_card'
     const isDebt = isDebtAccount(v.type)
@@ -267,8 +282,8 @@ function AccountDialog({
       openingBalance: toCentavos(v.balance),
       statementDay: isCard && v.statementDay ? Number(v.statementDay) : null,
       dueDay: isDebt && v.dueDay ? Number(v.dueDay) : null,
-      minimumDue: isDebt ? toCentavos(v.minimum) : null,
-      monthlyInterestRate: isDebt ? Number(v.rate) : null,
+      minimumDue: isDebt && (v.type !== 'debt' || v.minimum) ? toCentavos(v.minimum) : null,
+      monthlyInterestRate: isDebt ? Number(v.rate || 0) : null,
     }
     if (account) await repo.updateAccount(account.id, data)
     else await repo.addAccount(data)
@@ -301,7 +316,7 @@ function AccountDialog({
             <DialogHeader>
               <DialogTitle>{account ? `Edit ${account.name}` : 'Add account'}</DialogTitle>
               <DialogDescription>
-                {account ? 'Changes apply to all your past transactions on this account.' : 'Cash, a deposit account, an e-wallet, a credit card or a loan.'}
+                {account ? 'Changes apply to all your past transactions on this account.' : 'Cash, a deposit account, an e-wallet, a credit card, a loan or a debt.'}
               </DialogDescription>
             </DialogHeader>
             {!account && (
@@ -324,6 +339,7 @@ function AccountDialog({
                         { value: 'ewallet', label: 'E-wallet' },
                         { value: 'credit_card', label: 'Card' },
                         { value: 'loan', label: 'Loan' },
+                        { value: 'debt', label: 'Debt' },
                       ]}
                     />
                   </div>
@@ -339,7 +355,9 @@ function AccountDialog({
                 ? 'Card purchases add to this; payments to the card reduce it.'
                 : type === 'loan'
                   ? 'Payments to the loan reduce this.'
-                  : 'What was in it before you started logging.',
+                  : type === 'debt'
+                    ? 'Money you owe a person, such as family or a friend. Payments to it reduce this.'
+                    : 'What was in it before you started logging.',
             )}
             {type === 'credit_card' && (
               <>
@@ -360,6 +378,15 @@ function AccountDialog({
                   {field('dueDay', 'Due day', (p) => <TextInput inputMode="numeric" maxLength={2} {...p} />)}
                 </div>
                 {field('rate', 'Interest a month (%)', (p) => <TextInput inputMode="decimal" {...p} />, 'Check your loan statement. 0 if it has no interest.')}
+              </>
+            )}
+            {type === 'debt' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  {field('minimum', 'Monthly payment (₱)', (p) => <MoneyInput placeholder="Optional" {...p} />)}
+                  {field('dueDay', 'Due day', (p) => <TextInput inputMode="numeric" maxLength={2} placeholder="Optional" {...p} />)}
+                </div>
+                {field('rate', 'Interest a month (%)', (p) => <TextInput inputMode="decimal" placeholder="0" {...p} />, 'Leave empty if there is no interest.')}
               </>
             )}
             <DialogFooter className="gap-2">

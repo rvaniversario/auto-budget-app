@@ -57,12 +57,16 @@ export interface Settings extends SyncFields {
   onboardingComplete: boolean
 }
 
-/** `ewallet` is a mobile wallet such as GCash, Maya or PalawanPay; it behaves like a bank account. */
-export type AccountType = 'cash' | 'bank' | 'ewallet' | 'credit_card' | 'loan'
+/**
+ * `ewallet` is a mobile wallet such as GCash, Maya or PalawanPay; it behaves like a bank account.
+ * `debt` is money owed outside a bank or lender (family, friends); it behaves like a loan,
+ * but its monthly payment, due day and interest are optional.
+ */
+export type AccountType = 'cash' | 'bank' | 'ewallet' | 'credit_card' | 'loan' | 'debt'
 
-/** Accounts whose balance is money owed: credit cards and loans. */
+/** Accounts whose balance is money owed: credit cards, loans and debts. */
 export function isDebtAccount(type: AccountType): boolean {
-  return type === 'credit_card' || type === 'loan'
+  return type === 'credit_card' || type === 'loan' || type === 'debt'
 }
 
 export interface Account extends SyncFields {

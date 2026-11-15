@@ -27,7 +27,8 @@ export function makeDescriber(snapshot: Pick<AppSnapshot, 'accounts' | 'categori
       const to = toAccount?.name ?? 'Account'
       const isCardPayment = toAccount?.type === 'credit_card'
       const isLoanPayment = toAccount?.type === 'loan'
-      const kind = isCardPayment ? 'Card payment' : isLoanPayment ? 'Loan payment' : 'Transfer'
+      const isDebtPayment = toAccount?.type === 'debt'
+      const kind = isCardPayment ? 'Card payment' : isLoanPayment ? 'Loan payment' : isDebtPayment ? 'Debt payment' : 'Transfer'
       const account = `${from} to ${to}`
       return {
         title: t.note || kind,

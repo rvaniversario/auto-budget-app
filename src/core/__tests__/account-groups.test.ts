@@ -10,7 +10,8 @@ describe('account groups', () => {
   const bpi = account({ name: 'BPI', openingBalance: pesos(5_000), createdAt: '2026-02-01T00:00:00.000Z' })
   const palawan = account({ name: 'PalawanPay', type: 'ewallet', openingBalance: pesos(1_500) })
   const carLoan = account({ name: 'Car loan', type: 'loan', openingBalance: pesos(200_000) })
-  const all = [carLoan, palawan, bdoCard, bpi, bdo, cash]
+  const mom = account({ name: 'Owed to Mom', type: 'debt', openingBalance: pesos(10_000) })
+  const all = [mom, carLoan, palawan, bdoCard, bpi, bdo, cash]
 
   it('groups accounts by type in a fixed order, leaving out empty groups', () => {
     const { groups } = groupAccounts(all, [])
@@ -20,6 +21,7 @@ describe('account groups', () => {
       ['E-wallet', ['PalawanPay']],
       ['Card', ['BDO Visa']],
       ['Loan', ['Car loan']],
+      ['Debt', ['Owed to Mom']],
     ])
     expect(groupAccounts([bdo], []).groups.map((g) => g.name)).toEqual(['Deposit'])
   })
@@ -30,12 +32,24 @@ describe('account groups', () => {
     expect(o.groups.find((g) => g.type === 'bank')?.total).toBe(pesos(35_000))
     expect(o.groups.find((g) => g.type === 'credit_card')?.total).toBe(pesos(13_000))
     expect(o.assets).toBe(pesos(38_500))
-    expect(o.liabilities).toBe(pesos(213_000))
-    expect(o.netWorth).toBe(pesos(38_500 - 213_000))
+    expect(o.liabilities).toBe(pesos(223_000))
+    expect(o.netWorth).toBe(pesos(38_500 - 223_000))
   })
 
   it('ignores deleted accounts', () => {
     const gone = account({ name: 'Old', deletedAt: '2026-01-02T00:00:00.000Z' })
     expect(groupAccounts([gone], []).groups).toEqual([])
+  })
+})
+
+describe('debt accounts', () => {
+  it('count as money owed: payments reduce them, borrowing more adds to them', () => {
+    const mom = account({ name: 'Owed to Mom', type: 'debt', openingBalance: pesos(10_000) })
+    const bank = account({ name: 'BDO' })
+    const paid = tx({ type: 'transfer', accountId: bank.id, toAccountId: mom.id, amount: pesos(2_000) })
+    const borrowed = tx({ type: 'transfer', accountId: mom.id, toAccountId: bank.id, amount: pesos(500) })
+    const o = groupAccounts([mom, bank], [paid, borrowed])
+    expect(o.groups.find((g) => g.type === 'debt')?.total).toBe(pesos(8_500))
+    expect(o.liabilities).toBe(pesos(8_500))
   })
 })

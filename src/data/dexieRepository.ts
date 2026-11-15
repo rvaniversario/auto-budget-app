@@ -108,7 +108,7 @@ export class DexieRepository implements Repository {
   // ---- Accounts -----------------------------------------------------------
 
   async listAccounts() {
-    const order: Record<Account['type'], number> = { cash: 0, bank: 1, ewallet: 2, credit_card: 3, loan: 4 }
+    const order: Record<Account['type'], number> = { cash: 0, bank: 1, ewallet: 2, credit_card: 3, loan: 4, debt: 5 }
     const rows = await listAlive(this.db.accounts)
     return rows.sort((a, b) => order[a.type] - order[b.type] || a.createdAt.localeCompare(b.createdAt))
   }

@@ -3,7 +3,7 @@ import { sum } from './money'
 import { alive, isDebtAccount, type Account, type AccountType, type Centavos, type Transaction } from './types'
 
 /** The Accounts screen groups accounts by type, in this order. Labels match the type chips in the account form. */
-export const ACCOUNT_GROUPS: readonly AccountType[] = ['cash', 'bank', 'ewallet', 'credit_card', 'loan']
+export const ACCOUNT_GROUPS: readonly AccountType[] = ['cash', 'bank', 'ewallet', 'credit_card', 'loan', 'debt']
 
 export const GROUP_LABEL: Record<AccountType, string> = {
   cash: 'Cash',
@@ -11,6 +11,7 @@ export const GROUP_LABEL: Record<AccountType, string> = {
   ewallet: 'E-wallet',
   credit_card: 'Card',
   loan: 'Loan',
+  debt: 'Debt',
 }
 
 export interface AccountRow {
@@ -23,7 +24,7 @@ export interface AccountGroup {
   type: AccountType
   name: string
   rows: AccountRow[]
-  /** Money held (cash, deposit, e-wallet), or owed (cards, loans). */
+  /** Money held (cash, deposit, e-wallet), or owed (cards, loans, debts). */
   total: Centavos
 }
 
@@ -31,7 +32,7 @@ export interface AccountsOverview {
   groups: AccountGroup[]
   /** Money held in cash, deposit and e-wallet accounts. */
   assets: Centavos
-  /** Owed on cards and loans. */
+  /** Owed on cards, loans and debts. */
   liabilities: Centavos
   /** What you have minus what you owe. */
   netWorth: Centavos

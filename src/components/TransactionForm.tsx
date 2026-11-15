@@ -233,7 +233,7 @@ export function TransactionForm({
 
   const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name }))
   // Loans are paid into, never spent from or paid into as income.
-  const sourceOptions = type === 'transfer' ? accountOptions : accounts.filter((a) => a.type !== 'loan').map((a) => ({ value: a.id, label: a.name }))
+  const sourceOptions = type === 'transfer' ? accountOptions : accounts.filter((a) => a.type !== 'loan' && a.type !== 'debt').map((a) => ({ value: a.id, label: a.name }))
   const categoryOptions = [
     ...categories.filter((c) => !c.archived).map((c) => ({ value: c.id, label: c.name })),
     { value: BILLS_CHIP, label: 'Bills' },

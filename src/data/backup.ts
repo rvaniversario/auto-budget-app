@@ -4,9 +4,10 @@ import { isValidISODate } from '@/core'
 export const BACKUP_APP_ID = 'auto-budget'
 /**
  * 2 adds loans, recurring templates and the debt plan. 3 adds weekly and daily pay,
- * twice-a-month paydays, moved paydays and e-wallet accounts. Older files still import.
+ * twice-a-month paydays, moved paydays and e-wallet accounts. 4 adds debt accounts.
+ * Older files still import.
  */
-export const BACKUP_SCHEMA_VERSION = 3
+export const BACKUP_SCHEMA_VERSION = 4
 
 const centavos = z.number().int().safe()
 const nonNegCentavos = centavos.nonnegative()
@@ -38,7 +39,7 @@ export const settingsSchema = z.object({
 export const accountSchema = z.object({
   ...sync,
   name: z.string(),
-  type: z.enum(['cash', 'bank', 'ewallet', 'credit_card', 'loan']),
+  type: z.enum(['cash', 'bank', 'ewallet', 'credit_card', 'loan', 'debt']),
   openingBalance: centavos,
   statementDay: dayOfMonth.nullable(),
   dueDay: dayOfMonth.nullable(),
@@ -122,7 +123,7 @@ export const debtPlanSchema = z.object({
 
 export const backupSchema = z.object({
   app: z.literal(BACKUP_APP_ID),
-  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(BACKUP_SCHEMA_VERSION)]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(BACKUP_SCHEMA_VERSION)]),
   exportedAt: z.string(),
   data: z.object({
     settings: z.array(settingsSchema),

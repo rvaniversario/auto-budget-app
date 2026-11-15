@@ -300,7 +300,7 @@ export function RecurringDialog({
     onClose()
   }
 
-  const sourceAccounts = d.type === 'transfer' ? accounts : accounts.filter((a) => a.type !== 'loan')
+  const sourceAccounts = d.type === 'transfer' ? accounts : accounts.filter((a) => a.type !== 'loan' && a.type !== 'debt')
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
