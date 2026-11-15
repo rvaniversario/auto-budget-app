@@ -158,7 +158,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
       remaining: b.budget - spent,
       status: getCategoryStatus(spent, b.budget),
       percent: percentUsed(spent, b.budget),
-      overBy: Math.max(0, spent - b.budget),
+      overBy: b.budget > 0 ? Math.max(0, spent - b.budget) : 0,
     }
   })
 

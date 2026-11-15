@@ -53,18 +53,21 @@ export function totalByKind(budgets: readonly CategoryBudget[], kind: CategoryKi
 
 export type CategoryStatus = 'ok' | 'near' | 'over'
 
-/** ok below 80% used, near from 80% to 100%, over above 100%. */
+/**
+ * ok below 80% used, near from 80% to 100%, over above 100%. A budget of 0 means
+ * no budget was set, so the category is never near or over.
+ */
 export function getCategoryStatus(spent: Centavos, budget: Centavos): CategoryStatus {
-  if (budget <= 0) return spent > 0 ? 'over' : 'ok'
+  if (budget <= 0) return 'ok'
   // Compare with integers: spent/budget < 0.8  ⇔  spent*10 < budget*8
   if (spent * 10 < budget * 8) return 'ok'
   if (spent <= budget) return 'near'
   return 'over'
 }
 
-/** Percent used, capped at 100 for progress bars. */
+/** Percent used, capped at 100 for progress bars. 0 when there is no budget. */
 export function percentUsed(spent: Centavos, budget: Centavos): number {
-  if (budget <= 0) return spent > 0 ? 100 : 0
+  if (budget <= 0) return 0
   return Math.min(100, Math.round((spent / budget) * 100))
 }
 

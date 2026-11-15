@@ -108,6 +108,24 @@ describe('computeMonthModel', () => {
     expect(m.overspent[0].fix).toEqual({ type: 'move', fromCategoryId: w.shopping.id, fromName: 'Shopping', amount: pesos(350) })
   })
 
+  it('a category with no budget (0) is never over, but its spending still counts', () => {
+    const w = world()
+    const other = category({ name: 'Other', kind: 'optional', sortOrder: 3 })
+    const m = computeMonthModel(
+      snapshot({
+        accounts: [w.bank],
+        categories: [w.groceries, other],
+        estimates: [estimate(w.groceries.id, pesos(6_000))],
+        transactions: [tx({ accountId: w.bank.id, categoryId: other.id, amount: pesos(7_010), date: '2026-11-05' })],
+      }),
+      TODAY,
+    )
+    const row = m.categoryRows.find((r) => r.name === 'Other')!
+    expect(row).toMatchObject({ budget: 0, spent: pesos(7_010), status: 'ok', overBy: 0, percent: 0 })
+    expect(m.overspent).toEqual([])
+    expect(m.spentSoFar).toBe(pesos(7_010))
+  })
+
   it('salary lower than bills: safe 0, below minimum, with suggestions', () => {
     const w = world()
     const m = computeMonthModel(

@@ -27,7 +27,7 @@ export interface ReportMonth {
   byCategory: Record<string, Centavos>
   /** The plan for that month, category by category. */
   rows: ReportCategoryRow[]
-  /** No category went over its budget. */
+  /** No category with a budget went over it. */
   withinBudget: boolean
   /** Card and loan balances owed at the end of the month (or today). */
   debtBalance: Centavos
@@ -56,7 +56,8 @@ export function reportMonths(snapshot: AppSnapshot, today: ISODate, count: numbe
       spending: totalSpent(transactions, period),
       byCategory: Object.fromEntries(categoryTotals(transactions, period)),
       rows,
-      withinBudget: rows.every((r) => r.spent <= r.budget),
+      // Categories with no budget (0) can't go over it.
+      withinBudget: rows.every((r) => r.budget <= 0 || r.spent <= r.budget),
       debtBalance: sum(debts.map((a) => Math.max(0, getAccountBalance(a, upToDate)))),
     }
   })

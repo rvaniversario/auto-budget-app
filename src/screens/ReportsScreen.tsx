@@ -367,11 +367,15 @@ function PlannedVsActual({ months }: { months: ReportMonth[] }) {
                   <th scope="row" className={cn(td, 'text-left font-sans font-medium')}>
                     {r.name}
                   </th>
-                  <td className={cn(td, 'text-right')}>{money0(r.budget)}</td>
+                  <td className={cn(td, 'text-right')}>{r.budget > 0 ? money0(r.budget) : 'None'}</td>
                   <td className={cn(td, 'text-right')}>{money0(r.spent)}</td>
-                  <td className={cn(td, 'text-right font-semibold', diff < 0 ? 'text-danger-text' : 'text-success-text')}>
-                    {diff < 0 ? `${money0(-diff)} over` : `${money0(diff)} left`}
-                  </td>
+                  {r.budget > 0 ? (
+                    <td className={cn(td, 'text-right font-semibold', diff < 0 ? 'text-danger-text' : 'text-success-text')}>
+                      {diff < 0 ? `${money0(-diff)} over` : `${money0(diff)} left`}
+                    </td>
+                  ) : (
+                    <td className={cn(td, 'text-right text-muted-foreground')}>No budget</td>
+                  )}
                 </tr>
               )
             })}

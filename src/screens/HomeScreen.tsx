@@ -312,6 +312,8 @@ function BudgetBar({
 }) {
   const over = status === 'over'
   const near = status === 'near' && !quiet
+  // A budget of 0 means none was set: show what was spent, without a limit.
+  const amounts = budget > 0 ? `${formatMoney(spent)} of ${formatMoney(budget)}` : `${formatMoney(spent)} spent · no budget`
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
@@ -320,13 +322,11 @@ function BudgetBar({
           {over && <Tag tone="danger">Over by {formatMoney(spent - budget)}</Tag>}
           {near && <Tag tone="warning">Near limit</Tag>}
         </span>
-        <span className={cn('flex-none text-[13px]', over ? 'font-semibold text-danger-bar' : 'text-muted-foreground')}>
-          {formatMoney(spent)} of {formatMoney(budget)}
-        </span>
+        <span className={cn('flex-none text-[13px]', over ? 'font-semibold text-danger-bar' : 'text-muted-foreground')}>{amounts}</span>
       </div>
       <Progress
         value={over ? 100 : percent}
-        aria-label={`${label}: ${formatMoney(spent)} of ${formatMoney(budget)}`}
+        aria-label={`${label}: ${amounts}`}
         indicatorClassName={cn(over && 'bg-danger-bar', near && 'bg-warning-bar')}
       />
     </div>

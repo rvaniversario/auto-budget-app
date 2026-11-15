@@ -38,7 +38,7 @@ describe('getCategoryStatus', () => {
 
   it('zero budget', () => {
     expect(getCategoryStatus(0, 0)).toBe('ok')
-    expect(getCategoryStatus(1, 0)).toBe('over')
+    expect(getCategoryStatus(1, 0)).toBe('ok') // no budget set: never over
   })
 
   it('percentUsed caps at 100', () => {
