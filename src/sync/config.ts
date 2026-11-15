@@ -19,6 +19,12 @@ function readConfig(): CloudConfig | null {
   }
 }
 
+/**
+ * Digits in an emailed sign-in code. Must match the Supabase project's "Email OTP
+ * Length" (Authentication settings) and `otp_length` in supabase/config.toml.
+ */
+export const SIGN_IN_CODE_LENGTH = 8
+
 /** Null when the app is built without a backend: it then works exactly as an offline-only app. */
 export const cloudConfig = readConfig()
 export const cloudEnabled = cloudConfig !== null

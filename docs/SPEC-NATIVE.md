@@ -80,7 +80,7 @@ Native-specific behaviour:
 
 ## Sign-in on Android
 
-- **Email with a 6-digit code** works the same as on the web.
+- **Email with an 8-digit code** works the same as on the web.
 - **Continue with Google** uses native Google sign-in on Android and passes the resulting ID token to Supabase (`signInWithIdToken`), following Supabase's current guide. Configure the Android OAuth client (package name and signing certificate fingerprints for both the upload key and Google Play's app signing key) and the web client ID in the same Google Cloud project.
 - Add the app's redirect URLs to the Supabase project's allowed redirect list alongside the web app's.
 - The first sign-in on a device with local data uploads it, and a new device downloads the account's data, exactly as on the web.

@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { getSyncState, subscribeSync, type SyncState } from './controller'
 export { ApiError, OfflineError } from './api'
 
-export { cloudEnabled, cloudConfig } from './config'
+export { cloudEnabled, cloudConfig, SIGN_IN_CODE_LENGTH } from './config'
 export {
   deleteAccount,
   loadRemoteStatus,

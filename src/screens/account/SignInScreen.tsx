@@ -9,7 +9,7 @@ import { TextInput } from '@/components/inputs'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { premiumEnabled } from '@/premium'
-import { cloudConfig, sendSignInCode, signInWithGoogle, useSync } from '@/sync'
+import { cloudConfig, sendSignInCode, SIGN_IN_CODE_LENGTH, signInWithGoogle, useSync } from '@/sync'
 
 /** Optional state passed when another screen sends the user here. */
 export interface SignInState {
@@ -105,7 +105,7 @@ export function SignInScreen() {
         <Button type="submit" className="h-[54px] rounded-[14px] text-base font-semibold" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? 'Sending…' : 'Email me a sign-in code'}
         </Button>
-        <p className="text-[13px] leading-normal text-muted-foreground">No password needed. We email you a 6-digit code each time you sign in.</p>
+        <p className="text-[13px] leading-normal text-muted-foreground">No password needed. We email you a {SIGN_IN_CODE_LENGTH}-digit code each time you sign in.</p>
       </form>
 
       <Button type="button" variant="ghost" className="min-h-11 text-[15px] font-semibold text-link" onClick={() => navigate(-1)}>

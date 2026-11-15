@@ -5,10 +5,10 @@ import { repo } from '@/data'
 import { SubHeader } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { sendSignInCode, useSync, verifySignInCode } from '@/sync'
+import { sendSignInCode, SIGN_IN_CODE_LENGTH, useSync, verifySignInCode } from '@/sync'
 import type { SignInState } from './SignInScreen'
 
-const LENGTH = 6
+const LENGTH = SIGN_IN_CODE_LENGTH
 const RESEND_SECONDS = 60
 
 export function VerifyCodeScreen() {
@@ -60,7 +60,7 @@ export function VerifyCodeScreen() {
     <div className="flex w-full max-w-[560px] flex-col gap-5 md:mx-auto">
       <SubHeader title="" />
       <div className="flex flex-col gap-2">
-        <h1 className="text-[28px] leading-[1.15] font-bold tracking-[-0.01em]">Enter the 6-digit code</h1>
+        <h1 className="text-[28px] leading-[1.15] font-bold tracking-[-0.01em]">Enter the {LENGTH}-digit code</h1>
         <p className="text-[15px] leading-normal text-muted-foreground">
           We sent it to <strong className="font-semibold text-foreground">{email}</strong>. It expires in 10 minutes.
         </p>
@@ -74,7 +74,7 @@ export function VerifyCodeScreen() {
           void verify(code)
         }}
       >
-        {/* One real input (so paste and one-time-code autofill work) drawn as six boxes. */}
+        {/* One real input (so paste and one-time-code autofill work) drawn as one box per digit. */}
         <div className="relative">
           <label htmlFor="otp" className="sr-only">
             Sign-in code
@@ -99,14 +99,14 @@ export function VerifyCodeScreen() {
             }}
             className="absolute inset-0 z-10 h-full w-full cursor-text opacity-0"
           />
-          <div aria-hidden="true" className="grid grid-cols-6 gap-2">
+          <div aria-hidden="true" className="grid gap-1.5 sm:gap-2" style={{ gridTemplateColumns: `repeat(${LENGTH}, minmax(0, 1fr))` }}>
             {Array.from({ length: LENGTH }, (_, i) => {
               const active = focused && (i === code.length || (i === LENGTH - 1 && code.length === LENGTH))
               return (
                 <div
                   key={i}
                   className={cn(
-                    'flex h-[60px] items-center justify-center rounded-lg border bg-card font-heading text-[26px] font-semibold',
+                    'flex h-[56px] items-center justify-center rounded-lg border bg-card font-heading text-[24px] font-semibold',
                     error ? 'border-danger-bar' : 'border-input',
                     active && 'border-ring ring-3 ring-ring/50',
                   )}

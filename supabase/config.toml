@@ -34,8 +34,9 @@ enable_anonymous_sign_ins = false
 enabled = true
 double_confirm_changes = true
 enable_confirmations = false
-# Sign-in uses a 6-digit code, never a password.
-otp_length = 6
+# Sign-in uses an 8-digit code, never a password. Keep in step with SIGN_IN_CODE_LENGTH
+# in src/sync/config.ts and the hosted project's Email OTP Length.
+otp_length = 8
 otp_expiry = 600
 max_frequency = "30s"
 
