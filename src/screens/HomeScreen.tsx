@@ -14,6 +14,7 @@ import {
   type CategoryRow,
   type CategoryStatus,
   type Transaction,
+  incomeLabel,
 } from '@/core'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { EditTransactionHost } from '@/components/EditTransactionHost'
@@ -230,7 +231,7 @@ function MonthSummary() {
   const { model, snapshot } = useAppData()
   return (
     <section aria-label="Month summary" className="grid grid-cols-3 gap-2 rounded-card bg-card p-4">
-      <SummaryStat label="Salary" value={snapshot.settings.monthlySalary} />
+      <SummaryStat label={incomeLabel(snapshot.settings.payFrequency).short} value={model.income} />
       <SummaryStat label="Spent so far" value={model.spentSoFar} />
       <SummaryStat label="Remaining" value={model.remaining} highlight />
     </section>

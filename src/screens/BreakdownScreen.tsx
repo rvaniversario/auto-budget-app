@@ -12,6 +12,8 @@ import {
   pesos,
   whatIf,
   type ShortfallOption,
+  incomeBreakdown,
+  incomeLabel,
 } from '@/core'
 import { repo } from '@/data'
 import { useAppData } from '@/hooks/useAppData'
@@ -132,7 +134,12 @@ export function BreakdownScreen() {
 
       <section aria-label="How we got this amount" className="flex flex-col gap-3 rounded-card bg-card px-4 py-[18px] md:px-5">
         <h2 className="font-sans text-base font-bold">How we got this amount</h2>
-        <Line label="Monthly salary" amount={safe.salary} minus={false} />
+        <Line
+          label={incomeLabel(snapshot.settings.payFrequency).long}
+          sub={incomeBreakdown(snapshot.settings, model.paydays.length)}
+          amount={safe.salary}
+          minus={false}
+        />
         <Line label="Fixed bills" sub={bills.length ? listNames(bills.map((b) => b.name)) : 'None added'} amount={safe.fixedBillsTotal} />
         {oneTimes.map((t) => (
           <Line
@@ -164,7 +171,7 @@ export function BreakdownScreen() {
         )}
         {safe.unclamped < 0 && (
           <p className="text-[13px] leading-[1.45] text-danger-text">
-            Your plan needs {formatMoney(-safe.unclamped)} more than your salary, so nothing is left for the card.
+            Your plan needs {formatMoney(-safe.unclamped)} more than your income, so nothing is left for the card.
           </p>
         )}
         <div className="flex items-baseline justify-between border-t-2 border-foreground pt-3">

@@ -8,6 +8,7 @@ import {
   formatShortDate,
   periodMonthName,
   type PlanLine,
+  incomeLabel,
 } from '@/core'
 import { repo } from '@/data'
 import { useAppData } from '@/hooks/useAppData'
@@ -116,7 +117,9 @@ export function BudgetScreen() {
         className={cn('flex items-center justify-between gap-3 rounded-card p-4', u < 0 ? 'bg-danger-tint' : 'bg-success-tint')}
       >
         <div className="flex flex-col gap-0.5">
-          <span className="text-[13px]">Salary {formatMoney(plan.salary)}</span>
+          <span className="text-[13px]">
+            {incomeLabel(snapshot.settings.payFrequency).short} {formatMoney(plan.salary)}
+          </span>
           <span className={cn('money text-lg font-bold', u < 0 ? 'text-danger-text' : 'text-success-text')}>
             {u === 0 ? 'Fully allocated' : u > 0 ? `${formatMoney(u)} left to assign` : `Over by ${formatMoney(-u)}`}
           </span>

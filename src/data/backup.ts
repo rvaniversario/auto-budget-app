@@ -2,13 +2,17 @@ import { z } from 'zod'
 import { isValidISODate } from '@/core'
 
 export const BACKUP_APP_ID = 'auto-budget'
-/** 2 adds loans, recurring templates and the debt plan. Version 1 files still import. */
-export const BACKUP_SCHEMA_VERSION = 2
+/**
+ * 2 adds loans, recurring templates and the debt plan. 3 adds weekly and daily pay,
+ * twice-a-month paydays, moved paydays and e-wallet accounts. Older files still import.
+ */
+export const BACKUP_SCHEMA_VERSION = 3
 
 const centavos = z.number().int().safe()
 const nonNegCentavos = centavos.nonnegative()
 const dayOfMonth = z.number().int().min(1).max(31)
 const isoDate = z.string().refine(isValidISODate, 'Invalid date')
+const weekday = z.number().int().min(0).max(6)
 
 const sync = {
   id: z.string().min(1),
@@ -20,8 +24,12 @@ const sync = {
 export const settingsSchema = z.object({
   ...sync,
   monthlySalary: nonNegCentavos,
-  payFrequency: z.enum(['monthly', 'semimonthly']),
+  payFrequency: z.enum(['monthly', 'semimonthly', 'weekly', 'daily']),
   paydayDay: dayOfMonth,
+  secondPaydayDay: dayOfMonth.optional(),
+  payWeekday: weekday.optional(),
+  workWeekdays: z.array(weekday).optional(),
+  paydayOverrides: z.record(z.string().regex(/^\d{4}-\d{2}$/), isoDate).optional(),
   bufferAmount: nonNegCentavos,
   theme: z.enum(['light', 'dark', 'system']),
   onboardingComplete: z.boolean(),
@@ -30,7 +38,7 @@ export const settingsSchema = z.object({
 export const accountSchema = z.object({
   ...sync,
   name: z.string(),
-  type: z.enum(['cash', 'bank', 'credit_card', 'loan']),
+  type: z.enum(['cash', 'bank', 'ewallet', 'credit_card', 'loan']),
   openingBalance: centavos,
   statementDay: dayOfMonth.nullable(),
   dueDay: dayOfMonth.nullable(),
@@ -114,7 +122,7 @@ export const debtPlanSchema = z.object({
 
 export const backupSchema = z.object({
   app: z.literal(BACKUP_APP_ID),
-  schemaVersion: z.union([z.literal(1), z.literal(BACKUP_SCHEMA_VERSION)]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(BACKUP_SCHEMA_VERSION)]),
   exportedAt: z.string(),
   data: z.object({
     settings: z.array(settingsSchema),

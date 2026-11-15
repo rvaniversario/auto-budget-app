@@ -70,6 +70,37 @@ describe('DexieRepository', () => {
     expect(o.map((x) => `${x.key}=${x.amount}`)).toEqual(['a=5'])
   })
 
+  it('moves plan edits to a budget month’s new start date, including chained moves', async () => {
+    await repo.setBudgetOverride('2026-10-30', 'a', 1)
+    await repo.setBudgetOverride('2026-11-30', 'b', 2)
+    await repo.moveBudgetOverrides([
+      { from: '2026-10-30', to: '2026-11-30' },
+      { from: '2026-11-30', to: '2026-12-28' },
+    ])
+    const o = await repo.listBudgetOverrides()
+    expect(o.map((x) => `${x.periodStart}:${x.key}=${x.amount}`).sort()).toEqual(['2026-11-30:a=1', '2026-12-28:b=2'])
+  })
+
+  it('stores e-wallet accounts, lists them after banks, and backs them up', async () => {
+    const blank = { openingBalance: 0, statementDay: null, dueDay: null, minimumDue: null, monthlyInterestRate: null }
+    await repo.addAccount({ ...blank, name: 'Visa', type: 'credit_card' })
+    await repo.addAccount({ ...blank, name: 'PalawanPay', type: 'ewallet', openingBalance: pesos(1_200) })
+    await repo.addAccount({ ...blank, name: 'BDO', type: 'bank' })
+    expect((await repo.listAccounts()).map((a) => a.name)).toEqual(['BDO', 'PalawanPay', 'Visa'])
+    await repo.saveSettings({})
+    const parsed = parseBackup(JSON.stringify(await repo.exportBackup()))
+    expect(parsed.ok && parsed.backup.data.accounts.find((a) => a.type === 'ewallet')?.name).toBe('PalawanPay')
+  })
+
+  it('round-trips weekly pay and moved paydays through a backup', async () => {
+    await repo.saveSettings({ payFrequency: 'weekly', payWeekday: 5, paydayOverrides: { '2026-11': '2026-11-27' } })
+    const parsed = parseBackup(JSON.stringify(await repo.exportBackup()))
+    expect(parsed.ok).toBe(true)
+    if (parsed.ok) {
+      expect(parsed.backup.data.settings[0]).toMatchObject({ payFrequency: 'weekly', payWeekday: 5, paydayOverrides: { '2026-11': '2026-11-27' } })
+    }
+  })
+
   it('exports, validates and re-imports a backup', async () => {
     await repo.saveSettings({ monthlySalary: pesos(50_000), onboardingComplete: true })
     await repo.addFixedBill({ name: 'Rent', amount: pesos(10_000), dueDay: 5 })

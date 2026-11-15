@@ -1,6 +1,7 @@
 export * from './types'
 export * from './money'
 export * from './dates'
+export * from './pay'
 export * from './ledger'
 export * from './baseline'
 export * from './payoff'

@@ -101,8 +101,9 @@ export function TransactionsScreen() {
   const anyAtAll = snapshot.transactions.some((t) => !t.deletedAt)
   const selected = filtered.find((t) => t.id === selectedId) ?? null
   const today = todayISO()
+  const paydaySet = new Set(model.paydays)
   const dayHeading = (date: string) =>
-    `${date === today ? `Today · ${formatDayHeading(date)}` : formatDayHeading(date)}${date === model.period.start ? ' · Payday' : ''}`
+    `${date === today ? `Today · ${formatDayHeading(date)}` : formatDayHeading(date)}${paydaySet.has(date) ? ' · Payday' : ''}`
 
   const categoryOptions = [
     { value: ALL, label: isMd ? 'All categories' : 'All' },

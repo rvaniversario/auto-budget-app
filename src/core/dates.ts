@@ -1,4 +1,4 @@
-import type { ISODate } from './types'
+import type { ISODate, YearMonth } from './types'
 
 /**
  * Calendar-date helpers that work on YYYY-MM-DD strings.
@@ -67,6 +67,38 @@ function shiftMonth(year: number, month: number, delta: number): { year: number;
   return { year: Math.floor(index / 12), month: (index % 12) + 1 }
 }
 
+/** 0 = Sunday … 6 = Saturday. */
+export function weekdayOf(date: ISODate): number {
+  return new Date(toUTC(date)).getUTCDay()
+}
+
+/** "2026-11" */
+export function yearMonthOf(year: number, month: number): YearMonth {
+  return `${year}-${String(month).padStart(2, '0')}`
+}
+
+/** Moved paydays, keyed by the month of the regular payday (YYYY-MM). */
+export type PaydayOverrides = Readonly<Record<YearMonth, ISODate>>
+
+/**
+ * How far a payday may move from its regular date. Keeps paydays in order
+ * (regular paydays are at least 28 days apart) and ignores stray values.
+ */
+export const MAX_PAYDAY_SHIFT_DAYS = 10
+
+/** The regular payday in a month, ignoring any moved date. */
+export function regularPayday(year: number, month: number, paydayDay: number): ISODate {
+  return dayInMonth(year, month, paydayDay)
+}
+
+/** The payday that starts the budget month for a calendar month, after any move. */
+export function paydayFor(year: number, month: number, paydayDay: number, overrides: PaydayOverrides = {}): ISODate {
+  const regular = regularPayday(year, month, paydayDay)
+  const moved = overrides[yearMonthOf(year, month)]
+  if (!moved || !isValidISODate(moved) || Math.abs(diffDays(regular, moved)) > MAX_PAYDAY_SHIFT_DAYS) return regular
+  return moved
+}
+
 export interface BudgetPeriod {
   /** First day of the budget month (payday). */
   start: ISODate
@@ -80,17 +112,18 @@ export interface BudgetPeriod {
 /**
  * The budget month containing `date`: from payday to the day before the next payday.
  * A payday past the end of a month (e.g. 31 in February) falls on that month's last day.
+ * `overrides` moves a given month's payday (weekend or holiday); it may land in the
+ * month before, which is why the search starts one month ahead.
  */
-export function getBudgetPeriod(date: ISODate, paydayDay: number): BudgetPeriod {
+export function getBudgetPeriod(date: ISODate, paydayDay: number, overrides: PaydayOverrides = {}): BudgetPeriod {
   const { year, month } = parseISODate(date)
-  const thisMonthPayday = dayInMonth(year, month, paydayDay)
+  const payday = (ym: { year: number; month: number }) => paydayFor(ym.year, ym.month, paydayDay, overrides)
 
-  let startYM = { year, month }
-  if (date < thisMonthPayday) startYM = shiftMonth(year, month, -1)
+  let startYM = shiftMonth(year, month, 1)
+  while (payday(startYM) > date) startYM = shiftMonth(startYM.year, startYM.month, -1)
 
-  const start = dayInMonth(startYM.year, startYM.month, paydayDay)
-  const nextYM = shiftMonth(startYM.year, startYM.month, 1)
-  const nextStart = dayInMonth(nextYM.year, nextYM.month, paydayDay)
+  const start = payday(startYM)
+  const nextStart = payday(shiftMonth(startYM.year, startYM.month, 1))
   const end = addDays(nextStart, -1)
 
   return {
@@ -102,9 +135,32 @@ export function getBudgetPeriod(date: ISODate, paydayDay: number): BudgetPeriod 
 }
 
 /** The budget month before the one given. */
-export function getPreviousPeriod(period: BudgetPeriod, paydayDay: number): BudgetPeriod {
-  const prev = getBudgetPeriod(addDays(period.start, -1), paydayDay)
+export function getPreviousPeriod(period: BudgetPeriod, paydayDay: number, overrides: PaydayOverrides = {}): BudgetPeriod {
+  const prev = getBudgetPeriod(addDays(period.start, -1), paydayDay, overrides)
   return { ...prev, dayIndex: prev.totalDays }
+}
+
+/** Every date from start to end, inclusive. */
+export function eachDay(range: Pick<BudgetPeriod, 'start' | 'end'>): ISODate[] {
+  const out: ISODate[] = []
+  for (let d = range.start; d <= range.end; d = addDays(d, 1)) out.push(d)
+  return out
+}
+
+/** The calendar months a date range touches, in order. */
+export function monthsTouched(range: Pick<BudgetPeriod, 'start' | 'end'>): { year: number; month: number }[] {
+  const a = parseISODate(range.start)
+  const b = parseISODate(range.end)
+  const out: { year: number; month: number }[] = []
+  for (let ym = { year: a.year, month: a.month }; ym.year * 12 + ym.month <= b.year * 12 + b.month; ym = shiftMonth(ym.year, ym.month, 1)) {
+    out.push(ym)
+  }
+  return out
+}
+
+/** `delta` calendar months from a year and month. */
+export function addCalendarMonths(year: number, month: number, delta: number): { year: number; month: number } {
+  return shiftMonth(year, month, delta)
 }
 
 export function isInPeriod(date: ISODate, period: Pick<BudgetPeriod, 'start' | 'end'>): boolean {

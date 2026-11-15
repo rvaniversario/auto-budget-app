@@ -108,7 +108,7 @@ export class DexieRepository implements Repository {
   // ---- Accounts -----------------------------------------------------------
 
   async listAccounts() {
-    const order: Record<Account['type'], number> = { cash: 0, bank: 1, credit_card: 2, loan: 3 }
+    const order: Record<Account['type'], number> = { cash: 0, bank: 1, ewallet: 2, credit_card: 3, loan: 4 }
     const rows = await listAlive(this.db.accounts)
     return rows.sort((a, b) => order[a.type] - order[b.type] || a.createdAt.localeCompare(b.createdAt))
   }
@@ -226,6 +226,25 @@ export class DexieRepository implements Repository {
   async setBudgetOverrides(periodStart: ISODate, entries: { key: string; amount: Centavos }[]) {
     await this.db.transaction('rw', this.db.budgetOverrides, async () => {
       for (const e of entries) await this.upsertOverride(periodStart, e.key, e.amount)
+    })
+  }
+
+  async moveBudgetOverrides(moves: { from: ISODate; to: ISODate }[]) {
+    const real = moves.filter((m) => m.from !== m.to)
+    if (!real.length) return
+    await this.db.transaction('rw', this.db.budgetOverrides, async () => {
+      // Read every source first and retire it, so chained moves (A→B, B→C) don't collide.
+      const pending: { to: ISODate; key: string; amount: Centavos }[] = []
+      for (const m of real) {
+        const rows = (await this.db.budgetOverrides.where('periodStart').equals(m.from).toArray())
+          .filter((o) => !o.deletedAt)
+          .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+        for (const r of rows) {
+          pending.push({ to: m.to, key: r.key, amount: r.amount })
+          await softDelete(this.db.budgetOverrides, r.id)
+        }
+      }
+      for (const p of pending) await this.upsertOverride(p.to, p.key, p.amount)
     })
   }
 

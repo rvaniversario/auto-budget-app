@@ -9,7 +9,8 @@ import {
   type CategoryBudget,
   type CategoryStatus,
 } from './budget'
-import { getBudgetPeriod, getPreviousPeriod, nextOccurrence, type BudgetPeriod } from './dates'
+import { nextOccurrence, type BudgetPeriod } from './dates'
+import { budgetPeriodFor, paydaysInPeriod, periodIncome, previousBudgetPeriod } from './pay'
 import { billPaymentsTotal, cardPaymentsInPeriod, categoryTotals, getAccountBalance, oneTimeTotal, totalSpent } from './ledger'
 import { sum } from './money'
 import { estimateNextMonthInterest, simulatePayoff, type PayoffResult } from './payoff'
@@ -84,6 +85,10 @@ export interface MonthModel {
   today: ISODate
   period: BudgetPeriod
   previousPeriod: BudgetPeriod
+  /** Paydays inside this budget month. */
+  paydays: ISODate[]
+  /** Expected take-home income this budget month (pay per payday × paydays). */
+  income: Centavos
   hasHistory: boolean
   isEstimate: boolean
   categoryRows: CategoryRow[]
@@ -129,8 +134,10 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   const fixedBills = alive(data.fixedBills)
   const accounts = alive(data.accounts)
 
-  const period = getBudgetPeriod(today, settings.paydayDay)
-  const previousPeriod = getPreviousPeriod(period, settings.paydayDay)
+  const period = budgetPeriodFor(settings, today)
+  const previousPeriod = previousBudgetPeriod(settings, period)
+  const paydays = paydaysInPeriod(settings, period)
+  const income = periodIncome(settings, period)
   const ctx = { transactions, estimates: data.estimates, previousPeriod }
   const history = hasHistory(ctx)
 
@@ -176,7 +183,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   })
 
   const safeInput: SafePaymentInput = {
-    salary: settings.monthlySalary,
+    salary: income,
     fixedBillsTotal,
     essentialTotal: totalByKind(budgets, 'essential'),
     optionalTotal: totalByKind(budgets, 'optional'),
@@ -200,7 +207,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   const paidToCardsThisPeriod = sum(cards.map((c) => c.paidThisPeriod))
 
   const plan = buildBudgetPlan({
-    salary: settings.monthlySalary,
+    salary: income,
     fixedBills,
     categoryBudgets: budgets,
     safe,
@@ -231,6 +238,8 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
     today,
     period,
     previousPeriod,
+    paydays,
+    income,
     hasHistory: history,
     isEstimate: safe.isEstimate,
     categoryRows,
@@ -247,7 +256,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
     plan,
     spentSoFar,
     billsPaid: billPaymentsTotal(transactions, period),
-    remaining: settings.monthlySalary - spentSoFar - paidToCardsThisPeriod,
+    remaining: income - spentSoFar - paidToCardsThisPeriod,
     overspent,
     shortfallOptions: suggestShortfallFixes(safe.shortfall, buffer, optionalAvailable),
     ifYouPay: {

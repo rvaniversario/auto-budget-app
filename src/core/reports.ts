@@ -1,5 +1,6 @@
 import { escapeCell } from './csv'
-import { getBudgetPeriod, getPreviousPeriod, isInPeriod, periodMonthName, type BudgetPeriod } from './dates'
+import { isInPeriod, periodMonthName, type BudgetPeriod } from './dates'
+import { budgetPeriodFor, previousBudgetPeriod } from './pay'
 import { categoryTotals, getAccountBalance, totalSpent } from './ledger'
 import { centavosToInput, formatMoney, sum } from './money'
 import { computeMonthModel, type AppSnapshot } from './model'
@@ -34,9 +35,9 @@ export interface ReportMonth {
 
 /** The last `count` budget months, oldest first, ending with the current one. */
 export function reportMonths(snapshot: AppSnapshot, today: ISODate, count: number): ReportMonth[] {
-  const { paydayDay } = snapshot.settings
-  const periods: BudgetPeriod[] = [getBudgetPeriod(today, paydayDay)]
-  while (periods.length < count) periods.unshift(getPreviousPeriod(periods[0], paydayDay))
+  const { settings } = snapshot
+  const periods: BudgetPeriod[] = [budgetPeriodFor(settings, today)]
+  while (periods.length < count) periods.unshift(previousBudgetPeriod(settings, periods[0]))
 
   const transactions = alive(snapshot.transactions)
   const debts = alive(snapshot.accounts).filter((a) => isDebtAccount(a.type))

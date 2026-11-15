@@ -6,15 +6,36 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
+  addDays,
   alive,
+  budgetPeriodFor,
   centavosToInput,
+  formatDayHeading,
   formatLongDate,
   formatMoney,
+  formatWeekdays,
+  monthPaydays,
+  monthStartIsPayday,
   ordinal,
+  parseISODate,
+  payWeekday,
+  paydayShift,
+  secondPayday,
+  todayISO,
+  weekdayName,
+  weekdayOf,
+  workWeekdays,
+  MAX_PAYDAY_SHIFT_DAYS,
+  PAY_FREQUENCY_LABEL,
+  PAY_UNIT,
   type Category,
   type CategoryKind,
   type FixedBill,
+  type ISODate,
+  type MonthPayday,
+  type Settings,
   type ThemePreference,
+  type YearMonth,
 } from '@/core'
 import { repo } from '@/data'
 import { useAppData } from '@/hooks/useAppData'
@@ -35,14 +56,16 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { forgetLastBackupFile, lastBackupFile } from '@/lib/backupFile'
 import { backupStatus, cloudEnabled, useSync } from '@/sync'
-import { dayField, moneyField, toCentavos } from '@/lib/forms'
+import { moneyField, toCentavos } from '@/lib/forms'
+import { savePaySettings } from '@/lib/paySettings'
+import { PayScheduleFields, payFormDefaults, payFormSchema, payFormToSettings, type PayForm } from '@/components/PayScheduleFields'
 import { premiumEnabled, useEntitlement } from '@/premium'
 import { PremiumBadge } from '@/premium/components'
 
-type Open = 'pay' | 'buffer' | 'delete' | null
+type Open = 'pay' | 'dates' | 'buffer' | 'delete' | null
 
 type SectionId = 'budget' | 'categories' | 'bills' | 'data' | 'appearance'
 const SECTIONS: { id: SectionId; label: string }[] = [
@@ -65,6 +88,10 @@ export function SettingsScreen() {
   const categories = alive(snapshot.categories)
   const bills = alive(snapshot.fixedBills)
   const close = () => setOpen(null)
+  const today = todayISO()
+  const upcoming = monthPaydays(settings, today, 0, 13)
+  const nextPayday = upcoming.find((p) => p.actual > today)
+  const movedCount = upcoming.filter((p) => p.moved && p.actual >= budgetPeriodFor(settings, today).start).length
 
   const setTheme = (theme: ThemePreference) => repo.saveSettings({ theme })
   const isLg = useIsLg()
@@ -80,9 +107,24 @@ export function SettingsScreen() {
   const budgetSection = (
     <section aria-label="Budget settings" className="flex flex-col rounded-card bg-card px-4 py-3 md:px-5">
       <SectionLabel className="my-1">Budget</SectionLabel>
-      <RowButton first label="Take-home salary" value={formatMoney(settings.monthlySalary)} onClick={() => setOpen('pay')} />
-      <RowButton label="Month starts on payday" value={ordinal(settings.paydayDay)} onClick={() => setOpen('pay')} />
-      <RowButton label="Pay frequency" value="Monthly" onClick={() => toast('Twice-a-month pay is coming soon')} />
+      <RowButton
+        first
+        label={settings.payFrequency === 'monthly' ? 'Take-home salary' : 'Take-home pay'}
+        value={`${formatMoney(settings.monthlySalary)}${settings.payFrequency === 'monthly' ? '' : ` ${PAY_UNIT[settings.payFrequency]}`}`}
+        onClick={() => setOpen('pay')}
+      />
+      <RowButton label="Pay frequency" value={PAY_FREQUENCY_LABEL[settings.payFrequency]} onClick={() => setOpen('pay')} />
+      {paydayRows(settings).map((r) => (
+        <RowButton key={r.label} label={r.label} value={r.value} onClick={() => setOpen('pay')} />
+      ))}
+      {monthStartIsPayday(settings.payFrequency) && (
+        <RowButton
+          label="Payday dates"
+          description={nextPayday ? `Next: ${formatDayHeading(nextPayday.actual)}${nextPayday.moved ? ' (moved)' : ''}` : undefined}
+          value={movedCount ? `${movedCount} moved` : 'As scheduled'}
+          onClick={() => setOpen('dates')}
+        />
+      )}
       <RowButton label="Categories" value={String(categories.filter((c) => !c.archived).length)} onClick={() => go('categories')} />
       <RowButton label="Fixed bills" value={`${bills.length} bill${bills.length === 1 ? '' : 's'}`} onClick={() => go('bills')} />
       <RowButton label="Buffer amount" value={formatMoney(settings.bufferAmount)} onClick={() => setOpen('buffer')} />
@@ -183,6 +225,7 @@ export function SettingsScreen() {
       </p>
 
       <PayDialog open={open === 'pay'} onClose={close} />
+      <PaydayDatesDialog open={open === 'dates'} onClose={close} />
       <BufferDialog open={open === 'buffer'} onClose={close} />
 
       <AlertDialog open={open === 'delete'} onOpenChange={(o) => !o && close()}>
@@ -287,58 +330,197 @@ function PremiumCard() {
 
 // ---------------------------------------------------------------------------
 
-const paySchema = z.object({ salary: moneyField({ message: 'Enter your take-home salary' }), payday: dayField })
+/** The schedule rows under "Pay frequency" in Settings. */
+function paydayRows(settings: Settings): { label: string; value: string }[] {
+  const starts = { label: 'Month starts on', value: ordinal(settings.paydayDay) }
+  switch (settings.payFrequency) {
+    case 'monthly':
+      return [{ label: 'Month starts on payday', value: ordinal(settings.paydayDay) }]
+    case 'semimonthly': {
+      const days = [settings.paydayDay, secondPayday(settings)].sort((a, b) => a - b)
+      return [{ label: 'Paydays', value: `${ordinal(days[0])} and ${ordinal(days[1])}` }]
+    }
+    case 'weekly':
+      return [{ label: 'Payday', value: `${weekdayName(payWeekday(settings))}s` }, starts]
+    case 'daily':
+      return [{ label: 'Days worked', value: formatWeekdays(workWeekdays(settings)) }, starts]
+  }
+}
 
 function PayDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { snapshot } = useAppData()
-  const form = useForm<z.infer<typeof paySchema>>({ resolver: zodResolver(paySchema), defaultValues: { salary: '', payday: '' } })
+  const form = useForm<PayForm>({ resolver: zodResolver(payFormSchema), defaultValues: payFormDefaults(snapshot.settings) })
   useEffect(() => {
-    if (open) form.reset({ salary: centavosToInput(snapshot.settings.monthlySalary), payday: String(snapshot.settings.paydayDay) })
+    if (open) form.reset(payFormDefaults(snapshot.settings))
   }, [open, snapshot.settings, form])
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto">
         <form
           noValidate
           className="flex flex-col gap-4"
           onSubmit={form.handleSubmit(async (v) => {
-            await repo.saveSettings({ monthlySalary: toCentavos(v.salary), paydayDay: Number(v.payday) })
-            toast.success('Pay details saved')
+            const changes = payFormToSettings(v)
+            const resetsMoved =
+              changes.paydayDay !== snapshot.settings.paydayDay && Object.keys(snapshot.settings.paydayOverrides ?? {}).length > 0
+            await savePaySettings(snapshot, changes)
+            toast.success(resetsMoved ? 'Pay details saved. Moved paydays were reset for the new payday.' : 'Pay details saved')
             onClose()
           })}
         >
           <DialogHeader>
-            <DialogTitle>Salary and payday</DialogTitle>
+            <DialogTitle>Pay and payday</DialogTitle>
             <DialogDescription>Your budget month runs from one payday to the day before the next.</DialogDescription>
           </DialogHeader>
-          <Controller
-            name="salary"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="set-salary" className="text-sm font-semibold">Take-home salary (₱)</FieldLabel>
-                <MoneyInput id="set-salary" large aria-invalid={fieldState.invalid} {...field} />
-                <FieldError errors={[fieldState.error]} />
-              </Field>
-            )}
-          />
-          <Controller
-            name="payday"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="set-payday" className="text-sm font-semibold">Payday (day of the month)</FieldLabel>
-                <TextInput id="set-payday" inputMode="numeric" maxLength={2} aria-invalid={fieldState.invalid} {...field} />
-                <FieldDescription className="text-[13px]">In shorter months we use the last day of the month.</FieldDescription>
-                <FieldError errors={[fieldState.error]} />
-              </Field>
-            )}
-          />
+          <PayScheduleFields form={form} idPrefix="set" labelClass="text-sm font-semibold" existing={snapshot.settings} />
           <DialogFooter>
             <Button type="submit">Save</Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+/** The month before the current budget month, then this one and the next six. */
+const DATES_FROM = -1
+const DATES_COUNT = 8
+
+const isWeekend = (d: ISODate) => weekdayOf(d) === 0 || weekdayOf(d) === 6
+
+/**
+ * Move a month's payday for a weekend or holiday. The budget month then starts
+ * on the real date, and the month before ends the day before it.
+ */
+function PaydayDatesDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { snapshot } = useAppData()
+  const { settings } = snapshot
+  const [months, setMonths] = useState<MonthPayday[]>([])
+  const [dates, setDates] = useState<Record<YearMonth, ISODate>>({})
+
+  // Load once per opening, so a sync arriving mid-edit doesn't wipe the edits.
+  const [loadedFor, setLoadedFor] = useState(false)
+  if (open && !loadedFor) {
+    const list = monthPaydays(settings, todayISO(), DATES_FROM, DATES_COUNT)
+    setLoadedFor(true)
+    setMonths(list)
+    setDates(Object.fromEntries(list.map((m) => [m.yearMonth, m.actual])))
+  } else if (!open && loadedFor) {
+    setLoadedFor(false)
+  }
+
+  const errorFor = (regular: ISODate, value: ISODate | undefined): string | null => {
+    if (!value) return 'Pick a date'
+    if (Math.abs(paydayShift({ regular, actual: value })) > MAX_PAYDAY_SHIFT_DAYS) {
+      return `Keep it within ${MAX_PAYDAY_SHIFT_DAYS} days of the usual payday`
+    }
+    return null
+  }
+  const invalid = months.some((m) => errorFor(m.regular, dates[m.yearMonth]))
+  const upcomingWeekend = months.some((m, i) => i + DATES_FROM >= 0 && isWeekend(m.regular))
+
+  const moveWeekends = () => {
+    setDates((prev) => {
+      const next = { ...prev }
+      months.forEach((m, i) => {
+        if (i + DATES_FROM < 0) return // leave months already over alone
+        const wd = weekdayOf(m.regular)
+        if (wd === 6) next[m.yearMonth] = addDays(m.regular, -1)
+        else if (wd === 0) next[m.yearMonth] = addDays(m.regular, -2)
+      })
+      return next
+    })
+  }
+
+  const save = async () => {
+    const overrides = { ...(settings.paydayOverrides ?? {}) }
+    for (const m of months) {
+      const d = dates[m.yearMonth]
+      if (!d || d === m.regular) delete overrides[m.yearMonth]
+      else overrides[m.yearMonth] = d
+    }
+    await savePaySettings(snapshot, { paydayOverrides: overrides })
+    toast.success('Payday dates saved')
+    onClose()
+  }
+
+  const thisYear = parseISODate(todayISO()).year
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[92dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Payday dates</DialogTitle>
+          <DialogDescription>
+            Paid early or late because of a weekend or holiday? Set the real date and your budget month starts that day.
+          </DialogDescription>
+        </DialogHeader>
+
+        {upcomingWeekend && (
+          <Button type="button" variant="outline" onClick={moveWeekends} className="self-start">
+            Move weekend paydays to the Friday before
+          </Button>
+        )}
+
+        <ul className="flex flex-col">
+          {months.map((m, i) => {
+            const value = dates[m.yearMonth] ?? m.actual
+            const error = errorFor(m.regular, dates[m.yearMonth])
+            const { year, month } = parseISODate(m.regular)
+            const name = `${MONTH_NAMES[month - 1]}${year === thisYear ? '' : ` ${year}`}`
+            const id = `payday-${m.yearMonth}`
+            return (
+              <li
+                key={m.yearMonth}
+                className={cn('flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3', i > 0 && 'border-t border-border')}
+              >
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <label htmlFor={id} className="text-[15px] font-semibold">
+                    {name} payday
+                    {i + DATES_FROM === 0 && <span className="ml-2 text-[13px] font-medium text-success-text">This month</span>}
+                  </label>
+                  <span className="text-[13px] text-muted-foreground">
+                    Usually {formatDayHeading(m.regular)}
+                    {isWeekend(m.regular) && ' · a weekend'}
+                  </span>
+                  {error && <span className="text-[13px] font-medium text-danger-text">{error}</span>}
+                </div>
+                <div className="flex items-center gap-1">
+                  <TextInput
+                    id={id}
+                    type="date"
+                    value={value}
+                    min={addDays(m.regular, -MAX_PAYDAY_SHIFT_DAYS)}
+                    max={addDays(m.regular, MAX_PAYDAY_SHIFT_DAYS)}
+                    aria-invalid={!!error}
+                    onChange={(e) => setDates((prev) => ({ ...prev, [m.yearMonth]: e.target.value }))}
+                    className="h-[46px] w-[164px]"
+                  />
+                  {value !== m.regular && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Reset ${name} payday to ${formatDayHeading(m.regular)}`}
+                      onClick={() => setDates((prev) => ({ ...prev, [m.yearMonth]: m.regular }))}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+
+        <DialogFooter>
+          <Button type="button" disabled={invalid} onClick={save}>
+            Save
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

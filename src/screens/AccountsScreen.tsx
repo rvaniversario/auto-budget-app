@@ -22,7 +22,7 @@ import { repo } from '@/data'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { useAppData } from '@/hooks/useAppData'
 import { DashedButton, TabHeader } from '@/components/layout'
-import { MoneyInput, Segmented, TextInput } from '@/components/inputs'
+import { ChoiceChips, MoneyInput, TextInput } from '@/components/inputs'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +39,15 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui
 import { moneyField, optionalMoneyField, toCentavos } from '@/lib/forms'
 import { cn } from '@/lib/utils'
 
-const TYPE_LABEL: Record<AccountType, string> = { cash: 'Wallet', bank: 'Bank account', credit_card: 'Credit card', loan: 'Loan' }
+const TYPE_LABEL: Record<AccountType, string> = { cash: 'Cash', bank: 'Bank account', ewallet: 'E-wallet', credit_card: 'Credit card', loan: 'Loan' }
+
+const PLACEHOLDER: Record<AccountType, string> = {
+  cash: 'Wallet',
+  bank: 'BDO savings',
+  ewallet: 'GCash, Maya or PalawanPay',
+  credit_card: 'My credit card',
+  loan: 'Car loan',
+}
 
 export function AccountsScreen() {
   const { snapshot, model } = useAppData()
@@ -157,7 +165,7 @@ const optionalDay = z.string().refine((v) => v === '' || (/^\d+$/.test(v) && Num
 
 const schema = z
   .object({
-    type: z.enum(['cash', 'bank', 'credit_card', 'loan']),
+    type: z.enum(['cash', 'bank', 'ewallet', 'credit_card', 'loan']),
     name: z.string().trim().min(1, 'Give the account a name').max(40),
     balance: moneyField({ allowZero: true, message: 'Enter a balance (0 is fine)' }),
     statementDay: optionalDay,
@@ -247,13 +255,15 @@ function AccountDialog({ open, account, onClose }: { open: boolean; account: Acc
                 name="type"
                 control={form.control}
                 render={({ field: f }) => (
-                  <Segmented
+                  <ChoiceChips
                     label="Account type"
+                    columns={3}
                     value={f.value}
                     onChange={f.onChange}
                     options={[
                       { value: 'cash', label: 'Cash' },
                       { value: 'bank', label: 'Bank' },
+                      { value: 'ewallet', label: 'E-wallet' },
                       { value: 'credit_card', label: 'Card' },
                       { value: 'loan', label: 'Loan' },
                     ]}
@@ -261,7 +271,7 @@ function AccountDialog({ open, account, onClose }: { open: boolean; account: Acc
                 )}
               />
             )}
-            {field('name', 'Name', (p) => <TextInput placeholder={type === 'credit_card' ? 'My credit card' : type === 'loan' ? 'Car loan' : 'BDO savings'} {...p} />)}
+            {field('name', 'Name', (p) => <TextInput placeholder={PLACEHOLDER[type]} {...p} />)}
             {field(
               'balance',
               isDebtAccount(type) ? 'Amount owed when added (₱)' : 'Starting balance (₱)',

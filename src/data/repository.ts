@@ -68,6 +68,8 @@ export interface Repository {
   clearBudgetOverride(periodStart: ISODate, key: string): Promise<void>
   /** Apply several overrides atomically. */
   setBudgetOverrides(periodStart: ISODate, entries: { key: string; amount: Centavos }[]): Promise<void>
+  /** Re-key plan edits when a budget month's start date changes (moved payday). Atomic. */
+  moveBudgetOverrides(moves: { from: ISODate; to: ISODate }[]): Promise<void>
 
   // Recurring transactions (Premium)
   listRecurringTemplates(): Promise<RecurringTemplate[]>

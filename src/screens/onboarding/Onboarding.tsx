@@ -8,10 +8,7 @@ import { z } from 'zod'
 import {
   centavosToInput,
   formatMoney,
-  formatPeriod,
-  getBudgetPeriod,
   parseMoney,
-  todayISO,
   type Account,
   type Category,
   type FixedBill,
@@ -28,6 +25,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui
 import { dayField, moneyField, optionalMoneyField, toCentavos } from '@/lib/forms'
 import { cn } from '@/lib/utils'
 import { cloudEnabled } from '@/sync'
+import { PayScheduleFields, payFormDefaults, payFormSchema, payFormToSettings, type PayForm } from '@/components/PayScheduleFields'
 
 const TOTAL_STEPS = 4
 
@@ -105,25 +103,11 @@ const labelClass = 'text-sm font-semibold'
 // Step 1: salary and payday
 // ---------------------------------------------------------------------------
 
-const salarySchema = z.object({
-  salary: moneyField({ message: 'Enter your take-home salary' }),
-  payday: dayField,
-})
-
 function SalaryStep({ settings, onNext }: { settings: Settings | undefined; onNext: () => void }) {
-  const form = useForm<z.infer<typeof salarySchema>>({
-    resolver: zodResolver(salarySchema),
-    defaultValues: {
-      salary: settings?.monthlySalary ? centavosToInput(settings.monthlySalary) : '',
-      payday: String(settings?.paydayDay ?? 30),
-    },
-  })
-  const payday = useWatch({ control: form.control, name: 'payday' })
-  const paydayNum = Number(payday)
-  const preview = Number.isInteger(paydayNum) && paydayNum >= 1 && paydayNum <= 31 ? getBudgetPeriod(todayISO(), paydayNum) : null
+  const form = useForm<PayForm>({ resolver: zodResolver(payFormSchema), defaultValues: payFormDefaults(settings) })
 
-  const onSubmit = async (v: z.infer<typeof salarySchema>) => {
-    await repo.saveSettings({ monthlySalary: toCentavos(v.salary), paydayDay: Number(v.payday), payFrequency: 'monthly' })
+  const onSubmit = async (v: PayForm) => {
+    await repo.saveSettings(payFormToSettings(v))
     onNext()
   }
 
@@ -136,73 +120,7 @@ function SalaryStep({ settings, onNext }: { settings: Settings | undefined; onNe
         footer={<FooterButtons next="Continue" />}
       >
         <div className="flex flex-col gap-[18px]">
-          <Controller
-            name="salary"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="os-salary" className={labelClass}>
-                  Take-home salary (₱)
-                </FieldLabel>
-                <MoneyInput id="os-salary" large autoFocus aria-invalid={fieldState.invalid} aria-describedby="os-salary-help" {...field} />
-                <FieldDescription id="os-salary-help" className="text-[13px]">
-                  The amount that reaches your account after tax and deductions.
-                </FieldDescription>
-                <FieldError errors={[fieldState.error]} />
-              </Field>
-            )}
-          />
-
-          <div className="flex flex-col gap-2">
-            <span id="os-freq-label" className={labelClass}>
-              How often are you paid?
-            </span>
-            <div role="group" aria-labelledby="os-freq-label" className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                aria-pressed="true"
-                className="h-[52px] rounded-lg border border-primary bg-primary text-[15px] font-semibold text-primary-foreground"
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                aria-pressed="false"
-                disabled
-                aria-describedby="os-freq-soon"
-                className="flex h-[52px] flex-col items-center justify-center rounded-lg border border-input bg-card text-[15px] font-semibold text-foreground opacity-60"
-              >
-                Twice a month
-                <span id="os-freq-soon" className="text-[11px] font-medium text-muted-foreground">
-                  Coming soon
-                </span>
-              </button>
-            </div>
-          </div>
-
-          <Controller
-            name="payday"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="os-payday" className={labelClass}>
-                  Payday (day of the month)
-                </FieldLabel>
-                <TextInput id="os-payday" inputMode="numeric" maxLength={2} aria-invalid={fieldState.invalid} {...field} />
-                {paydayNum > 28 && !fieldState.invalid && (
-                  <FieldDescription className="text-[13px]">In shorter months we use the last day of the month.</FieldDescription>
-                )}
-                <FieldError errors={[fieldState.error]} />
-              </Field>
-            )}
-          />
-
-          {preview && (
-            <div className="flex flex-col gap-1 rounded-lg bg-success-tint p-3.5" aria-live="polite">
-              <span className="text-[13px]">Your first budget month</span>
-              <span className="money text-lg font-bold text-success-text">{formatPeriod(preview)}</span>
-            </div>
-          )}
+          <PayScheduleFields form={form} idPrefix="os" labelClass={labelClass} autoFocus existing={settings} />
 
           {cloudEnabled && (
             <p className="text-center text-sm text-muted-foreground">

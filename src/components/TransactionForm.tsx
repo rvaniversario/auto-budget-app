@@ -93,9 +93,9 @@ export function defaultValues(
   let toAccountId: string | null = null
   if (type === 'transfer') {
     toAccountId = opts.toAccountId ?? firstOf('credit_card') ?? null
-    accountId = firstOf('bank') ?? accounts.find((a) => a.id !== toAccountId)?.id ?? ''
+    accountId = firstOf('bank') ?? firstOf('ewallet') ?? accounts.find((a) => a.id !== toAccountId)?.id ?? ''
   }
-  if (type === 'income') accountId = firstOf('bank') ?? accountId
+  if (type === 'income') accountId = firstOf('bank') ?? firstOf('ewallet') ?? accountId
   return {
     type,
     amount: '',
@@ -226,7 +226,7 @@ export function TransactionForm({
     if (t === 'transfer' && !form.getValues('toAccountId')) {
       const to = firstOf('credit_card') ?? accounts.find((a) => a.id !== form.getValues('accountId'))?.id ?? null
       setValue('toAccountId', to)
-      if (to === form.getValues('accountId')) setValue('accountId', firstOf('bank') ?? accounts.find((a) => a.id !== to)?.id ?? '')
+      if (to === form.getValues('accountId')) setValue('accountId', firstOf('bank') ?? firstOf('ewallet') ?? accounts.find((a) => a.id !== to)?.id ?? '')
     }
     form.clearErrors()
   }

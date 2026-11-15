@@ -239,7 +239,7 @@ export function RecurringDialog({
   const accounts = alive(snapshot.accounts)
   const categories = alive(snapshot.categories).filter((c) => !c.archived)
   const bills = alive(snapshot.fixedBills)
-  const defaultAccount = accounts.find((a) => a.type === 'bank')?.id ?? accounts[0]?.id ?? ''
+  const defaultAccount = (accounts.find((a) => a.type === 'bank') ?? accounts.find((a) => a.type === 'ewallet'))?.id ?? accounts[0]?.id ?? ''
   const [d, setD] = useState<Draft>(() => draftFrom(existing, defaultAccount))
   const [error, setError] = useState<string | null>(null)
 

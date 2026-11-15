@@ -21,20 +21,44 @@ export interface SyncFields {
   deletedAt: ISODateTime | null
 }
 
-export type PayFrequency = 'monthly' | 'semimonthly'
+/** How often income arrives. The budget month itself always starts on `paydayDay`. */
+export type PayFrequency = 'monthly' | 'semimonthly' | 'weekly' | 'daily'
 export type ThemePreference = 'light' | 'dark' | 'system'
 
+/** Calendar month, formatted YYYY-MM. */
+export type YearMonth = string
+
 export interface Settings extends SyncFields {
+  /**
+   * Take-home pay for one payday: the whole month for monthly pay, one paycheck
+   * for twice-a-month or weekly pay, one day worked for daily pay.
+   * (The name predates the other frequencies and is kept for stored data.)
+   */
   monthlySalary: Centavos
   payFrequency: PayFrequency
-  /** 1–31. Clamped to the last day of shorter months. */
+  /**
+   * 1–31. The day the budget month starts; for monthly and twice-a-month pay
+   * this is a payday. Clamped to the last day of shorter months.
+   */
   paydayDay: number
+  /** Twice a month: the other payday (1–31). Defaults from paydayDay, see pay.ts. */
+  secondPaydayDay?: number
+  /** Weekly: the weekday paid, 0 = Sunday … 6 = Saturday. */
+  payWeekday?: number
+  /** Daily: the weekdays worked and paid, 0 = Sunday … 6 = Saturday. */
+  workWeekdays?: number[]
+  /**
+   * The real date of a month's budget-starting payday when it moves for a
+   * weekend or holiday, keyed by the month of the regular payday.
+   */
+  paydayOverrides?: Record<YearMonth, ISODate>
   bufferAmount: Centavos
   theme: ThemePreference
   onboardingComplete: boolean
 }
 
-export type AccountType = 'cash' | 'bank' | 'credit_card' | 'loan'
+/** `ewallet` is a mobile wallet such as GCash, Maya or PalawanPay; it behaves like a bank account. */
+export type AccountType = 'cash' | 'bank' | 'ewallet' | 'credit_card' | 'loan'
 
 /** Accounts whose balance is money owed: credit cards and loans. */
 export function isDebtAccount(type: AccountType): boolean {
