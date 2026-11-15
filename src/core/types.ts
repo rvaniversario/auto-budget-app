@@ -108,6 +108,11 @@ export interface Transaction extends SyncFields {
   accountId: string
   /** Transfers only. */
   toAccountId: string | null
+  /**
+   * Transfers only, optional: a charge on top of the amount (InstaPay, cash-in),
+   * taken from the source account. It counts as spending; the amount does not.
+   */
+  fee?: Centavos
   note: string
   fixedBillId: string | null
   /** Unusual expense: excluded from baselines and category totals. */
@@ -156,6 +161,11 @@ export interface RecurringTemplate extends SyncFields {
   categoryId: string | null
   accountId: string
   toAccountId: string | null
+  /**
+   * Transfers only, optional: a charge on top of the amount (InstaPay, cash-in),
+   * taken from the source account. It counts as spending; the amount does not.
+   */
+  fee?: Centavos
   note: string
   fixedBillId: string | null
   schedule: RecurringSchedule

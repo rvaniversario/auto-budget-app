@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { moneyField, toCentavos } from '@/lib/forms'
+import { moneyField, optionalMoneyField, toCentavos } from '@/lib/forms'
 import { safeStorage } from '@/lib/browser'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +39,8 @@ const schema = z
     note: z.string().trim().max(120, 'Keep the note under 120 characters'),
     date: z.string().refine(isValidISODate, 'Pick a date'),
     isOneTime: z.boolean(),
+    /** Transfers only. Empty means no fee. */
+    fee: optionalMoneyField(),
   })
   .superRefine((v, ctx) => {
     if (v.type === 'expense' && !v.categoryId) {
@@ -63,6 +65,8 @@ export function toTransactionRecord(v: TransactionFormValues): NewRecord<Transac
     fixedBillId: isBill ? v.fixedBillId : null,
     accountId: v.accountId,
     toAccountId: v.type === 'transfer' ? v.toAccountId : null,
+    // Stored only when there is one, so plain transfers stay exactly as before.
+    fee: v.type === 'transfer' && toCentavos(v.fee) > 0 ? toCentavos(v.fee) : undefined,
     note: v.note,
     isOneTime: isExpense && v.isOneTime,
   }
@@ -84,6 +88,7 @@ export function defaultValues(
       note: existing.note,
       date: existing.date,
       isOneTime: existing.isOneTime,
+      fee: existing.type === 'transfer' && existing.fee ? centavosToInput(existing.fee) : '',
     }
   }
   const type = opts.type ?? 'expense'
@@ -106,6 +111,7 @@ export function defaultValues(
     note: '',
     date: todayISO(),
     isOneTime: false,
+    fee: '',
   }
 }
 
@@ -362,6 +368,25 @@ export function TransactionForm({
                 <p className="text-[13px] text-muted-foreground">A card payment is not spending, so it won't count against any category.</p>
               )}
             </div>
+          )}
+        />
+      )}
+
+      {type === 'transfer' && (
+        <Controller
+          name="fee"
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid} className="gap-1.5">
+              <FieldLabel htmlFor="tx-fee" className={sectionLabel}>
+                Transfer fee (optional)
+              </FieldLabel>
+              <MoneyInput id="tx-fee" placeholder="0" className="h-[46px]" aria-describedby="tx-fee-help" aria-invalid={fieldState.invalid} {...field} />
+              <p id="tx-fee-help" className="text-[13px] text-muted-foreground">
+                Charged on top, like an InstaPay or cash-in fee. It comes out of the &ldquo;From&rdquo; account and counts as spending.
+              </p>
+              <FieldError errors={[fieldState.error]} />
+            </Field>
           )}
         />
       )}

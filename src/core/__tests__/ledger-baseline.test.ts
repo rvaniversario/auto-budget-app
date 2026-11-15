@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getCategoryBaseline, getCategoryBaselines, hasHistory } from '../baseline'
-import { cardPaymentsInPeriod, categoryTotals, getAccountBalance, oneTimeTotal, totalSpent } from '../ledger'
+import { cardPaymentsInPeriod, categoryTotals, getAccountBalance, oneTimeTotal, totalSpent, transferFee, transferFeesTotal } from '../ledger'
 import { pesos } from '../money'
 import { account, card, category, estimate, tx } from './fixtures'
 
@@ -130,5 +130,34 @@ describe('getCategoryBaseline', () => {
     const ctx = { transactions: [], estimates, previousPeriod: prev }
     const map = getCategoryBaselines([groceries.id, dining.id], ctx)
     expect(map.get(dining.id)).toEqual({ amount: pesos(2_000), isEstimate: true })
+  })
+})
+
+describe('transfer fees', () => {
+  const bank = account({ name: 'BDO', openingBalance: pesos(10_000) })
+  const gcash = account({ name: 'GCash', type: 'ewallet', openingBalance: 0 })
+  const visa = card({ openingBalance: pesos(5_000) })
+
+  it('take the fee from the source account only', () => {
+    const t = tx({ type: 'transfer', accountId: bank.id, toAccountId: gcash.id, amount: pesos(1_000), fee: pesos(15), date: '2026-11-01' })
+    expect(getAccountBalance(bank, [t])).toBe(pesos(10_000 - 1_015))
+    expect(getAccountBalance(gcash, [t])).toBe(pesos(1_000))
+  })
+
+  it('count the fee as spending, but not the amount or the card payment', () => {
+    const toWallet = tx({ type: 'transfer', accountId: bank.id, toAccountId: gcash.id, amount: pesos(1_000), fee: pesos(15), date: '2026-11-01' })
+    const toCard = tx({ type: 'transfer', accountId: bank.id, toAccountId: visa.id, amount: pesos(2_000), fee: pesos(10), date: '2026-11-02' })
+    const old = tx({ type: 'transfer', accountId: bank.id, toAccountId: gcash.id, amount: pesos(500), fee: pesos(15), date: '2026-10-01' })
+    expect(transferFeesTotal([toWallet, toCard, old], period)).toBe(pesos(25))
+    expect(totalSpent([toWallet, toCard, old], period)).toBe(pesos(25))
+    expect(cardPaymentsInPeriod(visa.id, [toCard], period)).toBe(pesos(2_000))
+    expect(getAccountBalance(visa, [toCard])).toBe(pesos(3_000))
+  })
+
+  it('ignore a fee on anything but a transfer, and transfers without one', () => {
+    expect(transferFee({ type: 'expense', fee: pesos(15) })).toBe(0)
+    expect(transferFee({ type: 'transfer' })).toBe(0)
+    const plain = tx({ type: 'transfer', accountId: bank.id, toAccountId: gcash.id, amount: pesos(1_000), date: '2026-11-01' })
+    expect(getAccountBalance(bank, [plain])).toBe(pesos(9_000))
   })
 })

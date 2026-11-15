@@ -73,6 +73,7 @@ export function dueOccurrences(
         categoryId: t.type === 'expense' ? t.categoryId : null,
         accountId: t.accountId,
         toAccountId: t.type === 'transfer' ? t.toAccountId : null,
+        ...(t.type === 'transfer' && t.fee ? { fee: t.fee } : {}),
         note: t.note,
         fixedBillId: t.fixedBillId,
         isOneTime: false,

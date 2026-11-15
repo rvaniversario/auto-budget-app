@@ -34,8 +34,9 @@ const PERIOD_LABEL: Record<PeriodFilter, string> = {
   all: 'All time',
 }
 
-function AmountText({ t, className }: { t: Transaction; className?: string }) {
-  return (
+/** `showFee` adds a transfer's fee under the amount, for views without the meta line. */
+function AmountText({ t, className, showFee }: { t: Transaction; className?: string; showFee?: boolean }) {
+  const amount = (
     <span
       className={cn(
         'money whitespace-nowrap font-semibold',
@@ -46,6 +47,13 @@ function AmountText({ t, className }: { t: Transaction; className?: string }) {
     >
       {amountSign(t)}
       {formatMoney(t.amount)}
+    </span>
+  )
+  if (!showFee || t.type !== 'transfer' || !t.fee) return amount
+  return (
+    <span className={cn('flex flex-col items-end', className)}>
+      {amount}
+      <span className="money text-xs whitespace-nowrap text-muted-foreground">+ {formatMoney(t.fee)} fee</span>
     </span>
   )
 }
@@ -220,7 +228,7 @@ export function TransactionsScreen() {
                       <button
                         type="button"
                         onClick={() => setEditing(t)}
-                        aria-label={`${d.title}, ${formatMoney(t.amount)}. Edit`}
+                        aria-label={`${d.title}, ${formatMoney(t.amount)}${t.type === 'transfer' && t.fee ? ` plus ${formatMoney(t.fee)} fee` : ''}. Edit`}
                         className="-mx-2 w-[calc(100%+16px)] rounded-lg px-2 text-left outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50"
                       >
                         {isMd ? (
@@ -231,7 +239,7 @@ export function TransactionsScreen() {
                             </span>
                             <span className="truncate text-sm text-muted-foreground">{d.category}</span>
                             <span className="truncate text-sm text-muted-foreground">{d.account}</span>
-                            <AmountText t={t} className="text-right text-[15px]" />
+                            <AmountText t={t} className="text-right text-[15px]" showFee />
                           </span>
                         ) : (
                           <span className="flex min-h-[52px] items-center justify-between gap-3 py-1.5">
@@ -350,7 +358,7 @@ function TransactionTable({
                 <td className={cn(td, 'text-sm')}>{d.category}</td>
                 <td className={cn(td, 'text-sm')}>{d.account}</td>
                 <td className={cn(td, 'text-right')}>
-                  <AmountText t={t} className="text-[15px]" />
+                  <AmountText t={t} className="text-[15px]" showFee />
                 </td>
               </tr>
             )
@@ -384,6 +392,7 @@ function DetailsPanel({
     ['Date', formatDayHeading(t.date)],
   ]
   if (t.type === 'expense') rows.push(['One-time expense', t.isOneTime ? 'Yes' : 'No'])
+  if (t.type === 'transfer') rows.push(['Transfer fee', t.fee ? formatMoney(t.fee) : 'None'])
 
   return (
     <aside

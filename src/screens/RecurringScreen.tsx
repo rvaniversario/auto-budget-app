@@ -187,6 +187,7 @@ interface Draft {
   fixedBillId: string | null
   accountId: string
   toAccountId: string | null
+  fee: string
   note: string
   kind: Kind
   day: string
@@ -208,6 +209,7 @@ function draftFrom(t: RecurringTemplate | null, accountId: string): Draft {
     fixedBillId: t?.fixedBillId ?? null,
     accountId: t?.accountId ?? accountId,
     toAccountId: t?.toAccountId ?? null,
+    fee: t?.type === 'transfer' && t.fee ? centavosToInput(t.fee) : '',
     note: t?.note ?? '',
     kind: s?.kind ?? 'monthly',
     day: s?.kind === 'monthly' ? String(s.day) : s?.kind === 'twiceMonthly' ? String(s.days[0]) : day,
@@ -255,6 +257,8 @@ export function RecurringDialog({
     if (d.type === 'expense' && !d.categoryId) return setError('Pick a category')
     if (!d.accountId) return setError('Choose an account')
     if (d.type === 'transfer' && (!d.toAccountId || d.toAccountId === d.accountId)) return setError('Pick two different accounts')
+    const fee = d.type === 'transfer' && d.fee.trim() ? parseMoney(d.fee) : 0
+    if (fee === null) return setError('Enter the fee in numbers, with up to 2 decimals')
     if (!isValidISODate(d.startDate)) return setError('Pick a start date')
     if (d.endDate && (!isValidISODate(d.endDate) || d.endDate < d.startDate)) return setError('The end date must be after the start date')
 
@@ -282,6 +286,7 @@ export function RecurringDialog({
       fixedBillId: isBill ? d.fixedBillId : null,
       accountId: d.accountId,
       toAccountId: d.type === 'transfer' ? d.toAccountId : null,
+      fee: fee > 0 ? fee : undefined,
       note: d.note.trim(),
       schedule,
       startDate: d.startDate,
@@ -372,6 +377,15 @@ export function RecurringDialog({
             <div className="flex flex-col gap-2">
               <p className={label}>To</p>
               <ChoiceChips label="To account" value={d.toAccountId} onChange={(v) => set('toAccountId', v)} options={accounts.map((a) => ({ value: a.id, label: a.name }))} />
+            </div>
+          )}
+          {d.type === 'transfer' && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="rec-fee" className={label}>
+                Transfer fee (optional)
+              </Label>
+              <MoneyInput id="rec-fee" value={d.fee} placeholder="0" onChange={(e) => set('fee', e.target.value)} className="h-[46px]" />
+              <p className="text-[13px] text-muted-foreground">Charged on top each time, from the &ldquo;From&rdquo; account.</p>
             </div>
           )}
 

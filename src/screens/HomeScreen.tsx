@@ -279,6 +279,9 @@ function CategoryBudgets() {
           quiet
         />
       )}
+      {model.transferFees > 0 && (
+        <BudgetBar label="Transfer fees" spent={model.transferFees} budget={0} status="ok" percent={0} quiet />
+      )}
       {planned && <PlannedDebtBars rows={planned} />}
       {!planned && model.cards.length > 0 && (
         <BudgetBar

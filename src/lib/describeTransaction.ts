@@ -1,4 +1,4 @@
-import type { AppSnapshot, Transaction } from '@/core'
+import { formatMoney, type AppSnapshot, type Transaction } from '@/core'
 
 export interface TransactionDescription {
   /** Note, or a sensible fallback ("Card payment", the bill or category name). */
@@ -34,7 +34,7 @@ export function makeDescriber(snapshot: Pick<AppSnapshot, 'accounts' | 'categori
         title: t.note || kind,
         category: kind,
         account,
-        meta: account,
+        meta: t.fee ? `${account} · ${formatMoney(t.fee)} fee` : account,
       }
     }
     const category = t.categoryId ? (categories.get(t.categoryId) ?? 'Category') : 'Bills'

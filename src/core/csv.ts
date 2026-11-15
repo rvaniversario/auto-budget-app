@@ -19,13 +19,14 @@ export function transactionsToCSV(transactions: readonly Transaction[], lookups:
   const accountName = new Map(lookups.accounts.map((a) => [a.id, a.name]))
   const billName = new Map(lookups.fixedBills.map((b) => [b.id, b.name]))
 
-  const header = ['date', 'type', 'amount', 'category', 'bill', 'account', 'to_account', 'note', 'one_time']
+  const header = ['date', 'type', 'amount', 'fee', 'category', 'bill', 'account', 'to_account', 'note', 'one_time']
   const rows = alive(transactions)
     .sort((a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt))
     .map((t) => [
       t.date,
       t.type,
       centavosToInput(t.amount),
+      t.type === 'transfer' && t.fee ? centavosToInput(t.fee) : '',
       t.categoryId ? (categoryName.get(t.categoryId) ?? '') : '',
       t.fixedBillId ? (billName.get(t.fixedBillId) ?? '') : '',
       accountName.get(t.accountId) ?? '',

@@ -222,9 +222,9 @@ describe('transactionsToCSV', () => {
       { categories: [g], accounts: [bank], fixedBills: [] },
     )
     const lines = csv.trim().split('\r\n')
-    expect(lines[0]).toBe('date,type,amount,category,bill,account,to_account,note,one_time')
+    expect(lines[0]).toBe('date,type,amount,fee,category,bill,account,to_account,note,one_time')
     expect(lines).toHaveLength(3)
-    expect(lines[1]).toBe("2026-11-01,expense,1,,,BDO,,'=cmd(),no")
-    expect(lines[2]).toBe('2026-11-02,expense,1234.50,Groceries,,BDO,,"eggs, ""fresh""",no')
+    expect(lines[1]).toBe("2026-11-01,expense,1,,,,BDO,,'=cmd(),no")
+    expect(lines[2]).toBe('2026-11-02,expense,1234.50,,Groceries,,BDO,,"eggs, ""fresh""",no')
   })
 })

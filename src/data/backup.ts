@@ -4,7 +4,8 @@ import { isValidISODate } from '@/core'
 export const BACKUP_APP_ID = 'auto-budget'
 /**
  * 2 adds loans, recurring templates and the debt plan. 3 adds weekly and daily pay,
- * twice-a-month paydays, moved paydays and e-wallet accounts. 4 adds debt accounts.
+ * twice-a-month paydays, moved paydays and e-wallet accounts. 4 adds debt accounts
+ * and transfer fees.
  * Older files still import.
  */
 export const BACKUP_SCHEMA_VERSION = 4
@@ -70,6 +71,7 @@ export const transactionSchema = z.object({
   categoryId: z.string().nullable(),
   accountId: z.string(),
   toAccountId: z.string().nullable(),
+  fee: nonNegCentavos.optional(),
   note: z.string(),
   fixedBillId: z.string().nullable(),
   isOneTime: z.boolean(),
@@ -96,6 +98,7 @@ export const recurringTemplateSchema = z.object({
   categoryId: z.string().nullable(),
   accountId: z.string(),
   toAccountId: z.string().nullable(),
+  fee: nonNegCentavos.optional(),
   note: z.string(),
   fixedBillId: z.string().nullable(),
   schedule: z.discriminatedUnion('kind', [

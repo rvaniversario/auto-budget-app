@@ -11,7 +11,7 @@ import {
 } from './budget'
 import { nextOccurrence, type BudgetPeriod } from './dates'
 import { budgetPeriodFor, paydaysInPeriod, periodIncome, previousBudgetPeriod } from './pay'
-import { billPaymentsTotal, cardPaymentsInPeriod, categoryTotals, getAccountBalance, oneTimeTotal, totalSpent } from './ledger'
+import { billPaymentsTotal, cardPaymentsInPeriod, categoryTotals, getAccountBalance, oneTimeTotal, totalSpent, transferFeesTotal } from './ledger'
 import { sum } from './money'
 import { estimateNextMonthInterest, simulatePayoff, type PayoffResult } from './payoff'
 import {
@@ -107,6 +107,8 @@ export interface MonthModel {
   spentSoFar: Centavos
   /** Bill payments logged this month (expenses without a category). */
   billsPaid: Centavos
+  /** Fees paid on transfers this month (part of spentSoFar). */
+  transferFees: Centavos
   remaining: Centavos
   overspent: OverspendAlert[]
   shortfallOptions: ShortfallOption[]
@@ -256,6 +258,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
     plan,
     spentSoFar,
     billsPaid: billPaymentsTotal(transactions, period),
+    transferFees: transferFeesTotal(transactions, period),
     remaining: income - spentSoFar - paidToCardsThisPeriod,
     overspent,
     shortfallOptions: suggestShortfallFixes(safe.shortfall, buffer, optionalAvailable),
