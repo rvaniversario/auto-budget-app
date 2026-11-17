@@ -82,7 +82,7 @@ export interface Account extends SyncFields {
   monthlyInterestRate: number | null
 }
 
-export type CategoryKind = 'essential' | 'optional'
+export type CategoryKind = 'essential' | 'optional' | 'income'
 
 export interface Category extends SyncFields {
   name: string
@@ -103,7 +103,7 @@ export interface Transaction extends SyncFields {
   type: TransactionType
   amount: Centavos
   date: ISODate
-  /** Expenses only. Null for bill payments, income and transfers. */
+  /** Expenses and income. Null for bill payments, uncategorized income and transfers. */
   categoryId: string | null
   accountId: string
   /** Transfers only. */

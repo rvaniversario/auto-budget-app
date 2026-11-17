@@ -25,6 +25,8 @@ describe('DexieRepository', () => {
       'Load and data:essential',
       'Dining out:optional',
       'Shopping:optional',
+      'Salary:income',
+      'Other income:income',
     ])
   })
 
@@ -113,7 +115,7 @@ describe('DexieRepository', () => {
     await repo.deleteAllData()
     expect(await repo.getSettings()).toBeUndefined()
     expect(await repo.listFixedBills()).toEqual([])
-    expect(await repo.listCategories()).toHaveLength(6)
+    expect(await repo.listCategories()).toHaveLength(8)
 
     if (parsed.ok) await repo.importBackup(parsed.backup)
     expect((await repo.getSettings())?.monthlySalary).toBe(pesos(50_000))

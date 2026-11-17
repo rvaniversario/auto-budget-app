@@ -28,7 +28,7 @@ import { PremiumGate } from '@/premium/components'
 
 const card = 'flex min-w-0 flex-col gap-3 rounded-card bg-card px-4 py-[18px] md:px-5'
 const h2 = 'font-sans text-base font-bold'
-const money0 = (v: number) => formatMoney(v, { decimals: 'never' })
+const money0 = (v: number) => formatMoney(v)
 
 export function DebtPlannerScreen() {
   return (

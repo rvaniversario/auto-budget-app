@@ -21,7 +21,7 @@ export function PayoffSchedule({
   if (rows.length === 0) return null
   const shown = rows.slice(0, MAX_ROWS)
   const neverClears = rows[rows.length - 1].owed > 0
-  const money = (v: number) => formatMoney(v, { decimals: 'never' })
+  const money = (v: number) => formatMoney(v)
   const th = 'border-b border-border py-2 text-xs font-semibold text-muted-foreground'
   const td = 'border-b border-border py-2.5'
 

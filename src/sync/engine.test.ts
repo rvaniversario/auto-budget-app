@@ -101,7 +101,7 @@ describe('SyncEngine', () => {
     await a.engine.link('user-1', 'useLocal')
 
     expect(server.alive('transactions')).toHaveLength(1)
-    expect(server.alive('categories')).toHaveLength(6)
+    expect(server.alive('categories')).toHaveLength(8)
     expect(server.alive('settings')).toHaveLength(1)
     expect(await a.engine.pendingCount()).toBe(0)
     expect(await a.engine.linkedUserId()).toBe('user-1')
@@ -123,7 +123,7 @@ describe('SyncEngine', () => {
     const snap = await b.repo.getSnapshot()
     expect(snap?.settings.monthlySalary).toBe(pesos(50_000))
     expect(snap?.transactions.map((t) => t.note)).toEqual(['lunch'])
-    expect(snap?.categories).toHaveLength(6) // B's own seeded categories were replaced, not added
+    expect(snap?.categories).toHaveLength(8) // B's own seeded categories were replaced, not added
     expect(await b.engine.pendingCount()).toBe(0)
   })
 
@@ -270,7 +270,7 @@ describe('SyncEngine', () => {
     expect(server.alive('transactions')).toHaveLength(0)
     expect(server.alive('settings')).toHaveLength(0)
     expect(await a.repo.listTransactions()).toHaveLength(0)
-    expect(await a.repo.listCategories()).toHaveLength(6) // fresh defaults
+    expect(await a.repo.listCategories()).toHaveLength(8) // fresh defaults
   })
 
   it('importing a backup while linked replaces the online copy', async () => {

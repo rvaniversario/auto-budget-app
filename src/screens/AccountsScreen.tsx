@@ -200,7 +200,7 @@ function Total({ label, value, highlight }: { label: string; value: number; high
     <div className="flex min-w-0 flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className={cn('money truncate text-lg font-semibold', highlight && (value < 0 ? 'text-danger-bar' : 'text-link'))}>
-        {formatMoney(value, { decimals: 'never' })}
+        {formatMoney(value)}
       </span>
     </div>
   )

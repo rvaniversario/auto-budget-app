@@ -51,7 +51,7 @@ export const accountSchema = z.object({
 export const categorySchema = z.object({
   ...sync,
   name: z.string(),
-  kind: z.enum(['essential', 'optional']),
+  kind: z.enum(['essential', 'optional', 'income']),
   sortOrder: z.number(),
   archived: z.boolean(),
 })

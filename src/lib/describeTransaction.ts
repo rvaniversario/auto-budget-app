@@ -20,7 +20,8 @@ export function makeDescriber(snapshot: Pick<AppSnapshot, 'accounts' | 'categori
   const describe = (t: Transaction): TransactionDescription => {
     const from = accounts.get(t.accountId)?.name ?? 'Account'
     if (t.type === 'income') {
-      return { title: t.note || 'Income', category: 'Income', account: from, meta: `Income · ${from}` }
+      const category = t.categoryId ? (categories.get(t.categoryId) ?? 'Income') : 'Income'
+      return { title: t.note || category, category, account: from, meta: `${category} · ${from}` }
     }
     if (t.type === 'transfer') {
       const toAccount = t.toAccountId ? accounts.get(t.toAccountId) : undefined

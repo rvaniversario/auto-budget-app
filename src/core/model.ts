@@ -143,7 +143,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   const ctx = { transactions, estimates: data.estimates, previousPeriod }
   const history = hasHistory(ctx)
 
-  const activeCategories = categories.filter((c) => !c.archived)
+  const activeCategories = categories.filter((c) => !c.archived && c.kind !== 'income')
   const baselines = getCategoryBaselines(
     activeCategories.map((c) => c.id),
     ctx,

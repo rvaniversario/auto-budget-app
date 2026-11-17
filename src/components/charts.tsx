@@ -111,7 +111,7 @@ function DataTable({ labels, series, open }: { labels: string[]; series: { name:
               </th>
               {series.map((s) => (
                 <td key={s.name} className="border-b border-border px-2 py-1.5 text-right">
-                  {formatMoney(s.values[i] ?? 0, { decimals: 'never' })}
+                  {formatMoney(s.values[i] ?? 0)}
                 </td>
               ))}
             </tr>
@@ -189,7 +189,7 @@ export function LineChart({ title, summary, labels, series }: { title: string; s
             labels.length <= 24 &&
             s.values.map((v, i) => (
               <circle key={i} cx={x(i)} cy={y(v)} r="3.5" fill={s.color}>
-                <title>{`${labels[i]}: ${s.name} ${formatMoney(v, { decimals: 'never' })}`}</title>
+                <title>{`${labels[i]}: ${s.name} ${formatMoney(v)}`}</title>
               </circle>
             ))}
         </g>
@@ -238,7 +238,7 @@ export function BarChart({
                 acc += v
                 return (
                   <rect key={s.name} x={cx - barW / 2} y={yTop} width={barW} height={Math.max(0, h - 1)} fill={s.color}>
-                    <title>{`${label}: ${s.name} ${formatMoney(v, { decimals: 'never' })}`}</title>
+                    <title>{`${label}: ${s.name} ${formatMoney(v)}`}</title>
                   </rect>
                 )
               })}
@@ -253,7 +253,7 @@ export function BarChart({
               const h = (Math.max(0, v) / max) * plotH
               return (
                 <rect key={s.name} x={cx - barW / 2 + each * k} y={PAD.top + plotH - h} width={Math.max(1, each - 2)} height={h} rx="2" fill={s.color}>
-                  <title>{`${label}: ${s.name} ${formatMoney(v, { decimals: 'never' })}`}</title>
+                  <title>{`${label}: ${s.name} ${formatMoney(v)}`}</title>
                 </rect>
               )
             })}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Delete } from 'lucide-react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
@@ -61,7 +61,7 @@ export function toTransactionRecord(v: TransactionFormValues): NewRecord<Transac
     type: v.type,
     amount: toCentavos(v.amount),
     date: v.date,
-    categoryId: isExpense && !isBill ? v.categoryId : null,
+    categoryId: isExpense ? (isBill ? null : v.categoryId) : v.type === 'income' ? v.categoryId : null,
     fixedBillId: isBill ? v.fixedBillId : null,
     accountId: v.accountId,
     toAccountId: v.type === 'transfer' ? v.toAccountId : null,
@@ -81,7 +81,7 @@ export function defaultValues(
     return {
       type: existing.type,
       amount: centavosToInput(existing.amount),
-      categoryId: existing.type === 'expense' ? (existing.categoryId ?? BILLS_CHIP) : null,
+      categoryId: existing.type === 'expense' ? (existing.categoryId ?? BILLS_CHIP) : existing.type === 'income' ? existing.categoryId : null,
       fixedBillId: existing.fixedBillId,
       accountId: existing.accountId,
       toAccountId: existing.toAccountId,
@@ -164,6 +164,48 @@ function NumberPad({ onKey }: { onKey: (key: string) => void }) {
 
 // ---------------------------------------------------------------------------
 
+/** A field whose picker lives in the bottom panel on touch devices (see `activeField`). */
+type ActiveField = 'amount' | 'category' | 'account' | 'toAccount'
+
+/** Tap-to-open row standing in for a field whose options appear in the bottom panel. */
+function FieldRow({
+  label,
+  value,
+  placeholder,
+  active,
+  onPress,
+  error,
+}: {
+  label: string
+  value: string | null
+  placeholder: string
+  active: boolean
+  onPress: () => void
+  error?: string
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        onClick={onPress}
+        aria-expanded={active}
+        className={cn(
+          'flex h-[52px] items-center justify-between gap-3 rounded-lg border px-3.5 text-left transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+          active ? 'border-primary ring-3 ring-ring/30' : 'border-input bg-card hover:bg-muted',
+        )}
+      >
+        <span className="text-[13px] font-semibold text-muted-foreground">{label}</span>
+        <span className={cn('truncate text-[15px] font-semibold', !value && 'text-muted-foreground')}>{value ?? placeholder}</span>
+      </button>
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
 const sectionLabel = 'text-[13px] font-semibold text-muted-foreground'
 
 export function TransactionForm({
@@ -197,9 +239,13 @@ export function TransactionForm({
   const type = useWatch({ control, name: 'type' })
   const amount = useWatch({ control, name: 'amount' })
   const categoryId = useWatch({ control, name: 'categoryId' })
+  const fixedBillId = useWatch({ control, name: 'fixedBillId' })
   const accountId = useWatch({ control, name: 'accountId' })
+  const toAccountId = useWatch({ control, name: 'toAccountId' })
   const date = useWatch({ control, name: 'date' })
   const formRef = useRef<HTMLFormElement>(null)
+  // Touch layout only: which field's picker shows in the bottom panel.
+  const [activeField, setActiveField] = useState<ActiveField>('amount')
 
   const setAmount = useCallback(
     (next: string) => setValue('amount', next, { shouldValidate: formState.isSubmitted, shouldDirty: true }),
@@ -212,6 +258,7 @@ export function TransactionForm({
   useEffect(() => {
     if (compact) return
     const handler = (e: KeyboardEvent) => {
+      if (activeField !== 'amount') return
       const target = e.target as HTMLElement | null
       if (target && (target.closest('input, textarea, select, [contenteditable="true"]') || target.closest('[role="dialog"]'))) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
@@ -224,7 +271,7 @@ export function TransactionForm({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [compact, onKey])
+  }, [compact, onKey, activeField])
 
   const changeType = (t: TransactionType) => {
     setValue('type', t)
@@ -235,17 +282,60 @@ export function TransactionForm({
       if (to === form.getValues('accountId')) setValue('accountId', firstOf('bank') ?? firstOf('ewallet') ?? accounts.find((a) => a.id !== to)?.id ?? '')
     }
     form.clearErrors()
+    setActiveField('amount')
   }
 
   const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name }))
   // Loans are paid into, never spent from or paid into as income.
   const sourceOptions = type === 'transfer' ? accountOptions : accounts.filter((a) => a.type !== 'loan' && a.type !== 'debt').map((a) => ({ value: a.id, label: a.name }))
-  const categoryOptions = [
-    ...categories.filter((c) => !c.archived).map((c) => ({ value: c.id, label: c.name })),
-    { value: BILLS_CHIP, label: 'Bills' },
-  ]
+  const categoryOptions =
+    type === 'income'
+      ? categories.filter((c) => c.kind === 'income' && !c.archived).map((c) => ({ value: c.id, label: c.name }))
+      : [
+          ...categories.filter((c) => c.kind !== 'income' && !c.archived).map((c) => ({ value: c.id, label: c.name })),
+          { value: BILLS_CHIP, label: 'Bills' },
+        ]
   const isToday = date === todayISO()
   const selectedAccount = accounts.find((a) => a.id === accountId)
+  const toAccount = accounts.find((a) => a.id === toAccountId)
+
+  // Selecting a category/account returns focus to the amount pad on touch devices.
+  const pickCategory = (v: string) => {
+    if (type === 'income') {
+      setValue('categoryId', categoryId === v ? null : v, { shouldValidate: formState.isSubmitted, shouldDirty: true })
+      setActiveField('amount')
+      return
+    }
+    setValue('categoryId', v, { shouldValidate: formState.isSubmitted, shouldDirty: true })
+    if (v === BILLS_CHIP) {
+      if (bills.length === 0) setActiveField('amount')
+    } else {
+      setValue('fixedBillId', null)
+      setActiveField('amount')
+    }
+  }
+  const pickBill = (v: string) => {
+    setValue('fixedBillId', fixedBillId === v ? null : v, { shouldDirty: true })
+    setActiveField('amount')
+  }
+  const pickAccount = (v: string) => {
+    setValue('accountId', v, { shouldValidate: formState.isSubmitted, shouldDirty: true })
+    setActiveField('amount')
+  }
+  const pickToAccount = (v: string) => {
+    setValue('toAccountId', v, { shouldValidate: formState.isSubmitted, shouldDirty: true })
+    setActiveField('amount')
+  }
+
+  const categoryValue = categoryId === BILLS_CHIP ? 'Bills' : (categories.find((c) => c.id === categoryId)?.name ?? null)
+  const accountLabel = type === 'expense' ? 'Paid with' : type === 'income' ? 'Received in' : 'From'
+
+  const billPicker = categoryId === BILLS_CHIP && bills.length > 0 && (
+    <div className="flex flex-col gap-2 pt-1">
+      <p className={sectionLabel}>Which bill? (optional)</p>
+      <ChoiceChips label="Bill" shape="pill" scroll value={fixedBillId} onChange={pickBill} options={bills.map((b) => ({ value: b.id, label: b.name }))} />
+    </div>
+  )
 
   return (
     <form
@@ -283,7 +373,7 @@ export function TransactionForm({
           )}
         />
       ) : (
-        <div className="flex flex-col items-center gap-1 py-1.5">
+        <button type="button" onClick={() => setActiveField('amount')} className="flex flex-col items-center gap-1 rounded-lg py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
           <p className="text-[13px] font-medium text-muted-foreground">Amount</p>
           <p aria-live="polite" className="money text-[52px] leading-[1.05] font-bold tracking-[-0.02em]">
             ₱{formatAmountText(amount)}
@@ -293,84 +383,94 @@ export function TransactionForm({
               {formState.errors.amount.message}
             </p>
           )}
-        </div>
+        </button>
       )}
 
-      {type === 'expense' && (
-        <div className="flex flex-col gap-2">
-          <p className={sectionLabel}>Category</p>
-          <ChoiceChips
+      {type === 'expense' &&
+        (compact ? (
+          <div className="flex flex-col gap-2">
+            <p className={sectionLabel}>Category</p>
+            <ChoiceChips label="Category" shape="pill" value={categoryId} onChange={pickCategory} options={categoryOptions} />
+            {formState.errors.categoryId && (
+              <p role="alert" className="text-sm text-destructive">
+                {formState.errors.categoryId.message}
+              </p>
+            )}
+            {billPicker}
+          </div>
+        ) : (
+          <FieldRow
             label="Category"
-            shape="pill"
-            value={categoryId}
-            onChange={(v) => {
-              setValue('categoryId', v, { shouldValidate: formState.isSubmitted })
-              if (v !== BILLS_CHIP) setValue('fixedBillId', null)
-            }}
-            options={categoryOptions}
+            value={categoryValue}
+            placeholder="Choose a category"
+            active={activeField === 'category'}
+            onPress={() => setActiveField('category')}
+            error={formState.errors.categoryId?.message}
           />
-          {formState.errors.categoryId && (
-            <p role="alert" className="text-sm text-destructive">
-              {formState.errors.categoryId.message}
-            </p>
-          )}
-          {categoryId === BILLS_CHIP && bills.length > 0 && (
-            <Controller
-              name="fixedBillId"
-              control={control}
-              render={({ field }) => (
-                <div className="flex flex-col gap-2 pt-1">
-                  <p className={sectionLabel}>Which bill? (optional)</p>
-                  <ChoiceChips
-                    label="Bill"
-                    shape="pill"
-                    scroll
-                    value={field.value}
-                    onChange={(v) => field.onChange(field.value === v ? null : v)}
-                    options={bills.map((b) => ({ value: b.id, label: b.name }))}
-                  />
-                </div>
-              )}
-            />
-          )}
-        </div>
-      )}
+        ))}
+
+      {type === 'income' &&
+        (compact ? (
+          <div className="flex flex-col gap-2">
+            <p className={sectionLabel}>Category (optional)</p>
+            <ChoiceChips label="Category" shape="pill" value={categoryId} onChange={pickCategory} options={categoryOptions} />
+          </div>
+        ) : (
+          <FieldRow label="Category (optional)" value={categoryValue} placeholder="Add a category" active={activeField === 'category'} onPress={() => setActiveField('category')} />
+        ))}
 
       <div className="flex flex-col gap-2">
-        <p className={sectionLabel}>{type === 'expense' ? 'Paid with' : type === 'income' ? 'Received in' : 'From'}</p>
-        <ChoiceChips
-          label={type === 'transfer' ? 'From account' : 'Account'}
-          value={accountId}
-          onChange={(v) => setValue('accountId', v, { shouldValidate: formState.isSubmitted })}
-          options={sourceOptions}
-        />
-        {formState.errors.accountId && (
-          <p role="alert" className="text-sm text-destructive">
-            {formState.errors.accountId.message}
-          </p>
+        {compact && <p className={sectionLabel}>{accountLabel}</p>}
+        {compact ? (
+          <>
+            <ChoiceChips label={type === 'transfer' ? 'From account' : 'Account'} value={accountId} onChange={pickAccount} options={sourceOptions} />
+            {formState.errors.accountId && (
+              <p role="alert" className="text-sm text-destructive">
+                {formState.errors.accountId.message}
+              </p>
+            )}
+          </>
+        ) : (
+          <FieldRow
+            label={accountLabel}
+            value={selectedAccount?.name ?? null}
+            placeholder="Choose an account"
+            active={activeField === 'account'}
+            onPress={() => setActiveField('account')}
+            error={formState.errors.accountId?.message}
+          />
         )}
       </div>
 
-      {type === 'transfer' && (
-        <Controller
-          name="toAccountId"
-          control={control}
-          render={({ field, fieldState }) => (
-            <div className="flex flex-col gap-2">
-              <p className={sectionLabel}>To</p>
-              <ChoiceChips label="To account" value={field.value} onChange={field.onChange} options={accountOptions} />
-              {fieldState.error && (
-                <p role="alert" className="text-sm text-destructive">
-                  {fieldState.error.message}
-                </p>
-              )}
-              {accounts.find((a) => a.id === field.value)?.type === 'credit_card' && (
-                <p className="text-[13px] text-muted-foreground">A card payment is not spending, so it won't count against any category.</p>
-              )}
-            </div>
-          )}
-        />
-      )}
+      {type === 'transfer' &&
+        (compact ? (
+          <div className="flex flex-col gap-2">
+            <p className={sectionLabel}>To</p>
+            <ChoiceChips label="To account" value={toAccountId} onChange={pickToAccount} options={accountOptions} />
+            {formState.errors.toAccountId && (
+              <p role="alert" className="text-sm text-destructive">
+                {formState.errors.toAccountId.message}
+              </p>
+            )}
+            {toAccount?.type === 'credit_card' && (
+              <p className="text-[13px] text-muted-foreground">A card payment is not spending, so it won't count against any category.</p>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <FieldRow
+              label="To"
+              value={toAccount?.name ?? null}
+              placeholder="Choose an account"
+              active={activeField === 'toAccount'}
+              onPress={() => setActiveField('toAccount')}
+              error={formState.errors.toAccountId?.message}
+            />
+            {toAccount?.type === 'credit_card' && (
+              <p className="text-[13px] text-muted-foreground">A card payment is not spending, so it won't count against any category.</p>
+            )}
+          </div>
+        ))}
 
       {type === 'transfer' && (
         <Controller
@@ -449,18 +549,41 @@ export function TransactionForm({
 
       {extraFields}
 
-      {!compact && <NumberPad onKey={onKey} />}
-
       {selectedAccount?.type === 'credit_card' && type === 'expense' && (
         <p className="text-[13px] text-muted-foreground">Card purchases count as spending and add to your card bill.</p>
       )}
 
-      <div className={cn('flex gap-2', extraActions ? 'flex-row' : 'flex-col')}>
-        {extraActions}
-        <Button type="submit" className={cn('h-[54px] rounded-[14px] text-base', extraActions && 'flex-1')} disabled={formState.isSubmitting}>
-          {submitLabel}
-        </Button>
-      </div>
+      {compact ? (
+        <div className={cn('flex gap-2', extraActions ? 'flex-row' : 'flex-col')}>
+          {extraActions}
+          <Button type="submit" className={cn('h-[54px] rounded-[14px] text-base', extraActions && 'flex-1')} disabled={formState.isSubmitting}>
+            {submitLabel}
+          </Button>
+        </div>
+      ) : (
+        <div className="sticky bottom-0 mt-1 flex flex-col gap-3 border-t border-border bg-background pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+          {activeField === 'amount' && <NumberPad onKey={onKey} />}
+          {activeField === 'category' && (
+            <div className="flex max-h-[42vh] flex-col gap-3 overflow-y-auto">
+              <ChoiceChips label="Category" shape="pill" value={categoryId} onChange={pickCategory} options={categoryOptions} />
+              {billPicker}
+            </div>
+          )}
+          {(activeField === 'account' || activeField === 'toAccount') && (
+            <div className="max-h-[42vh] overflow-y-auto">
+              <ChoiceChips
+                label={activeField === 'toAccount' ? 'To account' : type === 'transfer' ? 'From account' : 'Account'}
+                value={activeField === 'toAccount' ? toAccountId : accountId}
+                onChange={activeField === 'toAccount' ? pickToAccount : pickAccount}
+                options={activeField === 'toAccount' ? accountOptions : sourceOptions}
+              />
+            </div>
+          )}
+          <Button type="submit" className="h-[54px] rounded-[14px] text-base" disabled={formState.isSubmitting}>
+            {submitLabel}
+          </Button>
+        </div>
+      )}
     </form>
   )
 }

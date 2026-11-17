@@ -8,6 +8,8 @@ const DEFAULTS: { name: string; kind: CategoryKind }[] = [
   { name: 'Load and data', kind: 'essential' },
   { name: 'Dining out', kind: 'optional' },
   { name: 'Shopping', kind: 'optional' },
+  { name: 'Salary', kind: 'income' },
+  { name: 'Other income', kind: 'income' },
 ]
 
 export function defaultCategories(): Category[] {

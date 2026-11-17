@@ -284,7 +284,7 @@ function SpendingStep({
   estimates: SpendingEstimate[]
   onBack: () => void
 }) {
-  const active = categories.filter((c) => !c.archived)
+  const active = categories.filter((c) => !c.archived && c.kind !== 'income')
   const schema = z.object({ amounts: z.record(z.string(), optionalMoneyField()) })
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),

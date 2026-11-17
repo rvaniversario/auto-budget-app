@@ -245,7 +245,7 @@ export function BreakdownScreen() {
             </div>
             <div className="flex flex-col gap-1 rounded-lg bg-warning-tint p-3 text-warning-text">
               <span className="text-xs">Interest next month</span>
-              <span className="money text-lg font-semibold">about {formatMoney(model.ifYouPay.nextMonthInterest, { decimals: 'never' })}</span>
+              <span className="money text-lg font-semibold">about {formatMoney(model.ifYouPay.nextMonthInterest)}</span>
             </div>
           </div>
           <p className="text-sm leading-normal">
@@ -257,7 +257,7 @@ export function BreakdownScreen() {
             ) : (
               <>
                 At {formatMoney(safe.amount)} a month you clear the card in about <strong>{describeMonths(payoff.months)}</strong>, paying
-                around <strong>{formatMoney(payoff.totalInterest, { decimals: 'never' })}</strong> in interest, as long as you add no new card
+                around <strong>{formatMoney(payoff.totalInterest)}</strong> in interest, as long as you add no new card
                 spending.
               </>
             )}
@@ -301,7 +301,7 @@ export function BreakdownScreen() {
             <span className="text-sm leading-[1.45]">
               {scenario.scenario.payoff.neverPaysOff
                 ? 'The balance still would not go down at this amount.'
-                : `Cleared in about ${describeMonths(scenario.scenario.payoff.months)} · around ${formatMoney(scenario.scenario.payoff.totalInterest, { decimals: 'never' })} interest`}
+                : `Cleared in about ${describeMonths(scenario.scenario.payoff.months)} · around ${formatMoney(scenario.scenario.payoff.totalInterest)} interest`}
               {' · '}
               {whatIfCompare(scenario)}
             </span>
@@ -329,6 +329,6 @@ function whatIfCompare(r: ReturnType<typeof whatIf>): string {
     return r.scenario.payoff.neverPaysOff ? `${formatMoney(r.extraPayment)} more a month` : 'now on track to clear it'
   }
   if (r.monthsSaved > 0) return `${r.monthsSaved} month${r.monthsSaved === 1 ? '' : 's'} sooner`
-  if (r.interestSaved && r.interestSaved > 0) return `${formatMoney(r.interestSaved, { decimals: 'never' })} less interest`
+  if (r.interestSaved && r.interestSaved > 0) return `${formatMoney(r.interestSaved)} less interest`
   return `${formatMoney(r.extraPayment)} more a month`
 }

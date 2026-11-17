@@ -579,17 +579,30 @@ function BufferDialog({ open, onClose }: { open: boolean; onClose: () => void })
 
 const categorySchema = z.object({
   name: z.string().trim().min(1, 'Give the category a name').max(30),
-  kind: z.enum(['essential', 'optional']),
+  kind: z.enum(['essential', 'optional', 'income']),
 })
 
-function CategoryDialog({ open, category, onClose, nextSortOrder }: { open: boolean; category: Category | null; onClose: () => void; nextSortOrder: number }) {
+function CategoryDialog({
+  open,
+  category,
+  forIncome,
+  onClose,
+  nextSortOrder,
+}: {
+  open: boolean
+  category: Category | null
+  /** True while adding or editing an income category: hides the Essential/Optional choice. */
+  forIncome: boolean
+  onClose: () => void
+  nextSortOrder: number
+}) {
   const form = useForm<z.infer<typeof categorySchema>>({
     resolver: zodResolver(categorySchema),
     defaultValues: { name: '', kind: 'essential' },
   })
   useEffect(() => {
-    if (open) form.reset({ name: category?.name ?? '', kind: category?.kind ?? 'essential' })
-  }, [open, category, form])
+    if (open) form.reset({ name: category?.name ?? '', kind: category?.kind ?? (forIncome ? 'income' : 'essential') })
+  }, [open, category, forIncome, form])
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -605,8 +618,10 @@ function CategoryDialog({ open, category, onClose, nextSortOrder }: { open: bool
           })}
         >
           <DialogHeader>
-            <DialogTitle>{category ? 'Edit category' : 'Add category'}</DialogTitle>
-            <DialogDescription>Essential spending is protected first. Optional spending is what we suggest trimming.</DialogDescription>
+            <DialogTitle>{category ? 'Edit category' : forIncome ? 'Add income category' : 'Add category'}</DialogTitle>
+            <DialogDescription>
+              {forIncome ? 'A label for income, such as Salary or Freelance.' : 'Essential spending is protected first. Optional spending is what we suggest trimming.'}
+            </DialogDescription>
           </DialogHeader>
           <Controller
             name="name"
@@ -619,21 +634,23 @@ function CategoryDialog({ open, category, onClose, nextSortOrder }: { open: bool
               </Field>
             )}
           />
-          <Controller
-            name="kind"
-            control={form.control}
-            render={({ field }) => (
-              <Segmented<CategoryKind>
-                label="Kind"
-                value={field.value}
-                onChange={field.onChange}
-                options={[
-                  { value: 'essential', label: 'Essential' },
-                  { value: 'optional', label: 'Optional' },
-                ]}
-              />
-            )}
-          />
+          {!forIncome && (
+            <Controller
+              name="kind"
+              control={form.control}
+              render={({ field }) => (
+                <Segmented<CategoryKind>
+                  label="Kind"
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={[
+                    { value: 'essential', label: 'Essential' },
+                    { value: 'optional', label: 'Optional' },
+                  ]}
+                />
+              )}
+            />
+          )}
           <DialogFooter className="gap-2">
             {category && (
               <Button
@@ -671,11 +688,12 @@ export function CategoriesScreen() {
 function CategoriesPanel() {
   const { snapshot } = useAppData()
   const [editing, setEditing] = useState<Category | null>(null)
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState<'expense' | 'income' | null>(null)
   const categories = alive(snapshot.categories).sort((a, b) => a.sortOrder - b.sortOrder)
-  const active = categories.filter((c) => !c.archived)
-  const archived = categories.filter((c) => c.archived)
+  const expense = categories.filter((c) => c.kind !== 'income')
+  const income = categories.filter((c) => c.kind === 'income')
   const nextSortOrder = categories.reduce((m, c) => Math.max(m, c.sortOrder), -1) + 1
+  const forIncome = editing ? editing.kind === 'income' : adding === 'income'
 
   const list = (items: Category[]) =>
     items.map((c, i) => (
@@ -683,27 +701,38 @@ function CategoriesPanel() {
         key={c.id}
         first={i === 0}
         label={c.name}
-        value={c.kind === 'essential' ? 'Essential' : 'Optional'}
+        value={c.kind === 'essential' ? 'Essential' : c.kind === 'optional' ? 'Optional' : undefined}
         onClick={() => setEditing(c)}
       />
     ))
 
   return (
     <>
-      <section aria-label="Categories" className="flex flex-col rounded-card bg-card px-4 py-2 md:px-5">{list(active)}</section>
-      <DashedButton onClick={() => setAdding(true)}>Add category</DashedButton>
-      {archived.length > 0 && (
+      <SectionLabel className="my-1">Expense categories</SectionLabel>
+      <section aria-label="Expense categories" className="flex flex-col rounded-card bg-card px-4 py-2 md:px-5">
+        {list(expense.filter((c) => !c.archived))}
+      </section>
+      <DashedButton onClick={() => setAdding('expense')}>Add expense category</DashedButton>
+
+      <SectionLabel className="my-1">Income categories</SectionLabel>
+      <section aria-label="Income categories" className="flex flex-col rounded-card bg-card px-4 py-2 md:px-5">
+        {list(income.filter((c) => !c.archived))}
+      </section>
+      <DashedButton onClick={() => setAdding('income')}>Add income category</DashedButton>
+
+      {categories.some((c) => c.archived) && (
         <section className="flex flex-col rounded-card bg-card px-4 py-3">
           <SectionLabel className="my-1">Archived</SectionLabel>
-          {list(archived)}
+          {list(categories.filter((c) => c.archived))}
         </section>
       )}
       <CategoryDialog
-        open={adding || editing !== null}
+        open={adding !== null || editing !== null}
         category={editing}
+        forIncome={forIncome}
         nextSortOrder={nextSortOrder}
         onClose={() => {
-          setAdding(false)
+          setAdding(null)
           setEditing(null)
         }}
       />

@@ -1,7 +1,7 @@
 import type { Baseline } from './baseline'
 import { roundUpTo, sum } from './money'
 import type { SafePaymentResult } from './safePayment'
-import type { Category, CategoryKind, Centavos, FixedBill } from './types'
+import type { Category, Centavos, FixedBill } from './types'
 
 /** Category budgets are rounded up to the nearest ₱100. */
 export const BUDGET_ROUNDING: Centavos = 100_00
@@ -9,7 +9,7 @@ export const BUDGET_ROUNDING: Centavos = 100_00
 export interface CategoryBudget {
   categoryId: string
   name: string
-  kind: CategoryKind
+  kind: 'essential' | 'optional'
   baseline: Baseline
   /** This month's budget: the user's override, or the baseline rounded up to ₱100. */
   budget: Centavos
@@ -27,7 +27,7 @@ export function buildCategoryBudgets(
   overrides: ReadonlyMap<string, Centavos>,
 ): CategoryBudget[] {
   return [...categories]
-    .filter((c) => !c.deletedAt && !c.archived)
+    .filter((c) => !c.deletedAt && !c.archived && c.kind !== 'income')
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((c) => {
       const baseline = baselines.get(c.id) ?? { amount: 0, isEstimate: true }
@@ -35,7 +35,7 @@ export function buildCategoryBudgets(
       return {
         categoryId: c.id,
         name: c.name,
-        kind: c.kind,
+        kind: c.kind as 'essential' | 'optional',
         baseline,
         budget: override ?? defaultBudget(baseline),
         isOverride: override !== undefined,
@@ -43,7 +43,7 @@ export function buildCategoryBudgets(
     })
 }
 
-export function totalByKind(budgets: readonly CategoryBudget[], kind: CategoryKind): Centavos {
+export function totalByKind(budgets: readonly CategoryBudget[], kind: 'essential' | 'optional'): Centavos {
   return sum(budgets.filter((b) => b.kind === kind).map((b) => b.budget))
 }
 
