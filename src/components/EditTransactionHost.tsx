@@ -2,7 +2,7 @@ import { toast } from 'sonner'
 import { alive, type Transaction } from '@/core'
 import { repo } from '@/data'
 import { useAppData } from '@/hooks/useAppData'
-import { useIsMd } from '@/hooks/useMedia'
+import { useFinePointer, useIsMd } from '@/hooks/useMedia'
 import { defaultValues, toTransactionRecord, TransactionForm } from '@/components/TransactionForm'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -16,6 +16,7 @@ export async function deleteWithUndo(t: Transaction) {
 
 function EditBody({ transaction, onClose }: { transaction: Transaction; onClose: () => void }) {
   const { snapshot } = useAppData()
+  const finePointer = useFinePointer()
   const accounts = alive(snapshot.accounts)
   const allAccounts = new Map(snapshot.accounts.map((a) => [a.id, a]))
   // Keep a deleted account selectable so old transactions still edit cleanly.
@@ -26,7 +27,9 @@ function EditBody({ transaction, onClose }: { transaction: Transaction; onClose:
   return (
     <TransactionForm
       key={transaction.id}
-      compact
+      compact={finePointer}
+      initialField={null}
+      surface="popover"
       accounts={options}
       categories={snapshot.categories.filter((c) => !c.deletedAt)}
       bills={alive(snapshot.fixedBills)}
@@ -35,7 +38,7 @@ function EditBody({ transaction, onClose }: { transaction: Transaction; onClose:
         <Button
           type="button"
           variant="destructive"
-          className="h-[54px] rounded-[14px] px-5 text-base"
+          className={finePointer ? 'h-[54px] rounded-[14px] px-5 text-base' : 'h-[50px] rounded-[14px] px-5 text-base'}
           onClick={async () => {
             await deleteWithUndo(transaction)
             onClose()

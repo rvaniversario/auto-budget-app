@@ -244,7 +244,6 @@ function SummaryStat({ label, value, highlight }: { label: string; value: number
       <span className="text-xs text-muted-foreground">{label}</span>
       <Money
         value={value}
-        decimals="never"
         className={cn('truncate text-lg font-semibold', highlight && (value < 0 ? 'text-danger-bar' : 'text-link'))}
       />
     </div>
