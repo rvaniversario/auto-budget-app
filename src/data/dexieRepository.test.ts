@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto'
+import Dexie from 'dexie'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { pesos } from '@/core'
 import { parseBackup } from './backup'
@@ -25,9 +26,32 @@ describe('DexieRepository', () => {
       'Load and data:essential',
       'Dining out:optional',
       'Shopping:optional',
+      'Allowance:income',
       'Salary:income',
+      'Petty cash:income',
+      'Bonus:income',
       'Other income:income',
     ])
+  })
+
+  it('adds missing income categories to a budget made before version 4', async () => {
+    const name = `test-upgrade-${++n}`
+    // A version 3 budget with its own Salary and a deleted Bonus.
+    const old = new Dexie(name)
+    old.version(3).stores({ categories: 'id, sortOrder, updatedAt' })
+    const base = { createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', archived: false }
+    await old.table('categories').bulkAdd([
+      { ...base, id: 'a', name: 'Food', kind: 'essential', sortOrder: 0, deletedAt: null },
+      { ...base, id: 'b', name: 'salary', kind: 'income', sortOrder: 1, deletedAt: null },
+      { ...base, id: 'c', name: 'Bonus', kind: 'income', sortOrder: 2, deletedAt: '2026-02-01T00:00:00.000Z' },
+    ])
+    old.close()
+
+    const upgraded = new DexieRepository(createDatabase(name))
+    const cats = await upgraded.db.categories.orderBy('sortOrder').toArray()
+    expect(cats.map((c) => `${c.name}:${c.sortOrder}`)).toEqual(['Food:0', 'salary:1', 'Bonus:2', 'Allowance:3', 'Petty cash:4', 'Other income:5'])
+    expect(cats.find((c) => c.name === 'Allowance')?.id).toBe('income-allowance')
+    await upgraded.db.delete()
   })
 
   it('creates settings with defaults then patches them', async () => {
@@ -115,7 +139,7 @@ describe('DexieRepository', () => {
     await repo.deleteAllData()
     expect(await repo.getSettings()).toBeUndefined()
     expect(await repo.listFixedBills()).toEqual([])
-    expect(await repo.listCategories()).toHaveLength(8)
+    expect(await repo.listCategories()).toHaveLength(11)
 
     if (parsed.ok) await repo.importBackup(parsed.backup)
     expect((await repo.getSettings())?.monthlySalary).toBe(pesos(50_000))

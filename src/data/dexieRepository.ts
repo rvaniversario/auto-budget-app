@@ -405,7 +405,11 @@ export class DexieRepository implements Repository {
       } else {
         await Promise.all(TABLES.map((t) => this.db.table(t).clear()))
       }
-      await this.db.categories.bulkAdd(defaultCategories())
+      // Income defaults have fixed ids, so they may replace a tombstone just
+      // written above; stamp them newer than it so sync keeps the fresh copy.
+      const fresh = defaultCategories()
+      const previous = await this.db.categories.bulkGet(fresh.map((c) => c.id))
+      await this.db.categories.bulkPut(fresh.map((c, i) => (previous[i] ? { ...c, updatedAt: nextUpdatedAt(previous[i]!.updatedAt) } : c)))
     })
   }
 }

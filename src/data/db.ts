@@ -10,7 +10,7 @@ import type {
   SpendingEstimate,
   Transaction,
 } from '@/core'
-import { defaultCategories } from './seed'
+import { defaultCategories, INCOME_DEFAULTS, INCOME_DEFAULTS_UPDATED_AT, incomeCategory } from './seed'
 
 /** The version of a record the server is known to hold. Key: `${collection}:${id}`. */
 export interface SyncStateRow {
@@ -89,6 +89,19 @@ export function createDatabase(name = 'auto-budget'): AutoBudgetDB {
     debtPlans: 'id, updatedAt',
     localCache: 'key',
   })
+  // Version 4: add the default income categories to budgets made before they
+  // existed. Skips any name already present, including deleted ones, so a
+  // category the user removed doesn't come back.
+  db.version(4)
+    .stores({})
+    .upgrade(async (tx) => {
+      const existing = (await tx.table('categories').toArray()) as Category[]
+      const names = new Set(existing.map((c) => c.name.trim().toLowerCase()))
+      const ids = new Set(existing.map((c) => c.id))
+      let sortOrder = existing.reduce((max, c) => Math.max(max, c.sortOrder), -1) + 1
+      const missing = INCOME_DEFAULTS.filter((d) => !names.has(d.name.toLowerCase()) && !ids.has(d.id))
+      await tx.table('categories').bulkAdd(missing.map((d) => incomeCategory(d, sortOrder++, INCOME_DEFAULTS_UPDATED_AT)))
+    })
   db.on('populate', async (tx) => {
     await tx.table('categories').bulkAdd(defaultCategories())
   })
