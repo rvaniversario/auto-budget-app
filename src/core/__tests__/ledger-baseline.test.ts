@@ -32,6 +32,40 @@ describe('getAccountBalance', () => {
     const txs = [tx({ accountId: visa.id, amount: pesos(2_000), deletedAt: '2026-11-02T00:00:00Z' })]
     expect(getAccountBalance(visa, txs)).toBe(pesos(50_000))
   })
+
+  describe('paying a balance from before the card was tracked', () => {
+    const fresh = card({ openingBalance: 0 })
+    const pay = (amount: number, date: string) => tx({ accountId: bank.id, type: 'transfer', toAccountId: fresh.id, amount: pesos(amount), date })
+    const buy = (amount: number, date: string) => tx({ accountId: fresh.id, type: 'expense', amount: pesos(amount), date })
+
+    it('stops at 0 owed instead of going into credit, and the money still leaves the bank', () => {
+      const bankAcct = account({ openingBalance: pesos(50_000) })
+      const t = tx({ accountId: bankAcct.id, type: 'transfer', toAccountId: fresh.id, amount: pesos(15_000), date: '2026-11-05' })
+      expect(getAccountBalance(fresh, [t])).toBe(0)
+      expect(getAccountBalance(bankAcct, [t])).toBe(pesos(35_000))
+    })
+
+    it('purchases after the payment count from 0', () => {
+      expect(getAccountBalance(fresh, [pay(15_000, '2026-11-05'), buy(5_000, '2026-11-08')])).toBe(pesos(5_000))
+    })
+
+    it('goes by date, not the order entries were made', () => {
+      // Bought 5,000 on the 1st, then paid 15,000 on the 5th: the extra 10,000 was an older balance.
+      expect(getAccountBalance(fresh, [pay(15_000, '2026-11-05'), buy(5_000, '2026-11-01')])).toBe(0)
+      expect(getAccountBalance(fresh, [buy(5_000, '2026-11-01'), pay(3_000, '2026-11-05')])).toBe(pesos(2_000))
+    })
+
+    it('a refund bigger than what is owed also stops at 0', () => {
+      const refund = tx({ accountId: fresh.id, type: 'income', amount: pesos(800), date: '2026-11-03' })
+      expect(getAccountBalance(fresh, [buy(500, '2026-11-01'), refund])).toBe(0)
+    })
+
+    it('works the same for loans', () => {
+      const loan = account({ type: 'loan', openingBalance: pesos(1_000) })
+      const t = tx({ accountId: bank.id, type: 'transfer', toAccountId: loan.id, amount: pesos(4_000), date: '2026-11-05' })
+      expect(getAccountBalance(loan, [t])).toBe(0)
+    })
+  })
 })
 
 describe('category totals', () => {

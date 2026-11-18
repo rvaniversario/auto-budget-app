@@ -1,6 +1,9 @@
 /**
  * What's new, newest first. When releasing: bump "version" in package.json and
  * add an entry here with the same version (releases.test.ts checks they match).
+ * Semantic versioning: patch (1.0.x) for fixes and small behaviour changes,
+ * minor (1.x.0) for new features or settings, major (x.0.0) for changes that
+ * break old data or remove features.
  */
 export interface Release {
   /** Semantic version, without the "v". */
@@ -11,6 +14,13 @@ export interface Release {
 }
 
 export const RELEASES: readonly Release[] = [
+  {
+    version: '1.0.1',
+    date: '2026-11-18',
+    highlights: [
+      'Pay off a credit card, loan or debt without logging past months or a statement balance. A payment bigger than what the app knows you owe is treated as an older balance: it comes out of your money and the card stops at ₱0 instead of going into credit.',
+    ],
+  },
   {
     version: '1.0.0',
     date: '2026-11-18',

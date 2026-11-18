@@ -57,6 +57,7 @@ Premium calculations are pure functions in `src/core` with unit tests: `debtPlan
 - **Baselines**: last budget month's logged spending per category, excluding one-time expenses. With no history yet every category starts at ₱0; nothing is estimated.
 - **Category budgets**: baseline rounded up to the nearest ₱100, unless you've edited it this month.
 - **Income**: the income transactions logged this budget month. There is no salary setting; nothing is projected.
+- **Card, loan and debt balances** never go below ₱0. A payment bigger than what the app knows you owe is treated as paying off a balance from before you started tracking: it still comes out of your money, and the card stops at ₱0. No need to log past months or a statement balance.
 - **Carry-over** (Settings, off by default): adds what is left from all earlier budget months (income − spending − payments to credit cards, loans and debts) to this month's income. An overspend carries as a negative amount.
 - **Safe card payment** (only when switched on in Settings): income − fixed bills − essential − optional − one-time expenses − buffer, clamped between ₱0 and the card balance. When it is off, nothing is set aside for cards and that money shows as unassigned.
 - Editing a budget moves money to or from the card payment and is blocked if the payment would fall below the minimum due.
