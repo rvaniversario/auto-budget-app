@@ -14,7 +14,7 @@ import {
   type CategoryRow,
   type CategoryStatus,
   type Transaction,
-  incomeLabel,
+  INCOME_LABEL,
 } from '@/core'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { EditTransactionHost } from '@/components/EditTransactionHost'
@@ -96,7 +96,7 @@ function OverspendAlerts() {
                 {row.name} is over budget by {formatMoney(row.overBy)}
               </h2>
               <p className="text-sm leading-[1.45] text-foreground">
-                {model.cards.length > 0
+                {model.safeEnabled && model.cards.length > 0
                   ? `Your ${formatMoney(model.safe.amount)} card payment is still safe if you cover this from another category.`
                   : 'Cover this from another category to keep your plan on track.'}
               </p>
@@ -147,19 +147,23 @@ function Hero() {
   const { model } = useAppData()
   const { safe, cards } = model
 
-  if (cards.length === 0) {
+  if (!model.safeEnabled || cards.length === 0) {
     return (
       <section aria-label="Your plan" className="flex flex-col gap-3.5 rounded-hero bg-primary p-5 text-primary-foreground">
         <p className="text-sm font-medium text-hero-muted">Not yet given a job this month</p>
         <p className="money text-5xl leading-none font-bold tracking-[-0.02em]">{formatMoney(Math.max(0, model.plan.unassigned))}</p>
         <p className="text-sm leading-[1.45] text-hero-muted">
-          You have no credit card added. Add one to see how much you can safely pay on it each month.
+          {model.income === 0
+            ? 'No income logged since payday yet. Add the income you receive and your plan fills in from it.'
+            : model.safeEnabled
+            ? 'You have no credit card added. Add one to see how much you can safely pay on it each month.'
+            : 'Turn on Safe to pay in Settings to see how much you can safely pay on your credit card each month.'}
         </p>
         <Link
-          to="/accounts"
+          to={model.safeEnabled ? '/accounts' : '/settings'}
           className="flex min-h-11 items-center justify-between rounded-lg bg-hero-chip px-4 text-[15px] font-semibold text-hero-link"
         >
-          Add a credit card
+          {model.safeEnabled ? 'Add a credit card' : 'Open Settings'}
           <ChevronRight className="size-[18px]" aria-hidden="true" />
         </Link>
       </section>
@@ -182,7 +186,7 @@ function Hero() {
       <p className="money text-5xl leading-none font-bold tracking-[-0.02em] md:text-[44px] lg:text-[56px]">{formatMoney(safe.amount)}</p>
       {safe.isEstimate && (
         <p className="text-sm leading-[1.45] text-hero-muted">
-          Based on the amounts you gave during setup. This gets more accurate as you log real spending.
+          No spending logged last month yet, so your categories start at ₱0. This gets more accurate as you log transactions.
         </p>
       )}
       {safe.belowMinimum && (
@@ -228,10 +232,10 @@ function HeroStat({ label, value }: { label: string; value: string }) {
 // ---------------------------------------------------------------------------
 
 function MonthSummary() {
-  const { model, snapshot } = useAppData()
+  const { model } = useAppData()
   return (
     <section aria-label="Month summary" className="grid grid-cols-3 gap-2 rounded-card bg-card p-4">
-      <SummaryStat label={incomeLabel(snapshot.settings.payFrequency).short} value={model.income} />
+      <SummaryStat label={model.carryOver !== 0 ? 'Income + carried' : INCOME_LABEL.short} value={model.available} />
       <SummaryStat label="Spent so far" value={model.spentSoFar} />
       <SummaryStat label="Remaining" value={model.remaining} highlight />
     </section>
@@ -282,7 +286,7 @@ function CategoryBudgets() {
         <BudgetBar label="Transfer fees" spent={model.transferFees} budget={0} status="ok" percent={0} quiet />
       )}
       {planned && <PlannedDebtBars rows={planned} />}
-      {!planned && model.cards.length > 0 && (
+      {!planned && model.safeEnabled && model.cards.length > 0 && (
         <BudgetBar
           label="Credit card payment"
           spent={model.paidToCardsThisPeriod}
@@ -399,7 +403,7 @@ function BillsDueCard() {
       const done = p.paid >= p.planned
       rows.push({ key: p.id, name: p.name, dueDate, amount: p.planned, tag: done ? <Tag tone="success">Paid</Tag> : <NeutralTag>Planned</NeutralTag> })
     }
-  } else {
+  } else if (model.safeEnabled) {
     for (const card of model.cards) {
       const dueDate = card.account.dueDay ? dueDateInPeriod(card.account.dueDay, model.period) : null
       if (!dueDate) continue

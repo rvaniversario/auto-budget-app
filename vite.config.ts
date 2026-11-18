@@ -15,7 +15,7 @@ export default defineConfig({
       manifest: {
         name: 'Auto Budget',
         short_name: 'Auto Budget',
-        description: 'Know how much you can safely pay on your credit card this month.',
+        description: 'A simple budget that builds itself from your transactions.',
         theme_color: '#0F6B4F',
         background_color: '#F3F5F4',
         display: 'standalone',

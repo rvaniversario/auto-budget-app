@@ -1,7 +1,7 @@
 import { escapeCell } from './csv'
-import { isInPeriod, periodMonthName, type BudgetPeriod } from './dates'
+import { periodMonthName, type BudgetPeriod } from './dates'
 import { budgetPeriodFor, previousBudgetPeriod } from './pay'
-import { categoryTotals, getAccountBalance, totalSpent } from './ledger'
+import { categoryTotals, getAccountBalance, incomeTotal, totalSpent } from './ledger'
 import { centavosToInput, formatMoney, sum } from './money'
 import { computeMonthModel, type AppSnapshot } from './model'
 import { alive, isDebtAccount, type Centavos, type ISODate } from './types'
@@ -52,7 +52,7 @@ export function reportMonths(snapshot: AppSnapshot, today: ISODate, count: numbe
       period,
       label: periodMonthName(period),
       complete,
-      income: sum(transactions.filter((t) => t.type === 'income' && isInPeriod(t.date, period)).map((t) => t.amount)),
+      income: incomeTotal(transactions, period),
       spending: totalSpent(transactions, period),
       byCategory: Object.fromEntries(categoryTotals(transactions, period)),
       rows,
@@ -163,7 +163,7 @@ export function yearSummary(snapshot: AppSnapshot, year: number): YearSummary {
     const range = { start: `${year}-${mm}-01`, end: `${year}-${mm}-31` }
     return {
       month: i + 1,
-      income: sum(transactions.filter((t) => t.type === 'income' && isInPeriod(t.date, range)).map((t) => t.amount)),
+      income: incomeTotal(transactions, range),
       spending: totalSpent(transactions, range),
     }
   })

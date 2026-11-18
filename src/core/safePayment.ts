@@ -14,7 +14,7 @@ export interface SafePaymentInput {
   cardBalance: Centavos
   /** Total minimum due across credit cards. */
   minimumDue: Centavos
-  /** True when any spending baseline came from onboarding estimates. */
+  /** True when any category budget has no spending history behind it yet. */
   isEstimate: boolean
 }
 

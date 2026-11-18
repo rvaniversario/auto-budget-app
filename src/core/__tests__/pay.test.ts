@@ -5,14 +5,12 @@ import { pesos } from '../money'
 import {
   budgetPeriodFor,
   formatWeekdays,
-  incomeBreakdown,
   monthPaydays,
   paydaysInPeriod,
-  periodIncome,
   remapPeriodStart,
   secondPayday,
 } from '../pay'
-import { settings, snapshot } from './fixtures'
+import { settings, snapshot, tx } from './fixtures'
 
 describe('moved paydays', () => {
   // Nov 30 2026 is a Monday; Jan 30 2027 is a Saturday.
@@ -81,7 +79,6 @@ describe('pay frequency', () => {
   it('monthly: one payday', () => {
     const s = settings({ paydayDay: 1, monthlySalary: pesos(40_000) })
     expect(paydaysInPeriod(s, period)).toEqual(['2026-11-01'])
-    expect(periodIncome(s, period)).toBe(pesos(40_000))
   })
 
   it('twice a month: both paydays, with a default second day', () => {
@@ -89,7 +86,6 @@ describe('pay frequency', () => {
     expect(secondPayday(s)).toBe(15)
     const p = budgetPeriodFor(s, '2026-11-11')
     expect(paydaysInPeriod(s, p)).toEqual(['2026-10-30', '2026-11-15'])
-    expect(periodIncome(s, p)).toBe(pesos(30_000))
     expect(secondPayday({ paydayDay: 15 })).toBe(30)
     expect(secondPayday({ paydayDay: 5, secondPaydayDay: 20 })).toBe(20)
   })
@@ -97,7 +93,6 @@ describe('pay frequency', () => {
   it('weekly: every chosen weekday in the month (4 or 5)', () => {
     const s = settings({ payFrequency: 'weekly', paydayDay: 1, payWeekday: 5, monthlySalary: pesos(5_000) })
     expect(paydaysInPeriod(s, period)).toEqual(['2026-11-06', '2026-11-13', '2026-11-20', '2026-11-27'])
-    expect(periodIncome(s, period)).toBe(pesos(20_000))
     const mondays = settings({ payFrequency: 'weekly', payWeekday: 1 })
     expect(paydaysInPeriod(mondays, period)).toHaveLength(5)
   })
@@ -105,25 +100,32 @@ describe('pay frequency', () => {
   it('daily: every working day', () => {
     const s = settings({ payFrequency: 'daily', paydayDay: 1, monthlySalary: pesos(800) })
     expect(paydaysInPeriod(s, period)).toHaveLength(21) // Mon–Fri in November 2026
-    expect(periodIncome(s, period)).toBe(pesos(16_800))
     const sixDays = settings({ payFrequency: 'daily', workWeekdays: [1, 2, 3, 4, 5, 6] })
     expect(paydaysInPeriod(sixDays, period)).toHaveLength(25)
   })
 
-  it('the month model uses period income for the plan and what is left', () => {
-    const s = settings({ payFrequency: 'weekly', paydayDay: 1, payWeekday: 5, monthlySalary: pesos(5_000) })
-    const m = computeMonthModel(snapshot({ settings: s }), '2026-11-11')
-    expect(m.income).toBe(pesos(20_000))
-    expect(m.safeInput.salary).toBe(pesos(20_000))
-    expect(m.remaining).toBe(pesos(20_000))
+  it('the month model uses the income logged this budget month, not a set amount', () => {
+    const s = settings({ payFrequency: 'weekly', paydayDay: 1, payWeekday: 5, monthlySalary: pesos(99_000) })
+    const income = (date: string, amount: number, deletedAt: string | null = null) =>
+      tx({ accountId: 'bank', type: 'income', date, amount: pesos(amount), deletedAt })
+    const transactions = [
+      income('2026-10-30', 7_000), // last budget month: not counted
+      income('2026-11-06', 5_000),
+      income('2026-11-10', 1_200),
+      income('2026-11-09', 500, '2026-11-09T10:00:00Z'), // deleted
+      tx({ accountId: 'bank', type: 'transfer', toAccountId: 'visa', date: '2026-11-07', amount: pesos(300) }), // not income
+    ]
+    const m = computeMonthModel(snapshot({ settings: s, transactions }), '2026-11-11')
+    expect(m.income).toBe(pesos(6_200))
+    expect(m.safeInput.salary).toBe(pesos(6_200))
+    expect(m.plan.salary).toBe(pesos(6_200))
+    expect(m.remaining).toBe(pesos(6_200))
     expect(m.paydays).toHaveLength(4)
   })
 
-  it('formats weekdays and the income breakdown', () => {
+  it('formats weekdays', () => {
     expect(formatWeekdays([1, 2, 3, 4, 5])).toBe('Mon–Fri')
     expect(formatWeekdays([5, 1, 3])).toBe('Mon, Wed, Fri')
     expect(formatWeekdays([0, 1, 2, 3, 4, 5, 6])).toBe('Every day')
-    expect(incomeBreakdown(settings(), 1)).toBeUndefined()
-    expect(incomeBreakdown(settings({ payFrequency: 'daily', monthlySalary: pesos(800) }), 21)).toBe('21 paid days × ₱800')
   })
 })

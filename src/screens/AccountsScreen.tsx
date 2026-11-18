@@ -106,13 +106,15 @@ export function AccountsScreen() {
                         <Tile term="Minimum due" value={formatMoney(c.minimumDue)} />
                         <Tile term="Interest rate" value={`${c.monthlyInterestRate}% a month`} />
                       </dl>
-                      <Link
-                        to="/breakdown"
-                        className="flex min-h-12 items-center justify-between rounded-lg bg-success-tint px-4 text-[15px] font-semibold text-success-text"
-                      >
-                        Safe to pay this month: {formatMoney(c.allocation.amount)}
-                        <ChevronRight className="size-[18px]" aria-hidden="true" />
-                      </Link>
+                      {model.safeEnabled && (
+                        <Link
+                          to="/breakdown"
+                          className="flex min-h-12 items-center justify-between rounded-lg bg-success-tint px-4 text-[15px] font-semibold text-success-text"
+                        >
+                          Safe to pay this month: {formatMoney(c.allocation.amount)}
+                          <ChevronRight className="size-[18px]" aria-hidden="true" />
+                        </Link>
+                      )}
                       <div className="grid grid-cols-2 gap-2 lg:max-w-md">
                         <Button variant="outline" className="h-11 bg-card" onClick={() => openAdd({ type: 'transfer', to: a.id })}>
                           Record a payment

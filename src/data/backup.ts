@@ -35,6 +35,8 @@ export const settingsSchema = z.object({
   bufferAmount: nonNegCentavos,
   theme: z.enum(['light', 'dark', 'system']),
   onboardingComplete: z.boolean(),
+  safePaymentEnabled: z.boolean().optional(),
+  carryOverEnabled: z.boolean().optional(),
 })
 
 export const accountSchema = z.object({

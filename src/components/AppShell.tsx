@@ -39,11 +39,6 @@ const SIDEBAR_PREMIUM: PremiumFeatureId[] = ['reports', 'debtPlanner']
 
 const ring = 'outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
 
-/** Plain centred column (onboarding and loading states). */
-export function Column({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn('mx-auto flex min-h-dvh w-full flex-col bg-background', className)}>{children}</div>
-}
-
 /** Phones: bottom tab bar. */
 function BottomTabs() {
   return (

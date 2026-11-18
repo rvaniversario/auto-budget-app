@@ -82,7 +82,7 @@ export interface PlanLine {
   label: string
   kind: PlanLineKind
   amount: Centavos
-  /** Last month's actual (or the estimate), shown beside category rows. */
+  /** Last month's actual, shown beside category rows. */
   lastMonth: Centavos | null
   lastMonthIsEstimate: boolean
   editable: boolean

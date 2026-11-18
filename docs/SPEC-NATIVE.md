@@ -53,7 +53,7 @@ supabase/
 
 ## What the Android app includes
 
-Feature parity with the web app at the time of release: onboarding, Home, Add transaction (with the on-screen number pad), credit card breakdown with what-if, budget plan, transactions, accounts, settings, the special states, light and dark mode, backup and restore, sign-in, sync for accounts allowed to sync, and the privacy page. Follow the phone designs on the design canvas.
+Feature parity with the web app at the time of release: Home, Add transaction (with the on-screen number pad), credit card breakdown with what-if, budget plan, transactions, accounts, settings, the special states, light and dark mode, backup and restore, sign-in, sync for accounts allowed to sync, and the privacy page. Follow the phone designs on the design canvas.
 
 Native-specific behaviour:
 
@@ -73,7 +73,7 @@ Native-specific behaviour:
   - **exclude** the signed-in session and anything in encrypted or Keystore-backed storage, which cannot be restored on another device;
   - exclude caches.
 - Make sure the database is in a consistent state for backup (for example, checkpoint SQLite's write-ahead log after writes).
-- On first launch, if a restored database exists, skip onboarding and open Home with a notice: "Welcome back. Your data was restored by Android backup."
+- On first launch, if a restored database exists, open Home with a notice: "Welcome back. Your data was restored by Android backup."
 - Android's app backup has a size limit per app (25 MB when this was written); a text-only budget database stays far below it. If the database ever approaches it, show a notice suggesting a backup file.
 - This backup happens on Android's schedule (typically daily when charging and on Wi-Fi) and depends on the user's device backup setting. The app cannot show the exact last backup time; the Backup and restore screen explains this and offers a button that opens Android's backup settings.
 - No account, server or Drive API is involved, so there is no running cost and nothing for the developer to store.

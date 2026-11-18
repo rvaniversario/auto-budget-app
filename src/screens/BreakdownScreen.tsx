@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { TriangleAlert } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, Navigate } from 'react-router'
 import { toast } from 'sonner'
 import {
   BUFFER_KEY,
@@ -12,8 +12,7 @@ import {
   pesos,
   whatIf,
   type ShortfallOption,
-  incomeBreakdown,
-  incomeLabel,
+  INCOME_LABEL,
 } from '@/core'
 import { repo } from '@/data'
 import { useAppData } from '@/hooks/useAppData'
@@ -47,7 +46,14 @@ function listNames(names: string[]): string {
   return `${lower.slice(0, -1).join(', ')} and ${lower[lower.length - 1]}`
 }
 
+/** Only reachable while Safe to pay is switched on (Settings); otherwise back to Home. */
 export function BreakdownScreen() {
+  const { model } = useAppData()
+  if (!model.safeEnabled) return <Navigate to="/" replace />
+  return <Breakdown />
+}
+
+function Breakdown() {
   const { model, snapshot } = useAppData()
   const { safe, cards } = model
   const [cutPesos, setCutPesos] = useState(0)
@@ -135,11 +141,19 @@ export function BreakdownScreen() {
       <section aria-label="How we got this amount" className="flex flex-col gap-3 rounded-card bg-card px-4 py-[18px] md:px-5">
         <h2 className="font-sans text-base font-bold">How we got this amount</h2>
         <Line
-          label={incomeLabel(snapshot.settings.payFrequency).long}
-          sub={incomeBreakdown(snapshot.settings, model.paydays.length)}
-          amount={safe.salary}
+          label={INCOME_LABEL.long}
+          sub="Income you have logged since payday"
+          amount={model.income}
           minus={false}
         />
+        {model.carryOver !== 0 && (
+          <Line
+            label="Carried over"
+            sub={model.carryOver > 0 ? 'Left from earlier months' : 'Overspent in earlier months'}
+            amount={model.carryOver}
+            minus={false}
+          />
+        )}
         <Line label="Fixed bills" sub={bills.length ? listNames(bills.map((b) => b.name)) : 'None added'} amount={safe.fixedBillsTotal} />
         {oneTimes.map((t) => (
           <Line
@@ -153,7 +167,7 @@ export function BreakdownScreen() {
           label="Essential spending"
           sub={
             safe.isEstimate
-              ? 'From the amounts you gave during setup'
+              ? 'No spending logged last month yet'
               : `Based on last month's ${listNames(essentialNames).toLowerCase()}`
           }
           amount={safe.essentialTotal}

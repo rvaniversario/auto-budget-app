@@ -115,8 +115,8 @@ describe('SyncEngine', () => {
     await a.engine.link('user-1', 'useLocal')
 
     const b = device(server)
-    // B has only partial onboarding and the seeded categories.
-    await b.repo.saveSettings({ monthlySalary: pesos(1) })
+    // B was just opened: default settings, the starter Cash and Bank, and the seeded categories.
+    await b.repo.startBudget()
     expect(await b.engine.planLink()).toEqual({ kind: 'useRemote' })
     await b.engine.link('user-1', 'useRemote')
 

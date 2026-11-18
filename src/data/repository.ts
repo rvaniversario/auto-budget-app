@@ -9,7 +9,6 @@ import type {
   RecurringTemplate,
   ISODate,
   Settings,
-  SpendingEstimate,
   SyncFields,
   Transaction,
 } from '@/core'
@@ -30,6 +29,8 @@ export interface Repository {
   // Settings (a single record)
   getSettings(): Promise<Settings | undefined>
   saveSettings(patch: RecordPatch<Settings>): Promise<Settings>
+  /** First launch: create default settings and the starter accounts. No-op once a budget exists. */
+  startBudget(): Promise<void>
 
   // Accounts
   listAccounts(): Promise<Account[]>
@@ -58,10 +59,6 @@ export interface Repository {
   deleteTransaction(id: string): Promise<void>
   restoreTransaction(id: string): Promise<void>
 
-  // Onboarding spending estimates
-  listSpendingEstimates(): Promise<SpendingEstimate[]>
-  setSpendingEstimate(categoryId: string, amount: Centavos): Promise<void>
-
   // This month's plan edits
   listBudgetOverrides(): Promise<BudgetOverride[]>
   setBudgetOverride(periodStart: ISODate, key: string, amount: Centavos): Promise<void>
@@ -84,7 +81,7 @@ export interface Repository {
   getDebtPlan(): Promise<DebtPlan | undefined>
   saveDebtPlan(patch: RecordPatch<DebtPlan>): Promise<DebtPlan>
 
-  /** Everything needed for the month model, read consistently. Null before onboarding starts. */
+  /** Everything needed for the month model, read consistently. Null before the budget is started (see startBudget). */
   getSnapshot(): Promise<AppSnapshot | null>
 
   // Backup

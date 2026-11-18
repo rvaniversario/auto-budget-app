@@ -84,11 +84,22 @@ describe('DexieRepository', () => {
     expect(await repo.listTransactions()).toHaveLength(1)
   })
 
-  it('upserts estimates and overrides', async () => {
-    await repo.setSpendingEstimate('cat', 100)
-    await repo.setSpendingEstimate('cat', 200)
-    expect((await repo.listSpendingEstimates()).map((e) => e.amount)).toEqual([200])
+  it('starts a budget once, with Cash and Bank and Safe to pay off', async () => {
+    await repo.startBudget()
+    await repo.startBudget()
+    const snap = await repo.getSnapshot()
+    expect(snap?.settings.onboardingComplete).toBe(true)
+    expect(snap?.settings.safePaymentEnabled).toBeUndefined()
+    expect(snap?.accounts.map((a) => `${a.name}:${a.type}:${a.openingBalance}`)).toEqual(['Cash:cash:0', 'Bank:bank:0'])
+  })
 
+  it('starting a budget keeps accounts the user already has', async () => {
+    await repo.addAccount({ name: 'GCash', type: 'bank', openingBalance: 0, statementDay: null, dueDay: null, minimumDue: null, monthlyInterestRate: null })
+    await repo.startBudget()
+    expect((await repo.listAccounts()).map((a) => a.name)).toEqual(['Cash', 'GCash'])
+  })
+
+  it('upserts overrides', async () => {
     await repo.setBudgetOverrides('2026-10-30', [{ key: 'a', amount: 1 }, { key: 'b', amount: 2 }])
     await repo.setBudgetOverride('2026-10-30', 'a', 5)
     await repo.clearBudgetOverride('2026-10-30', 'b')

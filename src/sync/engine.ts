@@ -1,6 +1,7 @@
 import type { Table } from 'dexie'
 import { TABLES, type AutoBudgetDB } from '@/data/db'
 import { newId, nextUpdatedAt } from '@/data/ids'
+import { isUntouchedStarterAccount } from '@/data/seed'
 import type { SyncApi, SyncedData, SyncRecord } from './api'
 
 /**
@@ -122,12 +123,11 @@ export class SyncEngine {
 
   async localSummary(): Promise<LocalSummary> {
     const alive = <T extends { deletedAt: string | null }>(rows: T[]) => rows.filter((r) => !r.deletedAt)
-    const settings = alive(await this.db.settings.toArray())
     const transactions = alive(await this.db.transactions.toArray()).length
-    const accounts = alive(await this.db.accounts.toArray()).length
+    // The starter Cash and Bank accounts alone don't make a budget worth keeping.
+    const accounts = alive(await this.db.accounts.toArray()).filter((a) => !isUntouchedStarterAccount(a)).length
     const bills = alive(await this.db.fixedBills.toArray()).length
-    const onboarded = settings.some((s) => s.onboardingComplete)
-    return { hasData: onboarded || transactions > 0 || accounts > 0 || bills > 0, transactions }
+    return { hasData: transactions > 0 || accounts > 0 || bills > 0, transactions }
   }
 
   // ---- Upload and download ------------------------------------------------

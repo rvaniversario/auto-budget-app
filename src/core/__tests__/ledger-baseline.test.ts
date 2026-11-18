@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getCategoryBaseline, getCategoryBaselines, hasHistory } from '../baseline'
 import { cardPaymentsInPeriod, categoryTotals, getAccountBalance, oneTimeTotal, totalSpent, transferFee, transferFeesTotal } from '../ledger'
 import { pesos } from '../money'
-import { account, card, category, estimate, tx } from './fixtures'
+import { account, card, category, tx } from './fixtures'
 
 const period = { start: '2026-10-30', end: '2026-11-29' }
 const prev = { start: '2026-09-30', end: '2026-10-29' }
@@ -89,12 +89,10 @@ describe('getCategoryBaseline', () => {
   const groceries = category({ name: 'Groceries' })
   const dining = category({ name: 'Dining out', kind: 'optional' })
   const bank = account()
-  const estimates = [estimate(groceries.id, pesos(6_000)), estimate(dining.id, pesos(2_000))]
-
-  it('new user with no transactions falls back to estimates', () => {
-    const ctx = { transactions: [], estimates, previousPeriod: prev }
+  it('new user with no transactions starts every category at 0', () => {
+    const ctx = { transactions: [], previousPeriod: prev }
     expect(hasHistory(ctx)).toBe(false)
-    expect(getCategoryBaseline(groceries.id, ctx)).toEqual({ amount: pesos(6_000), isEstimate: true })
+    expect(getCategoryBaseline(groceries.id, ctx)).toEqual({ amount: 0, isEstimate: true })
   })
 
   it('uses previous-month totals once history exists, excluding one-time expenses', () => {
@@ -103,7 +101,7 @@ describe('getCategoryBaseline', () => {
       tx({ accountId: bank.id, categoryId: groceries.id, amount: pesos(8_000), date: '2026-10-06', isOneTime: true }),
       tx({ accountId: bank.id, categoryId: groceries.id, amount: pesos(999), date: '2026-11-01' }), // current month
     ]
-    const ctx = { transactions, estimates, previousPeriod: prev }
+    const ctx = { transactions, previousPeriod: prev }
     expect(getCategoryBaseline(groceries.id, ctx)).toEqual({ amount: pesos(5_200), isEstimate: false })
     // Category with no spending last month is a real zero, not an estimate.
     expect(getCategoryBaseline(dining.id, ctx)).toEqual({ amount: 0, isEstimate: false })
@@ -112,24 +110,25 @@ describe('getCategoryBaseline', () => {
   it('a card payment alone in the previous month is not "history"', () => {
     const visa = card()
     const transactions = [tx({ accountId: bank.id, type: 'transfer', toAccountId: visa.id, amount: pesos(5_000), date: '2026-10-05' })]
-    const ctx = { transactions, estimates, previousPeriod: prev }
+    const ctx = { transactions, previousPeriod: prev }
     expect(getCategoryBaseline(groceries.id, ctx).isEstimate).toBe(true)
   })
 
-  it('soft-deleted transactions and estimates are ignored', () => {
+  it('soft-deleted transactions are ignored', () => {
     const transactions = [
       tx({ accountId: bank.id, categoryId: groceries.id, amount: pesos(5_200), date: '2026-10-05', deletedAt: '2026-10-06T00:00:00Z' }),
     ]
-    const deletedEstimate = { ...estimate(dining.id, pesos(1)), deletedAt: '2026-10-06T00:00:00Z' }
-    const ctx = { transactions, estimates: [deletedEstimate], previousPeriod: prev }
+    const ctx = { transactions, previousPeriod: prev }
     expect(getCategoryBaseline(groceries.id, ctx)).toEqual({ amount: 0, isEstimate: true })
     expect(getCategoryBaseline(dining.id, ctx)).toEqual({ amount: 0, isEstimate: true })
   })
 
   it('getCategoryBaselines matches the single version', () => {
-    const ctx = { transactions: [], estimates, previousPeriod: prev }
+    const transactions = [tx({ accountId: bank.id, categoryId: dining.id, amount: pesos(2_000), date: '2026-10-05' })]
+    const ctx = { transactions, previousPeriod: prev }
     const map = getCategoryBaselines([groceries.id, dining.id], ctx)
-    expect(map.get(dining.id)).toEqual({ amount: pesos(2_000), isEstimate: true })
+    expect(map.get(dining.id)).toEqual(getCategoryBaseline(dining.id, ctx))
+    expect(map.get(groceries.id)).toEqual({ amount: 0, isEstimate: false })
   })
 })
 

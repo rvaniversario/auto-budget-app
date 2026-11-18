@@ -17,7 +17,7 @@ import { BACKUP_APP_ID, BACKUP_SCHEMA_VERSION, type BackupFile } from './backup'
 import { createDatabase, TABLES, type AutoBudgetDB } from './db'
 import { newId, nextUpdatedAt, nowISO } from './ids'
 import type { NewRecord, RecordPatch, Repository } from './repository'
-import { defaultCategories } from './seed'
+import { defaultCategories, STARTER_ACCOUNTS, starterAccount } from './seed'
 
 export const DEFAULT_DEBT_PLAN: NewRecord<DebtPlan> = {
   strategy: 'highestInterest',
@@ -105,6 +105,23 @@ export class DexieRepository implements Repository {
     })
   }
 
+  /**
+   * Create the budget on first launch: default settings plus a Cash and a Bank
+   * account. Does nothing once a budget exists.
+   */
+  async startBudget() {
+    await this.db.transaction('rw', [this.db.settings, this.db.accounts], async () => {
+      const settings = await this.getSettings()
+      if (settings?.onboardingComplete) return
+      const all = await this.db.accounts.toArray()
+      const ids = new Set(all.map((a) => a.id))
+      const types = new Set(all.filter((a) => !a.deletedAt).map((a) => a.type))
+      const missing = STARTER_ACCOUNTS.filter((d) => !ids.has(d.id) && !types.has(d.type))
+      if (missing.length) await this.db.accounts.bulkAdd(missing.map(starterAccount))
+      await this.saveSettings({ onboardingComplete: true })
+    })
+  }
+
   // ---- Accounts -----------------------------------------------------------
 
   async listAccounts() {
@@ -186,22 +203,6 @@ export class DexieRepository implements Repository {
   async restoreTransaction(id: string) {
     await touch(this.db.transactions, id, (row) => {
       row.deletedAt = null
-    })
-  }
-
-  // ---- Spending estimates -------------------------------------------------
-
-  listSpendingEstimates() {
-    return listAlive(this.db.spendingEstimates)
-  }
-
-  async setSpendingEstimate(categoryId: string, amount: Centavos) {
-    await this.db.transaction('rw', this.db.spendingEstimates, async () => {
-      const existing = (await this.db.spendingEstimates.where('categoryId').equals(categoryId).toArray()).find(
-        (e) => !e.deletedAt,
-      )
-      if (existing) await patch(this.db.spendingEstimates, existing.id, { amount })
-      else await this.db.spendingEstimates.add(stamp({ categoryId, amount }))
     })
   }
 
@@ -310,17 +311,16 @@ export class DexieRepository implements Repository {
     return this.db.transaction('r', TABLES.map((t) => this.db.table(t)), async () => {
       const settings = await this.getSettings()
       if (!settings) return null
-      const [accounts, categories, fixedBills, transactions, estimates, overrides, recurringTemplates, debtPlan] = await Promise.all([
+      const [accounts, categories, fixedBills, transactions, overrides, recurringTemplates, debtPlan] = await Promise.all([
         this.listAccounts(),
         this.listCategories(),
         this.listFixedBills(),
         this.listTransactions(),
-        this.listSpendingEstimates(),
         this.listBudgetOverrides(),
         this.listRecurringTemplates(),
         this.getDebtPlan(),
       ])
-      return { settings, accounts, categories, fixedBills, transactions, estimates, overrides, recurringTemplates, debtPlan: debtPlan ?? null }
+      return { settings, accounts, categories, fixedBills, transactions, overrides, recurringTemplates, debtPlan: debtPlan ?? null }
     })
   }
 

@@ -10,8 +10,8 @@ import {
   type CategoryStatus,
 } from './budget'
 import { nextOccurrence, type BudgetPeriod } from './dates'
-import { budgetPeriodFor, paydaysInPeriod, periodIncome, previousBudgetPeriod } from './pay'
-import { billPaymentsTotal, cardPaymentsInPeriod, categoryTotals, getAccountBalance, oneTimeTotal, totalSpent, transferFeesTotal } from './ledger'
+import { budgetPeriodFor, paydaysInPeriod, previousBudgetPeriod } from './pay'
+import { billPaymentsTotal, carryOverBefore, incomeTotal, cardPaymentsInPeriod, categoryTotals, getAccountBalance, oneTimeTotal, totalSpent, transferFeesTotal } from './ledger'
 import { sum } from './money'
 import { estimateNextMonthInterest, simulatePayoff, type PayoffResult } from './payoff'
 import {
@@ -25,6 +25,7 @@ import {
 import { suggestOverspendFix, suggestShortfallFixes, type OverspendFix, type ShortfallOption } from './suggestions'
 import {
   alive,
+  isDebtAccount,
   BUFFER_KEY,
   type Account,
   type BudgetOverride,
@@ -35,7 +36,6 @@ import {
   type FixedBill,
   type ISODate,
   type Settings,
-  type SpendingEstimate,
   type Transaction,
 } from './types'
 
@@ -46,7 +46,6 @@ export interface AppSnapshot {
   categories: readonly Category[]
   fixedBills: readonly FixedBill[]
   transactions: readonly Transaction[]
-  estimates: readonly SpendingEstimate[]
   overrides: readonly BudgetOverride[]
   /** Premium: recurring transaction templates. */
   recurringTemplates?: readonly RecurringTemplate[]
@@ -87,10 +86,23 @@ export interface MonthModel {
   previousPeriod: BudgetPeriod
   /** Paydays inside this budget month. */
   paydays: ISODate[]
-  /** Expected take-home income this budget month (pay per payday × paydays). */
+  /** Income logged this budget month (income transactions on any account). */
   income: Centavos
+  /**
+   * Left over from earlier budget months (Settings → Carry-over), or 0 when off.
+   * Negative when earlier months were overspent.
+   */
+  carryOver: Centavos
+  carryOverEnabled: boolean
+  /** income + carryOver: what this month's plan has to work with. */
+  available: Centavos
   hasHistory: boolean
   isEstimate: boolean
+  /**
+   * Whether "Safe to pay on your credit card" is switched on (Settings). When
+   * off, the plan sets nothing aside for cards and the safe amount is ₱0.
+   */
+  safeEnabled: boolean
   categoryRows: CategoryRow[]
   fixedBillsTotal: Centavos
   oneTimeTotal: Centavos
@@ -109,6 +121,7 @@ export interface MonthModel {
   billsPaid: Centavos
   /** Fees paid on transfers this month (part of spentSoFar). */
   transferFees: Centavos
+  /** available − spending − payments to credit cards, loans and debts this budget month. */
   remaining: Centavos
   overspent: OverspendAlert[]
   shortfallOptions: ShortfallOption[]
@@ -139,8 +152,8 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   const period = budgetPeriodFor(settings, today)
   const previousPeriod = previousBudgetPeriod(settings, period)
   const paydays = paydaysInPeriod(settings, period)
-  const income = periodIncome(settings, period)
-  const ctx = { transactions, estimates: data.estimates, previousPeriod }
+  const income = incomeTotal(transactions, period)
+  const ctx = { transactions, previousPeriod }
   const history = hasHistory(ctx)
 
   const activeCategories = categories.filter((c) => !c.archived && c.kind !== 'income')
@@ -169,7 +182,12 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   const oneTime = oneTimeTotal(transactions, period)
 
   // Credit cards
+  const safeEnabled = settings.safePaymentEnabled === true
   const creditCards = accounts.filter((a) => a.type === 'credit_card')
+  const carryOverEnabled = settings.carryOverEnabled === true
+  const debtIds = accounts.filter((a) => isDebtAccount(a.type)).map((a) => a.id)
+  const carryOver = carryOverEnabled ? carryOverBefore(transactions, debtIds, period.start) : 0
+  const available = income + carryOver
   const cardInputs = creditCards.map((account) => {
     const balance = getAccountBalance(account, transactions)
     const paid = cardPaymentsInPeriod(account.id, transactions, period)
@@ -185,14 +203,14 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   })
 
   const safeInput: SafePaymentInput = {
-    salary: income,
+    salary: available,
     fixedBillsTotal,
     essentialTotal: totalByKind(budgets, 'essential'),
     optionalTotal: totalByKind(budgets, 'optional'),
     oneTimeTotal: oneTime,
     buffer,
-    cardBalance: sum(cardInputs.map((c) => c.planBalance)),
-    minimumDue: sum(cardInputs.map((c) => Math.min(c.minimumDue, c.planBalance))),
+    cardBalance: safeEnabled ? sum(cardInputs.map((c) => c.planBalance)) : 0,
+    minimumDue: safeEnabled ? sum(cardInputs.map((c) => Math.min(c.minimumDue, c.planBalance))) : 0,
     isEstimate: budgets.some((b) => b.baseline.isEstimate && !b.isOverride),
   }
   const safe = computeSafePayment(safeInput)
@@ -209,13 +227,13 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   const paidToCardsThisPeriod = sum(cards.map((c) => c.paidThisPeriod))
 
   const plan = buildBudgetPlan({
-    salary: income,
+    salary: available,
     fixedBills,
     categoryBudgets: budgets,
     safe,
     buffer,
     oneTimeTotal: oneTime,
-    hasCard: creditCards.length > 0,
+    hasCard: safeEnabled && creditCards.length > 0,
   })
 
   const spentSoFar = totalSpent(transactions, period)
@@ -242,8 +260,12 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
     previousPeriod,
     paydays,
     income,
+    carryOver,
+    carryOverEnabled,
+    available,
     hasHistory: history,
     isEstimate: safe.isEstimate,
+    safeEnabled,
     categoryRows,
     fixedBillsTotal,
     oneTimeTotal: oneTime,
@@ -259,7 +281,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
     spentSoFar,
     billsPaid: billPaymentsTotal(transactions, period),
     transferFees: transferFeesTotal(transactions, period),
-    remaining: income - spentSoFar - paidToCardsThisPeriod,
+    remaining: available - spentSoFar - sum(debtIds.map((id) => cardPaymentsInPeriod(id, transactions, period))),
     overspent,
     shortfallOptions: suggestShortfallFixes(safe.shortfall, buffer, optionalAvailable),
     ifYouPay: {

@@ -5,7 +5,6 @@ import type {
   Category,
   FixedBill,
   Settings,
-  SpendingEstimate,
   SyncFields,
   Transaction,
 } from '../types'
@@ -28,6 +27,8 @@ export function settings(partial: Partial<Settings> = {}): Settings {
     bufferAmount: pesos(3_000),
     theme: 'system',
     onboardingComplete: true,
+    // Off by default in the app; on here so most model tests exercise it.
+    safePaymentEnabled: true,
     ...partial,
   }
 }
@@ -82,10 +83,6 @@ export function tx(partial: Partial<Transaction> & Pick<Transaction, 'accountId'
   }
 }
 
-export function estimate(categoryId: string, amount: number): SpendingEstimate {
-  return { ...meta('est'), categoryId, amount }
-}
-
 export function override(periodStart: string, key: string, amount: number, updatedAt = '2026-11-01T00:00:00.000Z'): BudgetOverride {
   return { ...meta('ovr'), periodStart, key, amount, updatedAt }
 }
@@ -97,7 +94,6 @@ export function snapshot(partial: Partial<AppSnapshot> = {}): AppSnapshot {
     categories: [],
     fixedBills: [],
     transactions: [],
-    estimates: [],
     overrides: [],
     ...partial,
   }

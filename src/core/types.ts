@@ -30,7 +30,8 @@ export type YearMonth = string
 
 export interface Settings extends SyncFields {
   /**
-   * Take-home pay for one payday: the whole month for monthly pay, one paycheck
+   * Legacy and unused: income now comes from logged income transactions.
+   * Kept so older backups and synced settings still load. It was take-home pay for one payday: the whole month for monthly pay, one paycheck
    * for twice-a-month or weekly pay, one day worked for daily pay.
    * (The name predates the other frequencies and is kept for stored data.)
    */
@@ -54,7 +55,12 @@ export interface Settings extends SyncFields {
   paydayOverrides?: Record<YearMonth, ISODate>
   bufferAmount: Centavos
   theme: ThemePreference
+  /** True once the budget has been created on this device (set automatically on first launch). */
   onboardingComplete: boolean
+  /** Show "Safe to pay on your credit card this month" and set it aside in the plan. Off when missing. */
+  safePaymentEnabled?: boolean
+  /** Add what was left (or overspent) in earlier budget months to this one. Off when missing. */
+  carryOverEnabled?: boolean
 }
 
 /**
@@ -121,6 +127,10 @@ export interface Transaction extends SyncFields {
   recurringTemplateId?: string | null
 }
 
+/**
+ * Per-category amounts from the old setup screens. No longer used by any
+ * calculation; kept so older backups and synced records still load.
+ */
 export interface SpendingEstimate extends SyncFields {
   categoryId: string
   amount: Centavos

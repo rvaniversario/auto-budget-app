@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { pesos } from '../money'
 import { categoryChanges, reportInsights, reportMonths, reportToCSV, yearSummary } from '../reports'
-import { account, card, category, estimate, settings, snapshot, tx } from './fixtures'
+import { account, card, category, settings, snapshot, tx } from './fixtures'
 
 // Payday on the 1st, so budget months are calendar months: easy to read.
 const bank = account({ id: 'bank' })
@@ -19,7 +19,6 @@ function data() {
     settings: settings({ paydayDay: 1, monthlySalary: pesos(40_000) }),
     accounts: [bank, visa],
     categories: [dining, food],
-    estimates: [estimate('dining', pesos(1_000)), estimate('food', pesos(5_000))],
     transactions: [
       // Dining out rises July → October; food stays flat.
       spend('2026-07-10', 'dining', 1_000),

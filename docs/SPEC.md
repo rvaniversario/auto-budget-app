@@ -4,9 +4,9 @@ Build a mobile-first personal budgeting web app called **Auto Budget**. It runs 
 
 ## The problem it solves
 
-The user is paid a monthly salary and carries a large credit card balance (for example ₱50,000). Each payday they can't tell how much of that bill they can afford to pay without running short for the month. Auto Budget analyses their income, fixed bills and last month's spending, then tells them one number: **how much they can safely pay on their credit card this month** (for example ₱15,000). It also generates a budget for every spending category automatically, so they never allocate by hand.
+The user gets paid on a schedule (monthly, twice a month, weekly or daily) and wants to know where their money can go without running short. Auto Budget generates a budget for every spending category automatically from the transactions they log, so they never allocate by hand. Users who carry a credit card balance (for example ₱50,000) can switch on one more number in Settings: **how much they can safely pay on their credit card this month** (for example ₱15,000), worked out from their pay, fixed bills and last month's spending. It is off by default.
 
-Target users: salaried adults in the Philippines. Currency is Philippine peso (₱). Language is English.
+Target users: anyone with regular pay who wants a simple, automatic budget, wherever they live. Amounts are shown in pesos (₱) for now. Language is English.
 
 ## Tech stack
 
@@ -15,7 +15,7 @@ Target users: salaried adults in the Philippines. Currency is Philippine peso (�
 - Tailwind CSS, with the design tokens below set in the Tailwind config
 - shadcn/ui for UI components (see "UI components" below)
 - Dexie (IndexedDB) for local storage, with `useLiveQuery` from `dexie-react-hooks` so screens update automatically when data changes
-- React Hook Form with Zod for form validation (onboarding, add/edit transaction, settings)
+- React Hook Form with Zod for form validation (add/edit transaction, settings)
 - vite-plugin-pwa for the manifest, service worker and offline caching
 - Vitest for unit tests
 - Deploy target: Vercel (static build) now, a VPS with Docker and Caddy later (see "Portability")
@@ -32,12 +32,12 @@ No backend in version 1. All data stays on the device. Cloud sync with accounts 
 
 ## Data model
 
-- **Settings**: `monthlySalary`, `payFrequency` (`"monthly"` now; keep the field so `"semimonthly"` can be added later), `paydayDay` (1–31), `bufferAmount` (default ₱3,000), `theme` (`"light" | "dark" | "system"`), `onboardingComplete`.
+- **Settings**: `monthlySalary` (legacy, unused: income comes from logged income transactions), `payFrequency` (`"monthly"` now; keep the field so `"semimonthly"` can be added later), `paydayDay` (1–31), `bufferAmount` (default ₱3,000), `theme` (`"light" | "dark" | "system"`), `onboardingComplete` (set automatically when the budget is first created), `safePaymentEnabled` (optional, off when missing), `carryOverEnabled` (optional, off when missing: adds income − spending − payments to cards, loans and debts from all earlier budget months to this month's income; negative when overspent).
 - **Account**: `name`, `type` (`"cash" | "bank" | "credit_card"`), `openingBalance`. Credit card accounts also have `statementDay`, `dueDay`, `minimumDue`, `monthlyInterestRate` (percent, for example 3).
 - **Category**: `name`, `kind` (`"essential" | "optional"`), `sortOrder`, `archived`. Seed with: Groceries, Food, Transport, Load and data (essential); Dining out, Shopping (optional).
-- **FixedBill**: `name`, `amount`, `dueDay`. Seed none; the user adds them in onboarding (examples: Rent, Electricity, Internet, Water).
+- **FixedBill**: `name`, `amount`, `dueDay`. Seed none; the user adds them in Settings (examples: Rent, Electricity, Internet, Water).
 - **Transaction**: `type` (`"expense" | "income" | "transfer"`), `amount`, `date`, `categoryId` (expenses only), `accountId`, `toAccountId` (transfers only), `note`, optional `fixedBillId`, optional `isOneTime` flag for unusual expenses.
-- **SpendingEstimate**: per-category monthly amount the user enters during onboarding, used until real history exists.
+- **SpendingEstimate**: legacy per-category amounts from the removed setup screens. Kept so older backups and synced data still load; no calculation uses it.
 
 ### Credit card rules (important)
 
@@ -55,11 +55,11 @@ No backend in version 1. All data stays on the device. Cloud sync with accounts 
 
 ### Spending baseline
 - `getCategoryBaseline(categoryId)`: total expenses in that category during the **previous** budget month, excluding transactions flagged `isOneTime`.
-- If there is no previous month with data, fall back to the onboarding `SpendingEstimate`. Expose a flag `isEstimate: true` so the UI can label it.
+- Only logged transactions count. If the previous month has no expenses, every baseline is ₱0 and the flag `isEstimate: true` lets the UI say there is no history yet.
 
 ### Safe credit card payment
 ```
-safe = salary
+safe = income logged this budget month
      − sum of fixed bills
      − sum of essential baselines
      − sum of optional baselines
@@ -70,7 +70,9 @@ result = clamp(safe, 0, cardBalance)
 Return an object with every input line (so the UI can show the breakdown), the final amount, and:
 - `belowMinimum: boolean` when the result is less than the card's `minimumDue`
 - `shortfall` = minimumDue − result when below minimum
-- `isEstimate` when any baseline came from onboarding estimates
+- `isEstimate` when any category budget has no spending history behind it yet
+
+Only computed when `safePaymentEnabled` is on. When it is off, the card balance and minimum count as ₱0, the plan has no "Credit card payment" line, and the breakdown screen is not reachable.
 
 If the user has more than one credit card, compute per card in version 1 by splitting the safe amount across cards in order of highest interest rate first, never below each card's minimum when possible. Keep this in a separate function so it can be refined later.
 
@@ -110,18 +112,14 @@ Return up to three options to close the shortfall: use part of the buffer, cut o
 
 Build mobile-first, then adapt the layout for tablet, laptop and desktop as described in "Responsive layout" below. Navigation destinations everywhere: Home, Transactions, Budget, Accounts, Settings. The screen descriptions below give the content of each screen; the responsive section says how it is arranged at each size.
 
-1. **Onboarding (4 steps, shown until complete)**
-   1. Salary and payday: take-home salary, pay frequency (monthly selected; twice a month shown but disabled with "coming soon"), payday day. Preview "Your first budget month: Oct 30 to Nov 29".
-   2. Fixed bills: list with amount and due day, add/edit/delete, total.
-   3. Credit card: nickname, current bill total, minimum due, due day, monthly interest rate (with help text). Link "I don't have a credit card" skips to step 4.
-   4. Spending estimates: one amount per category, total shown, button "Build my budget".
-2. **Home**: period and day count; hero card "Safe to pay on your credit card this month" with the amount, bill total, due date and minimum due, and a "Why this amount?" link; month summary (salary, spent so far, remaining); category list with progress bars and status colours; "+" button.
+1. **No onboarding.** On first launch the app creates default settings plus a Cash and a Bank account and opens Home. Pay schedule, bills and cards are set in Settings and Accounts.
+2. **Home**: period and day count; when Safe to pay is on and a card exists, hero card "Safe to pay on your credit card this month" with the amount, bill total, due date and minimum due, and a "Why this amount?" link (otherwise the hero shows the amount not yet given a job); month summary (salary, spent so far, remaining); category list with progress bars and status colours; "+" button.
 3. **Add transaction**: Expense / Income / Transfer switch; large amount display with an on-screen number pad (also accept keyboard input on desktop); category chips (expense only); account selector; "to account" for transfers; optional note; date defaulting to today; "One-time expense" toggle; Save. Must be possible in 2–3 taps for a typical expense.
 4. **Credit card payment breakdown**: the recommendation; the calculation as a stack of labelled lines ending in the safe amount; "If you pay this" card with unpaid balance, interest next month and payoff timeline; what-if slider for cutting optional spending (₱0–₱3,000 in ₱500 steps) with live results; disclaimer text.
 5. **Budget plan**: sections "Set aside first" (fixed bills, credit card payment, buffer), "Essential" and "Optional", each row showing last month's amount and this month's editable budget; allocation summary showing unassigned amount.
 6. **Transactions**: search, category filter chips, list grouped by day, income in green with "+", tap to edit, swipe or button to delete.
 7. **Accounts**: cash and bank balances; credit card detail (balance, statement day, due date, minimum due, interest rate) with a link to the breakdown; add account.
-8. **Settings**: payday, pay frequency, categories (add, rename, set essential or optional, archive), fixed bills, buffer amount, appearance (light, dark, system), export data, import data, "Cloud sync" row with a "Paid" badge that shows "Coming soon", delete all data (with confirmation).
+8. **Settings**: payday, pay frequency (no pay amount: income is taken from logged income transactions), "Safe to pay on your credit card" switch (off by default), "Carry-over" switch (off by default), categories (add, rename, set essential or optional, archive), fixed bills, buffer amount, appearance (light, dark, system), export data, import data, "Cloud sync" row with a "Paid" badge that shows "Coming soon", delete all data (with confirmation).
 
 ## Responsive layout
 
@@ -144,7 +142,6 @@ Use Tailwind's breakpoints. Every screen must work at every width from 360px to 
 - **Transactions (`lg` and up):** filters in a toolbar above the list (search, category, account, date range). Rows show date, note, category, account and amount in aligned columns. Selecting a row opens its details in a side panel instead of a new screen.
 - **Accounts (`md` and up):** account cards in a grid, two columns at `md`, three at `xl`; the credit card card spans the full width.
 - **Settings (`lg` and up):** section list on the left, the selected section's settings on the right.
-- **Onboarding:** a centred card up to 560px wide on tablet and larger, with the step indicator on top. Never stretch form fields across the full screen.
 - **Special states:** alerts span the content width at the top of the screen at every size.
 
 ### Input and interaction on larger screens
@@ -161,7 +158,7 @@ Check every screen at 360, 390, 768 (portrait tablet), 1024 (landscape tablet an
 
 ## Special states
 
-- **New user, no transactions**: Home shows the recommendation with an "Estimate" badge and the line "Based on the amounts you gave during setup", ₱0 spent, and an empty card with "Add your first transaction".
+- **New user, no transactions**: Home shows the amount not yet given a job (or, with Safe to pay on, the recommendation with an "Estimate" badge and a line saying no spending was logged last month yet), ₱0 spent, and an empty card with "Add your first transaction".
 - **Overspent category**: a red alert at the top of Home naming the category and amount over, with the suggested fix as a button ("Move ₱350 from Shopping") and "Choose another category". The category row shows an "Over by ₱350" tag and a full red bar.
 - **Safe payment below minimum due**: the breakdown screen switches the hero to a red warning showing the amount the budget can cover, the minimum due and the shortfall, followed by the suggestions with "Apply" buttons. Include the text "If you cannot reach the minimum, contact your bank before the due date."
 
@@ -249,7 +246,7 @@ Work in this order and keep the app runnable after each step:
 1. Scaffold the project, set up Tailwind and shadcn/ui with the theme tokens, routing, and the responsive app shell (bottom tabs on phones, navigation rail on tablets, sidebar on laptops and desktops).
 2. Write `src/core/` with all calculations and full unit tests.
 3. Data layer: Dexie schema, repository interface and implementation, seed categories.
-4. Onboarding flow.
+4. First-launch defaults (settings, Cash and Bank accounts).
 5. Home and Add transaction.
 6. Credit card breakdown, including what-if, and Budget plan.
 7. Transactions, Accounts and Settings.

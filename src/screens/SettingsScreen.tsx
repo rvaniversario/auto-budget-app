@@ -27,7 +27,6 @@ import {
   workWeekdays,
   MAX_PAYDAY_SHIFT_DAYS,
   PAY_FREQUENCY_LABEL,
-  PAY_UNIT,
   type Category,
   type CategoryKind,
   type FixedBill,
@@ -57,6 +56,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { forgetLastBackupFile, lastBackupFile } from '@/lib/backupFile'
 import { backupStatus, cloudEnabled, useSync } from '@/sync'
 import { moneyField, toCentavos } from '@/lib/forms'
@@ -107,13 +108,7 @@ export function SettingsScreen() {
   const budgetSection = (
     <section aria-label="Budget settings" className="flex flex-col rounded-card bg-card px-4 py-3 md:px-5">
       <SectionLabel className="my-1">Budget</SectionLabel>
-      <RowButton
-        first
-        label={settings.payFrequency === 'monthly' ? 'Take-home salary' : 'Take-home pay'}
-        value={`${formatMoney(settings.monthlySalary)}${settings.payFrequency === 'monthly' ? '' : ` ${PAY_UNIT[settings.payFrequency]}`}`}
-        onClick={() => setOpen('pay')}
-      />
-      <RowButton label="Pay frequency" value={PAY_FREQUENCY_LABEL[settings.payFrequency]} onClick={() => setOpen('pay')} />
+      <RowButton first label="Pay frequency" value={PAY_FREQUENCY_LABEL[settings.payFrequency]} onClick={() => setOpen('pay')} />
       {paydayRows(settings).map((r) => (
         <RowButton key={r.label} label={r.label} value={r.value} onClick={() => setOpen('pay')} />
       ))}
@@ -128,6 +123,32 @@ export function SettingsScreen() {
       <RowButton label="Categories" value={String(categories.filter((c) => !c.archived).length)} onClick={() => go('categories')} />
       <RowButton label="Fixed bills" value={`${bills.length} bill${bills.length === 1 ? '' : 's'}`} onClick={() => go('bills')} />
       <RowButton label="Buffer amount" value={formatMoney(settings.bufferAmount)} onClick={() => setOpen('buffer')} />
+      <div className="flex min-h-[52px] items-center justify-between gap-3 border-t border-border py-2">
+        <Label htmlFor="safe-to-pay" className="flex flex-col items-start gap-0.5">
+          <span className="text-[15px] font-semibold">Safe to pay on your credit card</span>
+          <span className="text-[13px] font-normal text-muted-foreground">
+            Each month, set aside what you can safely pay on your cards and show it on Home
+          </span>
+        </Label>
+        <Switch
+          id="safe-to-pay"
+          checked={settings.safePaymentEnabled === true}
+          onCheckedChange={(v) => void repo.saveSettings({ safePaymentEnabled: v })}
+        />
+      </div>
+      <div className="flex min-h-[52px] items-center justify-between gap-3 border-t border-border py-2">
+        <Label htmlFor="carry-over" className="flex flex-col items-start gap-0.5">
+          <span className="text-[15px] font-semibold">Carry-over</span>
+          <span className="text-[13px] font-normal text-muted-foreground">
+            Add what was left from earlier months to this month, or take away what was overspent
+          </span>
+        </Label>
+        <Switch
+          id="carry-over"
+          checked={settings.carryOverEnabled === true}
+          onCheckedChange={(v) => void repo.saveSettings({ carryOverEnabled: v })}
+        />
+      </div>
       {premiumEnabled && (
         <RowButton
           label={
@@ -234,8 +255,8 @@ export function SettingsScreen() {
             <AlertDialogTitle>Delete all your data?</AlertDialogTitle>
             <AlertDialogDescription>
               {sync.linked
-                ? 'This removes your salary, bills, accounts and every transaction from this device, your synced data and your other devices. It can\x27t be undone. Save a backup file first if you might want it later.'
-                : 'This removes your salary, bills, accounts and every transaction from this device. It can\x27t be undone. Save a backup file first if you might want it later.'}
+                ? 'This removes your settings, bills, accounts and every transaction from this device, your synced data and your other devices. It can\x27t be undone. Save a backup file first if you might want it later.'
+                : 'This removes your settings, bills, accounts and every transaction from this device. It can\x27t be undone. Save a backup file first if you might want it later.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -370,8 +391,8 @@ function PayDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
           })}
         >
           <DialogHeader>
-            <DialogTitle>Pay and payday</DialogTitle>
-            <DialogDescription>Your budget month runs from one payday to the day before the next.</DialogDescription>
+            <DialogTitle>Payday</DialogTitle>
+            <DialogDescription>Your budget month runs from one payday to the day before the next. How much you get is taken from the income you log.</DialogDescription>
           </DialogHeader>
           <PayScheduleFields form={form} idPrefix="set" labelClass="text-sm font-semibold" existing={snapshot.settings} />
           <DialogFooter>

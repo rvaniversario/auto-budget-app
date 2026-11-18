@@ -14,8 +14,7 @@ import {
   yearMonthOf,
   type BudgetPeriod,
 } from './dates'
-import { formatMoney } from './money'
-import type { Centavos, ISODate, PayFrequency, Settings, YearMonth } from './types'
+import type { ISODate, PayFrequency, Settings, YearMonth } from './types'
 
 /**
  * Pay schedules. Whatever the frequency, the budget month runs from the day set
@@ -25,7 +24,7 @@ import type { Centavos, ISODate, PayFrequency, Settings, YearMonth } from './typ
 
 type PaySettings = Pick<
   Settings,
-  'monthlySalary' | 'payFrequency' | 'paydayDay' | 'secondPaydayDay' | 'payWeekday' | 'workWeekdays' | 'paydayOverrides'
+  'payFrequency' | 'paydayDay' | 'secondPaydayDay' | 'payWeekday' | 'workWeekdays' | 'paydayOverrides'
 >
 
 export const DEFAULT_PAY_WEEKDAY = 5 // Friday
@@ -79,11 +78,6 @@ export function paydaysInPeriod(settings: PaySettings, period: Pick<BudgetPeriod
       return eachDay(period).filter((d) => days.has(weekdayOf(d)))
     }
   }
-}
-
-/** Expected take-home income for a budget month: pay per payday × paydays in it. */
-export function periodIncome(settings: PaySettings, period: Pick<BudgetPeriod, 'start' | 'end'>): Centavos {
-  return settings.monthlySalary * paydaysInPeriod(settings, period).length
 }
 
 export interface MonthPayday {
@@ -155,25 +149,8 @@ export const PAY_FREQUENCY_LABEL: Record<PayFrequency, string> = {
   daily: 'Daily',
 }
 
-/** What one payday's amount covers: "a month", "a payday", "a week", "a day". */
-export const PAY_UNIT: Record<PayFrequency, string> = {
-  monthly: 'a month',
-  semimonthly: 'a payday',
-  weekly: 'a week',
-  daily: 'a day',
-}
-
-/** "Salary" for monthly pay, "Income" otherwise; `long` for the plan breakdown. */
-export function incomeLabel(frequency: PayFrequency): { short: string; long: string } {
-  return frequency === 'monthly' ? { short: 'Salary', long: 'Monthly salary' } : { short: 'Income', long: 'Income this month' }
-}
-
-/** "2 paydays × ₱15,000", "22 paid days × ₱800"; nothing for monthly pay. */
-export function incomeBreakdown(settings: Pick<Settings, 'payFrequency' | 'monthlySalary'>, paydayCount: number): string | undefined {
-  if (settings.payFrequency === 'monthly') return undefined
-  const unit = settings.payFrequency === 'daily' ? (paydayCount === 1 ? 'paid day' : 'paid days') : paydayCount === 1 ? 'payday' : 'paydays'
-  return `${paydayCount} ${unit} × ${formatMoney(settings.monthlySalary)}`
-}
+/** Labels for the month's income (the income transactions logged this budget month). */
+export const INCOME_LABEL = { short: 'Income', long: 'Income this month' } as const
 
 /** Days a payday moved: negative is earlier. */
 export function paydayShift(day: Pick<MonthPayday, 'regular' | 'actual'>): number {

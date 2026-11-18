@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Route, Routes } from 'react-router'
 import type { ThemePreference } from '@/core'
@@ -20,7 +20,6 @@ import { BudgetScreen } from '@/screens/BudgetScreen'
 import { HomeScreen } from '@/screens/HomeScreen'
 import { LegalScreen } from '@/screens/LegalScreen'
 import { DebtPlannerScreen } from '@/screens/DebtPlannerScreen'
-import { Onboarding } from '@/screens/onboarding/Onboarding'
 import { PremiumScreen } from '@/screens/premium/PremiumScreens'
 import { RecurringScreen } from '@/screens/RecurringScreen'
 import { ReportsScreen } from '@/screens/ReportsScreen'
@@ -36,7 +35,7 @@ function Chrome({ theme }: { theme: ThemePreference }) {
   return <Toaster position="top-center" theme={resolved} />
 }
 
-/** Screens that also work before setup is finished: signing in to restore a budget, and policies. */
+/** Account and policy screens. */
 const SHARED_SCREENS: { path: string; element: ReactNode }[] = [
   ...(cloudEnabled
     ? [
@@ -64,32 +63,19 @@ const PREMIUM_SCREENS: { path: string; element: ReactNode }[] = premiumEnabled
     ]
   : []
 
-/** Plain page frame for those screens while onboarding is unfinished. */
-function SetupPage({ children }: { children: ReactNode }) {
-  return <div className="min-h-dvh bg-background px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))] md:px-6 md:pt-8">{children}</div>
-}
-
 export default function App() {
   // undefined = loading, null = no settings yet (new user)
   const snapshot = useLiveQuery(() => repo.getSnapshot(), [])
+  const needsStart = snapshot === null || (snapshot !== undefined && !snapshot.settings.onboardingComplete)
 
-  if (snapshot === undefined) {
+  // No setup screens: a new budget starts straight away with default settings,
+  // and everything else is learned from the transactions the user logs.
+  useEffect(() => {
+    if (needsStart) void repo.startBudget()
+  }, [needsStart])
+
+  if (!snapshot || needsStart) {
     return <div className="min-h-dvh bg-background" aria-busy="true" />
-  }
-
-  if (!snapshot || !snapshot.settings.onboardingComplete) {
-    return (
-      <>
-        <Chrome theme={snapshot?.settings.theme ?? 'system'} />
-        <Routes>
-          {SHARED_SCREENS.map(({ path, element }) => (
-            <Route key={path} path={path} element={<SetupPage>{element}</SetupPage>} />
-          ))}
-          <Route path="*" element={<Onboarding />} />
-        </Routes>
-        <LinkChoiceDialog />
-      </>
-    )
   }
 
   return (

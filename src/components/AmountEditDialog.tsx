@@ -48,7 +48,7 @@ export function AmountEditDialog({
 
   const next = parseMoney(text ?? '')
   const check = next === null ? null : checkBudgetEdit(model.safeInput, kind, current, next)
-  const hasCard = model.cards.length > 0
+  const hasCard = model.safeEnabled && model.cards.length > 0
 
   const submit = async (v: z.infer<typeof schema>) => {
     const amount = toCentavos(v.amount)

@@ -118,7 +118,7 @@ export function BillDialog({
   )
 }
 
-/** List of fixed bills with a total, as in onboarding step 2 and Settings. */
+/** List of fixed bills with a total, as in Settings. */
 export function BillsList({ bills, onEdit }: { bills: FixedBill[]; onEdit: (bill: FixedBill) => void }) {
   const total = bills.reduce((acc, b) => acc + b.amount, 0)
   if (bills.length === 0) {

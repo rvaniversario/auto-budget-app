@@ -2,10 +2,7 @@ import { Controller, useWatch, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
 import {
   budgetPeriodFor,
-  centavosToInput,
-  formatMoney,
   formatPeriod,
-  parseMoney,
   paydaysInPeriod,
   payWeekday,
   secondPayday,
@@ -17,9 +14,9 @@ import {
   type PayFrequency,
   type Settings,
 } from '@/core'
-import { ChoiceChips, MoneyInput, TextInput } from '@/components/inputs'
-import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
-import { dayField, moneyField, toCentavos } from '@/lib/forms'
+import { ChoiceChips, TextInput } from '@/components/inputs'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { dayField } from '@/lib/forms'
 import { cn } from '@/lib/utils'
 
 const FREQUENCIES: PayFrequency[] = ['monthly', 'semimonthly', 'weekly', 'daily']
@@ -28,7 +25,6 @@ const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0] // Monday first
 export const payFormSchema = z
   .object({
     frequency: z.enum(['monthly', 'semimonthly', 'weekly', 'daily']),
-    amount: moneyField({ message: 'Enter your take-home pay' }),
     payday: dayField,
     secondPayday: z.string(),
     payWeekday: z.string(),
@@ -53,7 +49,6 @@ export function payFormDefaults(settings: Settings | undefined): PayForm {
   const base = settings ?? { paydayDay: 30 }
   return {
     frequency: settings?.payFrequency ?? 'monthly',
-    amount: settings?.monthlySalary ? centavosToInput(settings.monthlySalary) : '',
     payday: String(base.paydayDay),
     secondPayday: String(secondPayday(base)),
     payWeekday: String(payWeekday(settings ?? {})),
@@ -64,20 +59,12 @@ export function payFormDefaults(settings: Settings | undefined): PayForm {
 export function payFormToSettings(v: PayForm): Partial<Settings> {
   return {
     payFrequency: v.frequency,
-    monthlySalary: toCentavos(v.amount),
     paydayDay: Number(v.payday),
     // Only store what the chosen frequency uses; the rest keep their defaults.
     ...(v.frequency === 'semimonthly' && { secondPaydayDay: Number(v.secondPayday) }),
     ...(v.frequency === 'weekly' && { payWeekday: Number(v.payWeekday) }),
     ...(v.frequency === 'daily' && { workWeekdays: [...v.workWeekdays].sort((a, b) => a - b) }),
   }
-}
-
-const AMOUNT_LABEL: Record<PayFrequency, string> = {
-  monthly: 'Take-home salary (₱)',
-  semimonthly: 'Take-home pay each payday (₱)',
-  weekly: 'Take-home pay each week (₱)',
-  daily: 'Take-home pay for each day worked (₱)',
 }
 
 const PAYDAY_LABEL: Record<PayFrequency, string> = {
@@ -87,18 +74,16 @@ const PAYDAY_LABEL: Record<PayFrequency, string> = {
   daily: 'Budget month starts on (day of the month)',
 }
 
-/** Frequency, amount and payday fields, with a preview of this budget month. */
+/** Frequency and payday fields (how much you get comes from logged income), with a preview of this budget month. */
 export function PayScheduleFields({
   form,
   idPrefix,
   labelClass,
-  autoFocus,
   existing,
 }: {
   form: UseFormReturn<PayForm>
   idPrefix: string
   labelClass: string
-  autoFocus?: boolean
   /** Saved settings, so the preview honours paydays already moved. */
   existing?: Settings
 }) {
@@ -127,30 +112,6 @@ export function PayScheduleFields({
           )}
         />
       </div>
-
-      <Controller
-        name="amount"
-        control={form.control}
-        render={({ field, fieldState }) => (
-          <Field data-invalid={fieldState.invalid} className="gap-1.5">
-            <FieldLabel htmlFor={`${idPrefix}-amount`} className={labelClass}>
-              {AMOUNT_LABEL[frequency]}
-            </FieldLabel>
-            <MoneyInput
-              id={`${idPrefix}-amount`}
-              large
-              autoFocus={autoFocus}
-              aria-invalid={fieldState.invalid}
-              aria-describedby={`${idPrefix}-amount-help`}
-              {...field}
-            />
-            <FieldDescription id={`${idPrefix}-amount-help`} className="text-[13px]">
-              The amount that reaches you after tax and deductions.
-            </FieldDescription>
-            <FieldError errors={[fieldState.error]} />
-          </Field>
-        )}
-      />
 
       {frequency === 'weekly' && (
         <Controller
@@ -250,7 +211,6 @@ export function PayScheduleFields({
           {frequency !== 'monthly' && (
             <span className="text-[13px]">
               {preview.paydays} {frequency === 'daily' ? 'paid days' : 'paydays'}
-              {preview.income > 0 && <> · about {formatMoney(preview.income)} in income</>}
             </span>
           )}
         </div>
@@ -264,7 +224,6 @@ function previewFor(v: PayForm, existing: Settings | undefined) {
   if (!Number.isInteger(day) || day < 1 || day > 31) return null
   const second = Number(v.secondPayday)
   const settings = {
-    monthlySalary: parseMoney(v.amount ?? '') ?? 0,
     payFrequency: v.frequency ?? 'monthly',
     paydayDay: day,
     secondPaydayDay: Number.isInteger(second) && second >= 1 && second <= 31 ? second : undefined,
@@ -275,5 +234,5 @@ function previewFor(v: PayForm, existing: Settings | undefined) {
   }
   const period = budgetPeriodFor(settings, todayISO())
   const paydays = paydaysInPeriod(settings, period).length
-  return { period, paydays, income: settings.monthlySalary * paydays }
+  return { period, paydays }
 }

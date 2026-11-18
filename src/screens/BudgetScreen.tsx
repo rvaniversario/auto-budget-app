@@ -8,7 +8,7 @@ import {
   formatShortDate,
   periodMonthName,
   type PlanLine,
-  incomeLabel,
+  INCOME_LABEL,
 } from '@/core'
 import { repo } from '@/data'
 import { useAppData } from '@/hooks/useAppData'
@@ -81,7 +81,7 @@ export function BudgetScreen() {
     const last = line.lastMonth ?? 0
     const trimmed = line.isOverride && line.amount < last
     const sub = line.lastMonthIsEstimate
-      ? `Your estimate ${formatMoney(last)}`
+      ? 'No spending last month'
       : `Last month ${formatMoney(last)}${trimmed ? ` · trimmed ${formatMoney(last - line.amount)}` : ''}`
     return (
       <Row
@@ -101,13 +101,13 @@ export function BudgetScreen() {
 
   const sum = (lines: PlanLine[]) => lines.reduce((a, l) => a + l.amount, 0)
   const u = plan.unassigned
-  const lastHead = model.hasHistory ? 'Last month' : 'Your estimate'
+  const lastHead = 'Last month'
 
   return (
     <>
       <TabHeader
         title={`${month} plan`}
-        description={`${model.hasHistory ? `Built from your ${prevMonth} spending.` : 'Built from your setup estimates.'} Tap an amount to change it and the rest rebalances.`}
+        description={`${model.hasHistory ? `Built from your ${prevMonth} spending.` : 'No spending logged last month yet, so categories start at ₱0.'} Tap an amount to change it and the rest rebalances.`}
       />
 
       <div className="grid gap-4 md:gap-5 lg:grid-cols-2 lg:items-start lg:gap-6">
@@ -118,7 +118,8 @@ export function BudgetScreen() {
       >
         <div className="flex flex-col gap-0.5">
           <span className="text-[13px]">
-            {incomeLabel(snapshot.settings.payFrequency).short} {formatMoney(plan.salary)}
+            {INCOME_LABEL.short} {formatMoney(model.income)}
+            {model.carryOver !== 0 && ` ${model.carryOver > 0 ? '+' : '−'} ${formatMoney(Math.abs(model.carryOver))} carried over`}
           </span>
           <span className={cn('money text-lg font-bold', u < 0 ? 'text-danger-text' : 'text-success-text')}>
             {u === 0 ? 'Fully allocated' : u > 0 ? `${formatMoney(u)} left to assign` : `Over by ${formatMoney(-u)}`}

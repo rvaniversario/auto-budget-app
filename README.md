@@ -1,6 +1,8 @@
 # Auto Budget
 
-A responsive budgeting web app (phone, tablet, laptop and desktop) for salaried users in the Philippines. Each payday it tells you one number, **how much you can safely pay on your credit card this month**, and builds a budget for every spending category automatically.
+A responsive budgeting web app (phone, tablet, laptop and desktop) for anyone who wants to plan around their pay, however often it arrives. It builds a budget for every spending category automatically from the transactions you log, and can optionally tell you one number each payday: **how much you can safely pay on your credit card this month** (switch it on in Settings; it is off by default).
+
+There are no setup screens: the app opens straight to Home with a Cash and a Bank account, and you add your payday, bills and cards in Settings and Accounts whenever you like. How much you earn is never typed in: it comes from the income you log.
 
 It installs to a phone's Home Screen or as a desktop app (Chrome, Edge) as a PWA, and works fully offline. Data lives on the device (IndexedDB); signing in to back it up online and sync between devices is optional.
 
@@ -52,9 +54,11 @@ Premium calculations are pure functions in `src/core` with unit tests: `debtPlan
 `src/core/model.ts` turns the stored records into everything the screens show:
 
 - **Budget month**: payday to the day before the next payday (`getBudgetPeriod`).
-- **Baselines**: last budget month's spending per category, excluding one-time expenses, or the onboarding estimates when there is no history yet.
+- **Baselines**: last budget month's logged spending per category, excluding one-time expenses. With no history yet every category starts at ₱0; nothing is estimated.
 - **Category budgets**: baseline rounded up to the nearest ₱100, unless you've edited it this month.
-- **Safe card payment**: salary − fixed bills − essential − optional − one-time expenses − buffer, clamped between ₱0 and the card balance.
+- **Income**: the income transactions logged this budget month. There is no salary setting; nothing is projected.
+- **Carry-over** (Settings, off by default): adds what is left from all earlier budget months (income − spending − payments to credit cards, loans and debts) to this month's income. An overspend carries as a negative amount.
+- **Safe card payment** (only when switched on in Settings): income − fixed bills − essential − optional − one-time expenses − buffer, clamped between ₱0 and the card balance. When it is off, nothing is set aside for cards and that money shows as unassigned.
 - Editing a budget moves money to or from the card payment and is blocked if the payment would fall below the minimum due.
 
 Money is always stored as integer centavos.
