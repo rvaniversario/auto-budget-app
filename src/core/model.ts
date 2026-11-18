@@ -1,4 +1,5 @@
 import { getCategoryBaselines, hasHistory } from './baseline'
+import { billsDueThisPeriod } from './bills'
 import {
   buildBudgetPlan,
   buildCategoryBudgets,
@@ -123,6 +124,18 @@ export interface MonthModel {
   transferFees: Centavos
   /** available − spending − payments to credit cards, loans and debts this budget month. */
   remaining: Centavos
+  /** Fixed bills due this budget month that no logged expense has marked paid yet. */
+  unpaidBills: Centavos
+  /**
+   * remaining − unpaidBills: what is left once every bill still to pay is set
+   * aside. Payments to cards are already in `remaining`; card bills listed as
+   * fixed bills are subtracted as well (the user pays cards in lump sums).
+   */
+  leftAfterBills: Centavos
+  /** Days left in the budget month, today included. */
+  daysLeft: number
+  /** leftAfterBills spread over daysLeft (rounded down), or 0 when nothing is left. */
+  perDayAfterBills: Centavos
   overspent: OverspendAlert[]
   shortfallOptions: ShortfallOption[]
   ifYouPay: {
@@ -237,6 +250,13 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   })
 
   const spentSoFar = totalSpent(transactions, period)
+  const remaining = available - spentSoFar - sum(debtIds.map((id) => cardPaymentsInPeriod(id, transactions, period)))
+  const daysLeft = Math.max(1, period.totalDays - period.dayIndex + 1)
+  const unpaidBills = sum(
+    billsDueThisPeriod(fixedBills, transactions, period, today)
+      .filter((b) => b.status !== 'paid')
+      .map((b) => b.amount),
+  )
 
   const usage = categoryRows.map((r) => ({
     categoryId: r.categoryId,
@@ -281,7 +301,11 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
     spentSoFar,
     billsPaid: billPaymentsTotal(transactions, period),
     transferFees: transferFeesTotal(transactions, period),
-    remaining: available - spentSoFar - sum(debtIds.map((id) => cardPaymentsInPeriod(id, transactions, period))),
+    remaining,
+    unpaidBills,
+    leftAfterBills: remaining - unpaidBills,
+    daysLeft,
+    perDayAfterBills: remaining - unpaidBills > 0 ? Math.floor((remaining - unpaidBills) / daysLeft) : 0,
     overspent,
     shortfallOptions: suggestShortfallFixes(safe.shortfall, buffer, optionalAvailable),
     ifYouPay: {

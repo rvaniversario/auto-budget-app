@@ -2,40 +2,25 @@ import { addDays, isInPeriod, type BudgetPeriod } from './dates'
 import { sum } from './money'
 import { alive, isDebtAccount, type Account, type Centavos, type ISODate, type Transaction } from './types'
 
-/** How a transaction changes an account, from the holder's point of view: + means more money. */
-function movement(account: Account, t: Transaction): Centavos {
-  if (t.type === 'transfer') {
-    let held = 0
-    if (t.accountId === account.id) held -= t.amount + transferFee(t)
-    if (t.toAccountId === account.id) held += t.amount
-    return held
-  }
-  if (t.accountId !== account.id) return 0
-  return t.type === 'income' ? t.amount : -t.amount
-}
-
 /**
  * Balance of an account from its opening balance and every live transaction.
  *
  * Cash/bank: money held.  opening + income − expenses − transfers out + transfers in.
- * Credit card, loan or debt: amount owed. opening + card expenses − transfers into it
+ * Credit card or loan: amount owed. opening + card expenses − transfers into it
  *              (+ transfers out of the card, i.e. cash advances; − income/refunds).
  * A transfer's fee also leaves (or is charged to) the source account.
- *
- * What is owed never goes below ₱0. Taken in date order, a payment bigger than
- * what the app knows is owed is treated as paying off a balance from before the
- * account was tracked: the money still leaves the paying account, and the card
- * stops at ₱0 instead of showing a credit that later purchases would eat into.
  */
 export function getAccountBalance(account: Account, transactions: readonly Transaction[]): Centavos {
-  const relevant = alive(transactions).filter((t) => t.accountId === account.id || t.toAccountId === account.id)
-  if (!isDebtAccount(account.type)) {
-    return account.openingBalance + sum(relevant.map((t) => movement(account, t)))
+  let held = 0 // movement from the account holder's point of view: + means more money
+  for (const t of alive(transactions)) {
+    if (t.type === 'transfer') {
+      if (t.accountId === account.id) held -= t.amount + transferFee(t)
+      if (t.toAccountId === account.id) held += t.amount
+    } else if (t.accountId === account.id) {
+      held += t.type === 'income' ? t.amount : -t.amount
+    }
   }
-  const ordered = [...relevant].sort((a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt))
-  let owed = account.openingBalance
-  for (const t of ordered) owed = Math.max(0, owed - movement(account, t))
-  return owed
+  return isDebtAccount(account.type) ? account.openingBalance - held : account.openingBalance + held
 }
 
 /** Income logged in the period, on any account. This is the month's income: nothing is projected. */

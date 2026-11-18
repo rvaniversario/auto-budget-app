@@ -237,15 +237,26 @@ function HeroStat({ label, value }: { label: string; value: string }) {
 function MonthSummary() {
   const { model } = useAppData()
   return (
-    <section aria-label="Month summary" className="grid grid-cols-3 gap-2 rounded-card bg-card p-4">
+    <section aria-label="Month summary" className="grid grid-cols-2 gap-x-2 gap-y-3.5 rounded-card bg-card p-4">
       <SummaryStat label={model.carryOver !== 0 ? 'Income + carried' : INCOME_LABEL.short} value={model.available} />
       <SummaryStat label="Spent so far" value={model.spentSoFar} />
       <SummaryStat label="Remaining" value={model.remaining} highlight />
+      <SummaryStat
+        label="Left after bills"
+        sub={model.unpaidBills > 0 ? `${formatMoney(model.unpaidBills)} in bills still to pay` : 'All bills paid'}
+        value={model.leftAfterBills}
+        highlight
+      />
+      <p className="col-span-full border-t border-border pt-3 text-[13px] text-muted-foreground">
+        {model.leftAfterBills > 0
+          ? <>About <strong className="money text-foreground">{formatMoney(model.perDayAfterBills)} a day</strong> for the {model.daysLeft === 1 ? 'last day' : `${model.daysLeft} days`} until payday, with your bills covered.</>
+          : 'Your bills still to pay are more than what is left this month.'}
+      </p>
     </section>
   )
 }
 
-function SummaryStat({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
+function SummaryStat({ label, sub, value, highlight }: { label: string; sub?: string; value: number; highlight?: boolean }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -253,6 +264,7 @@ function SummaryStat({ label, value, highlight }: { label: string; value: number
         value={value}
         className={cn('truncate text-lg font-semibold', highlight && (value < 0 ? 'text-danger-bar' : 'text-link'))}
       />
+      {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
     </div>
   )
 }

@@ -81,6 +81,36 @@ describe('computeMonthModel', () => {
     expect(computeMonthModel(snapshot({ settings: s }), TODAY).safeEnabled).toBe(false)
   })
 
+  it('left after bills: remaining minus bills not yet paid, with lump card payments subtracted too', () => {
+    const w = world()
+    const bpi1 = bill({ name: 'BPI CC', amount: pesos(2_207.33), dueDay: 15 })
+    const bpi2 = bill({ name: 'BPI CC', amount: pesos(2_959.34), dueDay: 15 })
+    const internet = bill({ name: 'Internet', amount: pesos(1_558), dueDay: 5 })
+    const rent = bill({ name: 'Rent', amount: pesos(4_500), dueDay: 8 })
+    const m = computeMonthModel(
+      snapshot({
+        accounts: [w.bank, w.visa],
+        fixedBills: [bpi1, bpi2, internet, rent],
+        transactions: [
+          pay(40_000),
+          // Internet logged as paid.
+          tx({ accountId: w.bank.id, amount: pesos(1_558), fixedBillId: internet.id, categoryId: null, date: '2026-11-05' }),
+          // A lump 10,000 payment to the card: not tied to any bill.
+          tx({ accountId: w.bank.id, type: 'transfer', toAccountId: w.visa.id, amount: pesos(10_000), date: '2026-11-10' }),
+        ],
+      }),
+      TODAY,
+    )
+    // 40,000 − 1,558 spent − 10,000 paid to the card
+    expect(m.remaining).toBe(pesos(28_442))
+    // Both BPI bills and rent are still unpaid; the card payment doesn't mark them paid.
+    expect(m.unpaidBills).toBe(pesos(2_207.33 + 2_959.34 + 4_500))
+    expect(m.leftAfterBills).toBe(m.remaining - m.unpaidBills)
+    // Nov 11 is day 13 of 31, so 19 days are left including today.
+    expect(m.daysLeft).toBe(19)
+    expect(m.perDayAfterBills).toBe(Math.floor(m.leftAfterBills / 19))
+  })
+
   describe('carry-over', () => {
     function carryWorld(carryOverEnabled?: boolean) {
       const w = world()

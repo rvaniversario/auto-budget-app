@@ -15,6 +15,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '1.1.0',
+    date: '2026-11-19',
+    highlights: [
+      'New on Home: "Left after bills", what remains once the bills still to pay this month are set aside, after everything you have spent and paid, and about how much that gives you a day until payday.',
+      'Card, loan and debt balances work as before 1.0.1 again: a payment bigger than what you owe shows as a credit on the card.',
+    ],
+  },
+  {
     version: '1.0.1',
     date: '2026-11-18',
     highlights: [
