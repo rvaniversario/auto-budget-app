@@ -24,6 +24,7 @@ import { useAppData } from '@/hooks/useAppData'
 import { Money } from '@/components/Money'
 import { MoveBudgetDialog, useCoverOverspend } from '@/components/MoveBudgetDialog'
 import { TabHeader, Tag } from '@/components/layout'
+import { WhatsNew } from '@/components/WhatsNew'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +40,8 @@ export function HomeScreen() {
       <TabHeader
         eyebrow={`${formatPeriodDash(model.period)} · Day ${model.period.dayIndex} of ${model.period.totalDays}`}
         title={hasAnyTransaction ? `Your ${month} budget` : 'Your first budget is ready'}
+        // Laptops and up show it in the sidebar instead.
+        action={<WhatsNew className="lg:hidden" />}
       />
       <TrialNotice />
       <LegacySyncNotice />

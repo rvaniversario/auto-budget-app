@@ -4,6 +4,7 @@ import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { useShortcuts } from '@/hooks/useShortcuts'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { WhatsNew } from '@/components/WhatsNew'
 import { premiumEnabled, premiumFeature, useEntitlement, type PremiumFeatureId } from '@/premium'
 
 const NAV: { to: string; label: string; icon: LucideIcon }[] = [
@@ -131,7 +132,10 @@ function Sidebar() {
       aria-label="Main"
       className="sticky top-0 hidden h-dvh w-60 flex-none flex-col gap-5 border-r border-border bg-card px-4 py-7 lg:flex"
     >
-      <p className="mx-3 font-heading text-xl font-bold text-link">Auto Budget</p>
+      <div className="mx-3 flex flex-col items-start gap-2">
+        <p className="font-heading text-xl font-bold text-link">Auto Budget</p>
+        <WhatsNew />
+      </div>
       <button
         type="button"
         onClick={() => openAdd()}

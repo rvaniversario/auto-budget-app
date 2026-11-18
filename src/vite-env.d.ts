@@ -1,5 +1,8 @@
 /// <reference types="vite/client" />
 
+/** The app version from package.json, injected at build time (see vite.config.ts). */
+declare const __APP_VERSION__: string
+
 interface ImportMetaEnv {
   /** Supabase project URL. Leave unset to build without sign-in and online backup. */
   readonly VITE_SUPABASE_URL?: string
