@@ -33,7 +33,7 @@ const GROUP_LABEL: Record<Account['type'], string> = {
 }
 
 /** Money moving into (+) or out of (−) this account, fees included. */
-export function flowFor(t: Transaction, accountId: string): number {
+function flowFor(t: Transaction, accountId: string): number {
   if (t.type === 'transfer') {
     if (t.toAccountId === accountId) return t.amount
     if (t.accountId === accountId) return -(t.amount + transferFee(t))
