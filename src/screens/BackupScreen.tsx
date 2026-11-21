@@ -23,7 +23,7 @@ import { premiumEnabled, useEntitlement } from '@/premium'
 import { PremiumBadge } from '@/premium/components'
 import { useSync } from '@/sync'
 
-const outline = 'h-[50px] rounded-xl border-input bg-card text-[15px] font-semibold'
+const outline = 'h-[50px] rounded-xl border-input bg-card text-[13px] font-semibold'
 
 function FreeTag() {
   return <span className="flex-none rounded-xl bg-success-tint px-2.5 py-[3px] text-xs font-bold text-success-text">Free</span>
@@ -116,7 +116,7 @@ export function BackupScreen() {
           <FreeTag />
         </div>
         <p className="text-sm leading-normal text-muted-foreground">{lastLine}</p>
-        <Button className="h-[50px] rounded-xl text-[15px] font-semibold" onClick={onSave}>
+        <Button className="h-[50px] rounded-xl text-[13px] font-semibold" onClick={onSave}>
           Save a backup file
         </Button>
         {share && (
@@ -127,13 +127,13 @@ export function BackupScreen() {
         <Button variant="outline" className={outline} onClick={() => fileRef.current?.click()}>
           Restore from a file
         </Button>
-        <p className="text-[13px] leading-normal text-muted-foreground">
+        <p className="text-[12px] leading-normal text-muted-foreground">
           Saving downloads the file to this device. Restoring replaces the data on this device after you confirm.
         </p>
         <button
           type="button"
           onClick={exportCSV}
-          className="min-h-11 self-start text-[15px] font-semibold text-link underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="min-h-11 self-start text-[13px] font-semibold text-link underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           Export transactions as a spreadsheet (CSV)
         </button>
@@ -154,12 +154,12 @@ export function BackupScreen() {
         ) : (
           <Link
             to="/premium?feature=sync"
-            className="flex items-center justify-between gap-3 rounded-card bg-primary px-5 py-[18px] text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="flex items-center justify-between gap-3 hero-card rounded-card px-5 py-[18px] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <span className="flex flex-col gap-1">
               <span className="flex items-center gap-2 text-base font-bold">
                 Sync across devices
-                <PremiumBadge className="bg-card text-success-text" />
+                <PremiumBadge className="bg-hero-chip text-hero-link" />
               </span>
               <span className="text-sm leading-snug text-hero-muted">Use Auto Budget on your phone, tablet and the web, always up to date.</span>
             </span>

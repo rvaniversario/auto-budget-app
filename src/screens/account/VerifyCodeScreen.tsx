@@ -60,8 +60,8 @@ export function VerifyCodeScreen() {
     <div className="flex w-full max-w-[560px] flex-col gap-5 md:mx-auto">
       <SubHeader title="" />
       <div className="flex flex-col gap-2">
-        <h1 className="text-[28px] leading-[1.15] font-bold tracking-[-0.01em]">Enter the {LENGTH}-digit code</h1>
-        <p className="text-[15px] leading-normal text-muted-foreground">
+        <h1 className="text-[24px] leading-[1.15] font-bold tracking-[-0.01em]">Enter the {LENGTH}-digit code</h1>
+        <p className="text-[13px] leading-normal text-muted-foreground">
           We sent it to <strong className="font-semibold text-foreground">{email}</strong>. It expires in 10 minutes.
         </p>
       </div>
@@ -106,7 +106,7 @@ export function VerifyCodeScreen() {
                 <div
                   key={i}
                   className={cn(
-                    'flex h-[56px] items-center justify-center rounded-lg border bg-card font-heading text-[24px] font-semibold',
+                    'flex h-[56px] items-center justify-center rounded-lg border bg-card font-heading text-[21px] font-semibold',
                     error ? 'border-danger-bar' : 'border-input',
                     active && 'border-ring ring-3 ring-ring/50',
                   )}
@@ -130,7 +130,7 @@ export function VerifyCodeScreen() {
             Resend code in 0:{String(wait).padStart(2, '0')}
           </p>
         ) : (
-          <Button type="button" variant="ghost" className="min-h-11 text-[15px] font-semibold text-link" onClick={resend}>
+          <Button type="button" variant="ghost" className="min-h-11 text-[13px] font-semibold text-link" onClick={resend}>
             Resend code
           </Button>
         )}
@@ -149,7 +149,7 @@ export function VerifyCodeScreen() {
         to="/account/sign-in"
         replace
         state={{ message: nav.message, returnTo: nav.returnTo }}
-        className="flex min-h-11 items-center justify-center rounded-lg text-[15px] font-semibold text-link outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex min-h-11 items-center justify-center rounded-lg text-[13px] font-semibold text-link outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         Use a different email
       </Link>

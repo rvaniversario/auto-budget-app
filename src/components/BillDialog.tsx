@@ -122,15 +122,15 @@ export function BillDialog({
 export function BillsList({ bills, onEdit }: { bills: FixedBill[]; onEdit: (bill: FixedBill) => void }) {
   const total = bills.reduce((acc, b) => acc + b.amount, 0)
   if (bills.length === 0) {
-    return <p className="rounded-card bg-card p-4 text-[15px] text-muted-foreground">No bills yet. Add the ones you pay every month.</p>
+    return <p className="rounded-card bg-card p-4 text-[13px] text-muted-foreground">No bills yet. Add the ones you pay every month.</p>
   }
   return (
     <section aria-label="Your fixed bills" className="flex flex-col rounded-card bg-card px-4 pt-1 pb-3">
       {bills.map((b, i) => (
         <div key={b.id} className={`flex min-h-[60px] items-center justify-between gap-3 ${i ? 'border-t border-border' : ''}`}>
           <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-[15px] font-semibold">{b.name}</span>
-            <span className="text-[13px] text-muted-foreground">Due every {ordinal(b.dueDay)}</span>
+            <span className="truncate text-[13px] font-semibold">{b.name}</span>
+            <span className="text-[12px] text-muted-foreground">Due every {ordinal(b.dueDay)}</span>
           </div>
           <AmountButton aria-label={`Edit ${b.name}`} onClick={() => onEdit(b)}>
             {formatMoney(b.amount)}
@@ -138,7 +138,7 @@ export function BillsList({ bills, onEdit }: { bills: FixedBill[]; onEdit: (bill
         </div>
       ))}
       <div className="flex items-baseline justify-between border-t-2 border-foreground pt-3">
-        <span className="text-[15px] font-bold">Total each month</span>
+        <span className="text-[13px] font-bold">Total each month</span>
         <span className="money text-xl font-bold">{formatMoney(total)}</span>
       </div>
     </section>

@@ -13,6 +13,7 @@ function toSearch(prefill?: AddPrefill): string {
   if (prefill?.type) params.set('type', prefill.type)
   if (prefill?.to) params.set('to', prefill.to)
   if (prefill?.categoryId) params.set('category', prefill.categoryId)
+  if (prefill?.from) params.set('from', prefill.from)
   const s = params.toString()
   return s ? `?${s}` : ''
 }
@@ -50,7 +51,7 @@ export function AddTransactionProvider({ children }: { children: ReactNode }) {
       <Dialog open={open && isMd} onOpenChange={setOpen}>
         <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle className="text-[17px] font-bold">Add transaction</DialogTitle>
+            <DialogTitle className="text-[15px] font-bold">Add transaction</DialogTitle>
             <DialogDescription className="sr-only">Log an expense, income or transfer</DialogDescription>
           </DialogHeader>
           <AddTransactionPanel key={session} prefill={prefill} onDone={() => setOpen(false)} />

@@ -42,12 +42,12 @@ function Row({
   return (
     <div className="flex min-h-[52px] items-center justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-[15px] font-semibold">{title}</span>
-        {sub && <span className={cn('text-[13px]', tone, lastMonth !== undefined && 'lg:hidden')}>{sub}</span>}
-        {lastMonth !== undefined && wideSub && <span className={cn('hidden text-[13px] lg:block', tone)}>{wideSub}</span>}
+        <span className="truncate text-[13px] font-semibold">{title}</span>
+        {sub && <span className={cn('text-[12px]', tone, lastMonth !== undefined && 'lg:hidden')}>{sub}</span>}
+        {lastMonth !== undefined && wideSub && <span className={cn('hidden text-[12px] lg:block', tone)}>{wideSub}</span>}
       </div>
       {lastMonth !== undefined && (
-        <span className="money hidden w-24 flex-none text-right text-[15px] text-muted-foreground lg:block">{lastMonth}</span>
+        <span className="money hidden w-24 flex-none text-right text-[13px] text-muted-foreground lg:block">{lastMonth}</span>
       )}
       {children}
     </div>
@@ -119,10 +119,10 @@ export function BudgetScreen() {
         <section aria-label="Allocation summary" className="flex flex-col gap-3 rounded-card bg-success-tint p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-col gap-0.5">
-              <span className="text-[13px]">{INCOME_LABEL.short} {formatMoney(0)}</span>
+              <span className="text-[12px]">{INCOME_LABEL.short} {formatMoney(0)}</span>
               <span className="text-lg font-bold text-success-text">Add your income to see your plan</span>
             </div>
-            <span className="rounded-[14px] bg-card px-3 py-1.5 text-[13px] font-bold text-success-text">Waiting</span>
+            <span className="rounded-[14px] bg-card px-3 py-1.5 text-[12px] font-bold text-success-text">Waiting</span>
           </div>
           <Button className="h-11" onClick={() => openAdd({ type: 'income' })}>Log your income</Button>
         </section>
@@ -132,7 +132,7 @@ export function BudgetScreen() {
           className={cn('flex items-center justify-between gap-3 rounded-card p-4', u < 0 ? 'bg-danger-tint' : 'bg-success-tint')}
         >
           <div className="flex flex-col gap-0.5">
-            <span className="text-[13px]">
+            <span className="text-[12px]">
               {INCOME_LABEL.short} {formatMoney(model.income)}
               {model.carryOver !== 0 && ` ${model.carryOver > 0 ? '+' : '−'} ${formatMoney(Math.abs(model.carryOver))} carried over`}
             </span>
@@ -140,13 +140,13 @@ export function BudgetScreen() {
               {u === 0 ? 'Fully allocated' : u > 0 ? `${formatMoney(u)} left to assign` : `Over by ${formatMoney(-u)}`}
             </span>
           </div>
-          <span className={cn('rounded-[14px] bg-card px-3 py-1.5 text-[13px] font-bold', u < 0 ? 'text-danger-text' : 'text-success-text')}>
+          <span className={cn('rounded-[14px] bg-card px-3 py-1.5 text-[12px] font-bold', u < 0 ? 'text-danger-text' : 'text-success-text')}>
             {formatMoney(Math.max(0, u))} unassigned
           </span>
         </section>
       )}
       {u > 0 && model.safe.paysInFull && (
-        <p className="-mt-2 text-[13px] text-muted-foreground">Your card is paid in full, so the rest is free to save or use.</p>
+        <p className="-mt-2 text-[12px] text-muted-foreground">Your card is paid in full, so the rest is free to save or use.</p>
       )}
 
       <section aria-label="Set aside first" className="flex flex-col gap-1 rounded-card bg-card p-4 md:px-5">

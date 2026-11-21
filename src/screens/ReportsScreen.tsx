@@ -108,7 +108,7 @@ function MonthsReport({ count, today }: { count: number; today: string }) {
   if (!hasData) {
     return (
       <section className="flex flex-col items-center gap-2 rounded-card border border-dashed border-dash-line px-5 py-8 text-center">
-        <h2 className="font-sans text-[17px] font-bold">Not enough to report yet</h2>
+        <h2 className="font-sans text-[15px] font-bold">Not enough to report yet</h2>
         <p className="max-w-prose text-sm text-muted-foreground">Log your spending and income for a month or two, and your trends will show up here.</p>
       </section>
     )
@@ -116,7 +116,7 @@ function MonthsReport({ count, today }: { count: number; today: string }) {
 
   return (
     <>
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-[12px] text-muted-foreground">
         {formatPeriod({ start: months[0].period.start, end: months.at(-1)!.period.end })} · budget months run payday to payday
         {!months.at(-1)!.complete && ' · * month in progress'}
       </p>
@@ -126,7 +126,7 @@ function MonthsReport({ count, today }: { count: number; today: string }) {
           <h2 id="insights-title" className={cn(h2, 'flex items-center gap-2 text-success-text')}>
             <Lightbulb className="size-5" aria-hidden="true" /> What stands out
           </h2>
-          <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[15px] leading-snug">
+          <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13px] leading-snug">
             {insights.map((s) => (
               <li key={s}>{s}</li>
             ))}
@@ -262,8 +262,8 @@ function Changes({ months: all, names }: { months: ReportMonth[]; names: Map<str
       <ul className="flex flex-col">
         {items.slice(0, 4).map((c, i) => (
           <li key={c.categoryId} className={cn('flex min-h-11 items-center justify-between gap-3', i > 0 && 'border-t border-border')}>
-            <span className="truncate text-[15px] font-semibold">{c.name}</span>
-            <span className={cn('money flex-none text-[15px] font-semibold', up ? 'text-warning-text' : 'text-success-text')}>
+            <span className="truncate text-[13px] font-semibold">{c.name}</span>
+            <span className={cn('money flex-none text-[13px] font-semibold', up ? 'text-warning-text' : 'text-success-text')}>
               {up ? '+' : '−'}
               {money0(Math.abs(c.change))}
             </span>
@@ -277,7 +277,7 @@ function Changes({ months: all, names }: { months: ReportMonth[]; names: Map<str
         <h2 id="changes-title" className={h2}>
           Biggest changes
         </h2>
-        <p className="text-[13px] text-muted-foreground">
+        <p className="text-[12px] text-muted-foreground">
           {cur.label}
           {cur.complete ? '' : ' so far'} compared with {prev.label}
         </p>
@@ -450,10 +450,10 @@ function YearReport() {
             <ul className="flex flex-col">
               {summary.categories.map((c, i) => (
                 <li key={c.categoryId} className={cn('flex min-h-11 items-center justify-between gap-3', i > 0 && 'border-t border-border')}>
-                  <span className="truncate text-[15px] font-semibold">{c.name}</span>
+                  <span className="truncate text-[13px] font-semibold">{c.name}</span>
                   <span className="flex flex-none items-baseline gap-2">
-                    <span className="text-[13px] text-muted-foreground">{summary.spending ? Math.round((c.spent / summary.spending) * 100) : 0}%</span>
-                    <span className="money text-[15px] font-semibold">{money0(c.spent)}</span>
+                    <span className="text-[12px] text-muted-foreground">{summary.spending ? Math.round((c.spent / summary.spending) * 100) : 0}%</span>
+                    <span className="money text-[13px] font-semibold">{money0(c.spent)}</span>
                   </span>
                 </li>
               ))}

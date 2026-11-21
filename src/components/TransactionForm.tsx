@@ -74,7 +74,7 @@ export function toTransactionRecord(v: TransactionFormValues): NewRecord<Transac
 
 export function defaultValues(
   accounts: Account[],
-  opts: { existing?: Transaction; type?: TransactionType; toAccountId?: string | null; categoryId?: string | null } = {},
+  opts: { existing?: Transaction; type?: TransactionType; toAccountId?: string | null; categoryId?: string | null; accountId?: string | null } = {},
 ): TransactionFormValues {
   const { existing } = opts
   if (existing) {
@@ -101,6 +101,11 @@ export function defaultValues(
     accountId = firstOf('bank') ?? firstOf('ewallet') ?? accounts.find((a) => a.id !== toAccountId)?.id ?? ''
   }
   if (type === 'income') accountId = firstOf('bank') ?? firstOf('ewallet') ?? accountId
+  // Opened from an account's screen: that account is the one paid with (or paid from).
+  if (opts.accountId && accounts.some((a) => a.id === opts.accountId)) {
+    accountId = opts.accountId
+    if (type === 'transfer' && toAccountId === accountId) toAccountId = accounts.find((a) => a.id !== accountId)?.id ?? null
+  }
   return {
     type,
     amount: '',
@@ -153,7 +158,7 @@ function NumberPad({ onKey, raised = false }: { onKey: (key: string) => void; ra
           type="button"
           onClick={() => onKey(k)}
           aria-label={k === 'del' ? 'Delete last digit' : k === '.' ? 'Decimal point' : k}
-          className={cn('flex h-[46px] items-center justify-center rounded-lg font-heading text-[22px] font-semibold text-foreground', raised ? 'bg-muted active:bg-border' : 'bg-card active:bg-muted')}
+          className={cn('flex h-[46px] items-center justify-center rounded-lg font-heading text-[19px] font-semibold text-foreground', raised ? 'bg-muted active:bg-border' : 'bg-card active:bg-muted')}
         >
           {k === 'del' ? <Delete className="size-6" aria-hidden="true" /> : k}
         </button>
@@ -208,19 +213,19 @@ function FieldRow({
         active ? 'bg-primary/10' : 'hover:bg-muted',
       )}
     >
-      <span className={cn('w-[88px] flex-none text-[13px] font-semibold', active ? 'text-primary' : 'text-muted-foreground')}>{label}</span>
+      <span className={cn('w-[88px] flex-none text-[12px] font-semibold', active ? 'text-primary' : 'text-muted-foreground')}>{label}</span>
       <span className="flex min-w-0 flex-1 flex-col py-1.5">
         <span
           className={cn(
             'truncate font-semibold',
-            large ? 'money text-[26px] leading-tight' : 'text-[15px]',
+            large ? 'money text-[23px] leading-tight' : 'text-[13px]',
             !value && 'text-muted-foreground',
           )}
         >
           {value ?? placeholder}
         </span>
         {error && (
-          <span role="alert" className="text-[13px] font-normal text-destructive">
+          <span role="alert" className="text-[12px] font-normal text-destructive">
             {error}
           </span>
         )}
@@ -241,10 +246,10 @@ function PanelGrid<T extends string>({
   onChange: (v: T) => void
   options: ChoiceOption<T>[]
 }) {
-  return <ChoiceChips label={label} value={value} onChange={onChange} options={options} columns={options.length > 6 ? 4 : 3} className="gap-1.5 [&>button]:px-2 [&>button]:text-[13px]" />
+  return <ChoiceChips label={label} value={value} onChange={onChange} options={options} columns={options.length > 6 ? 4 : 3} className="gap-1.5 [&>button]:px-2 [&>button]:text-[12px]" />
 }
 
-const sectionLabel = 'text-[13px] font-semibold text-muted-foreground'
+const sectionLabel = 'text-[12px] font-semibold text-muted-foreground'
 
 interface TransactionFormProps {
   accounts: Account[]
@@ -394,10 +399,10 @@ export function TransactionForm({
   const billName = categoryId === BILLS_CHIP ? bills.find((b) => b.id === fixedBillId)?.name : undefined
   const accountLabel = type === 'expense' ? 'Paid with' : type === 'income' ? 'Received in' : 'From'
   const cardHint = toAccount?.type === 'credit_card' && type === 'transfer' && (
-    <p className="text-[13px] text-muted-foreground">A card payment is not spending, so it won't count against any category.</p>
+    <p className="text-[12px] text-muted-foreground">A card payment is not spending, so it won't count against any category.</p>
   )
   const purchaseHint = selectedAccount?.type === 'credit_card' && type === 'expense' && (
-    <p className="text-[13px] text-muted-foreground">Card purchases count as spending and add to your card bill.</p>
+    <p className="text-[12px] text-muted-foreground">Card purchases count as spending and add to your card bill.</p>
   )
 
   const typeSwitch = (
@@ -420,8 +425,8 @@ export function TransactionForm({
       render={({ field }) => (
         <div className={cn('flex min-h-11 items-center justify-between gap-3', !compact && 'px-3.5 py-1.5')}>
           <Label htmlFor="tx-onetime" className="flex flex-col items-start gap-0.5">
-            <span className={cn('font-semibold', compact ? 'text-[15px]' : 'text-[13px] text-muted-foreground')}>One-time expense</span>
-            {compact && <span className="text-[13px] font-normal text-muted-foreground">Unusual cost, kept out of your monthly averages</span>}
+            <span className={cn('font-semibold', compact ? 'text-[13px]' : 'text-[12px] text-muted-foreground')}>One-time expense</span>
+            {compact && <span className="text-[12px] font-normal text-muted-foreground">Unusual cost, kept out of your monthly averages</span>}
           </Label>
           <Switch id="tx-onetime" checked={field.value} onCheckedChange={field.onChange} />
         </div>
@@ -447,8 +452,8 @@ export function TransactionForm({
             control={control}
             render={({ field, fieldState }) => (
               <label className="relative flex min-h-[46px] items-center gap-3 px-3.5">
-                <span className="w-[88px] flex-none text-[13px] font-semibold text-muted-foreground">Date</span>
-                <span className={cn('flex-1 text-[15px] font-semibold', fieldState.invalid && 'text-destructive')}>
+                <span className="w-[88px] flex-none text-[12px] font-semibold text-muted-foreground">Date</span>
+                <span className={cn('flex-1 text-[13px] font-semibold', fieldState.invalid && 'text-destructive')}>
                   {field.value && isValidISODate(field.value) ? `${isToday ? 'Today, ' : ''}${formatShortDate(field.value)}` : 'Pick a date'}
                 </span>
                 <input
@@ -515,19 +520,19 @@ export function TransactionForm({
             control={control}
             render={({ field, fieldState }) => (
               <label className="flex min-h-[46px] items-center gap-3 px-3.5">
-                <span className="w-[88px] flex-none text-[13px] font-semibold text-muted-foreground">Note</span>
+                <span className="w-[88px] flex-none text-[12px] font-semibold text-muted-foreground">Note</span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <input
                     id="tx-note"
                     autoComplete="off"
                     enterKeyHint="done"
                     placeholder={type === 'income' ? 'Salary' : type === 'transfer' ? 'Card payment' : 'Lunch'}
-                    className="h-[44px] w-full bg-transparent text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-muted-foreground"
+                    className="h-[44px] w-full bg-transparent text-[13px] font-semibold outline-none placeholder:font-normal placeholder:text-muted-foreground"
                     onFocus={() => setActiveField(null)}
                     {...field}
                   />
                   {fieldState.error && (
-                    <span role="alert" className="pb-1.5 text-[13px] text-destructive">
+                    <span role="alert" className="pb-1.5 text-[12px] text-destructive">
                       {fieldState.error.message}
                     </span>
                   )}
@@ -659,7 +664,7 @@ export function TransactionForm({
                 Transfer fee (optional)
               </FieldLabel>
               <MoneyInput id="tx-fee" placeholder="0" className="h-[46px]" aria-describedby="tx-fee-help" aria-invalid={fieldState.invalid} {...field} />
-              <p id="tx-fee-help" className="text-[13px] text-muted-foreground">
+              <p id="tx-fee-help" className="text-[12px] text-muted-foreground">
                 Charged on top, like an InstaPay or cash-in fee. It comes out of the &ldquo;From&rdquo; account and counts as spending.
               </p>
               <FieldError errors={[fieldState.error]} />
@@ -698,7 +703,7 @@ export function TransactionForm({
                   className="peer h-[46px] text-transparent [&::-webkit-datetime-edit]:opacity-0"
                   {...field}
                 />
-                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[15px]">
+                <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-[13px]">
                   {field.value && isValidISODate(field.value) ? `${isToday ? 'Today, ' : ''}${formatShortDate(field.value)}` : 'Pick a date'}
                 </span>
               </div>

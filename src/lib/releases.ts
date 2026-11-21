@@ -15,6 +15,16 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '1.2.0',
+    date: '2026-11-21',
+    highlights: [
+      'A new look: a dark grid background with soft glows, glass cards and neon highlights, in both light and dark themes, with smaller, tidier text.',
+      'Tap any account to see only its transactions, with money in and out this month. Edit the account from the pencil button, or add a transaction to it with the + button.',
+      'When Safe to pay is off, Home no longer mentions it.',
+      'The version button has moved to the bottom of each screen.',
+    ],
+  },
+  {
     version: '1.1.1',
     date: '2026-11-21',
     highlights: [

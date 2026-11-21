@@ -69,7 +69,7 @@ export function EditTransactionHost({ transaction, onClose }: { transaction: Tra
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-[420px]">
           <SheetHeader className="px-5 pt-5">
-            <SheetTitle className="text-[17px] font-bold">Edit transaction</SheetTitle>
+            <SheetTitle className="text-[15px] font-bold">Edit transaction</SheetTitle>
             <SheetDescription className="sr-only">Change or delete this transaction</SheetDescription>
           </SheetHeader>
           <div className="px-5 pt-3 pb-6">{transaction && <EditBody transaction={transaction} onClose={onClose} />}</div>

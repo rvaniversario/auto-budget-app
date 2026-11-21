@@ -35,7 +35,7 @@ const PERIOD_LABEL: Record<PeriodFilter, string> = {
 }
 
 /** `showFee` adds a transfer's fee under the amount, for views without the meta line. */
-function AmountText({ t, className, showFee }: { t: Transaction; className?: string; showFee?: boolean }) {
+export function AmountText({ t, className, showFee }: { t: Transaction; className?: string; showFee?: boolean }) {
   const amount = (
     <span
       className={cn(
@@ -59,7 +59,7 @@ function AmountText({ t, className, showFee }: { t: Transaction; className?: str
 }
 
 function OneTimeTag() {
-  return <span className="rounded-[10px] bg-warning-tint px-2 py-0.5 text-[11px] font-bold text-warning-text">One-time</span>
+  return <span className="rounded-[10px] bg-warning-tint px-2 py-0.5 text-[10px] font-bold text-warning-text">One-time</span>
 }
 
 export function TransactionsScreen() {
@@ -131,7 +131,7 @@ export function TransactionsScreen() {
       : undefined
 
   const empty = (
-    <p className="rounded-card bg-card p-5 text-center text-[15px] text-muted-foreground">
+    <p className="rounded-card bg-card p-5 text-center text-[13px] text-muted-foreground">
       {anyAtAll ? 'Nothing matches these filters.' : 'No transactions yet. Add one to see it here.'}
     </p>
   )
@@ -153,7 +153,7 @@ export function TransactionsScreen() {
               placeholder="Notes or amounts"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="h-11 text-[15px]"
+              className="h-11 text-[13px]"
             />
           </div>
           <FilterSelect id="tx-cat" label="Category" value={category} onChange={setCategory} options={categoryOptions} />
@@ -185,7 +185,7 @@ export function TransactionsScreen() {
               placeholder="Search notes or amounts"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="h-12 pl-10 text-[15px]"
+              className="h-12 pl-10 text-[13px]"
             />
           </div>
           <ChoiceChips label="Filter by category" shape="pill" scroll value={category} onChange={setCategory} options={categoryOptions} />
@@ -217,7 +217,7 @@ export function TransactionsScreen() {
         <section aria-label="Transactions by day" className="flex flex-col rounded-card bg-card px-4 pt-2 pb-3 md:px-5">
           {groups.map(([date, items], gi) => (
             <div key={date}>
-              <h2 className={cn('mt-2.5 mb-0.5 font-sans text-[13px] font-bold text-muted-foreground', gi > 0 && 'border-t border-border pt-2.5')}>
+              <h2 className={cn('mt-2.5 mb-0.5 font-sans text-[12px] font-bold text-muted-foreground', gi > 0 && 'border-t border-border pt-2.5')}>
                 {dayHeading(date)}
               </h2>
               <ul>
@@ -233,22 +233,22 @@ export function TransactionsScreen() {
                       >
                         {isMd ? (
                           <span className="grid min-h-12 grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_7.5rem] items-center gap-3">
-                            <span className="flex min-w-0 items-center gap-2 truncate text-[15px] font-semibold">
+                            <span className="flex min-w-0 items-center gap-2 truncate text-[13px] font-semibold">
                               <span className="truncate">{d.title}</span>
                               {t.isOneTime && <OneTimeTag />}
                             </span>
                             <span className="truncate text-sm text-muted-foreground">{d.category}</span>
                             <span className="truncate text-sm text-muted-foreground">{d.account}</span>
-                            <AmountText t={t} className="text-right text-[15px]" showFee />
+                            <AmountText t={t} className="text-right text-[13px]" showFee />
                           </span>
                         ) : (
                           <span className="flex min-h-[52px] items-center justify-between gap-3 py-1.5">
                             <span className="flex min-w-0 flex-col gap-0.5">
-                              <span className="flex items-center gap-2 truncate text-[15px] font-semibold">
+                              <span className="flex items-center gap-2 truncate text-[13px] font-semibold">
                                 {d.title}
                                 {t.isOneTime && <OneTimeTag />}
                               </span>
-                              <span className="truncate text-[13px] text-muted-foreground">{d.meta}</span>
+                              <span className="truncate text-[12px] text-muted-foreground">{d.meta}</span>
                             </span>
                             <AmountText t={t} className="flex-none text-base" />
                           </span>
@@ -289,7 +289,7 @@ function FilterSelect({
         {label}
       </Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger id={id} className="h-11 w-full rounded-lg bg-card text-[15px]">
+        <SelectTrigger id={id} className="h-11 w-full rounded-lg bg-card text-[13px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -342,7 +342,7 @@ function TransactionTable({
                 className={cn('cursor-pointer', isSelected ? 'bg-success-tint' : 'hover:bg-muted/60')}
               >
                 <td className={cn(td, 'h-[52px] whitespace-nowrap text-sm text-muted-foreground')}>{formatShortDate(t.date)}</td>
-                <td className={cn(td, 'text-[15px] font-semibold whitespace-nowrap')}>
+                <td className={cn(td, 'text-[13px] font-semibold whitespace-nowrap')}>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -358,7 +358,7 @@ function TransactionTable({
                 <td className={cn(td, 'text-sm')}>{d.category}</td>
                 <td className={cn(td, 'text-sm')}>{d.account}</td>
                 <td className={cn(td, 'text-right')}>
-                  <AmountText t={t} className="text-[15px]" showFee />
+                  <AmountText t={t} className="text-[13px]" showFee />
                 </td>
               </tr>
             )
@@ -406,22 +406,22 @@ function DetailsPanel({
         </Button>
       </div>
       <div className="flex flex-col gap-1">
-        <span className="text-[13px] text-muted-foreground">{typeLabel}</span>
+        <span className="text-[12px] text-muted-foreground">{typeLabel}</span>
         <AmountText t={t} className="text-4xl leading-tight font-bold" />
       </div>
       <dl className="m-0 flex flex-col">
         {rows.map(([k, v]) => (
           <div key={k} className="flex min-h-11 items-center justify-between gap-3 border-t border-border">
             <dt className="text-sm text-muted-foreground">{k}</dt>
-            <dd className="m-0 text-right text-[15px] font-semibold">{v}</dd>
+            <dd className="m-0 text-right text-[13px] font-semibold">{v}</dd>
           </div>
         ))}
       </dl>
       <div className="grid grid-cols-2 gap-2.5">
-        <Button variant="outline" className="h-12 bg-card text-[15px] text-danger-bar" onClick={() => onDelete(t)}>
+        <Button variant="outline" className="h-12 bg-card text-[13px] text-danger-bar" onClick={() => onDelete(t)}>
           Delete
         </Button>
-        <Button className="h-12 text-[15px]" onClick={() => onEdit(t)}>
+        <Button className="h-12 text-[13px]" onClick={() => onEdit(t)}>
           Edit
         </Button>
       </div>

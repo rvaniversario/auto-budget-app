@@ -38,8 +38,8 @@ function BenefitList({ first, links = false }: { first?: PremiumFeatureId | null
           <>
             <Check className="mt-0.5 size-5 flex-none text-link" strokeWidth={2.4} aria-hidden="true" />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-[15px] font-semibold">{f.name}</span>
-              <span className="text-[13px] leading-snug text-muted-foreground">{f.benefit}</span>
+              <span className="text-[13px] font-semibold">{f.name}</span>
+              <span className="text-[12px] leading-snug text-muted-foreground">{f.benefit}</span>
             </span>
             {links && <ChevronRight className="mt-0.5 size-5 flex-none text-muted-foreground" aria-hidden="true" />}
           </>
@@ -66,7 +66,7 @@ function BenefitList({ first, links = false }: { first?: PremiumFeatureId | null
 function PolicyLinks() {
   const link = 'underline underline-offset-2 hover:text-foreground'
   return (
-    <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
+    <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
       <Link to="/terms" className={link}>
         Terms
       </Link>
@@ -91,7 +91,7 @@ function RefreshLink() {
     setBusy(false)
   }
   return (
-    <p className="text-center text-[13px] text-muted-foreground">
+    <p className="text-center text-[12px] text-muted-foreground">
       Already bought it?{' '}
       <button
         type="button"
@@ -110,7 +110,7 @@ function RefreshLink() {
 function AndroidAppCard({ className }: { className?: string }) {
   return (
     <div className={cn('flex flex-col gap-3 rounded-[14px] border-2 border-primary bg-background p-4', className)}>
-      <span className="flex items-center gap-2 text-[15px] font-semibold">
+      <span className="flex items-center gap-2 text-[13px] font-semibold">
         <Smartphone className="size-5 text-link" aria-hidden="true" />
         Unlocked in the Android app
       </span>
@@ -181,10 +181,10 @@ function Paywall() {
       <section aria-labelledby="paywall-title" className="flex flex-col gap-5 rounded-hero bg-card px-5 py-6 md:px-7 md:py-8">
         <div className="flex flex-col gap-2">
           <PremiumBadge className="self-start" />
-          <h1 id="paywall-title" className="text-[28px] leading-tight font-bold tracking-[-0.01em]">
+          <h1 id="paywall-title" className="text-[24px] leading-tight font-bold tracking-[-0.01em]">
             Auto Budget Premium
           </h1>
-          <p className="text-[15px] leading-normal text-muted-foreground">Clear your debts faster and see where your money goes.</p>
+          <p className="text-[13px] leading-normal text-muted-foreground">Clear your debts faster and see where your money goes.</p>
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[1fr_minmax(0,340px)] lg:items-start lg:gap-8">
@@ -197,7 +197,7 @@ function Paywall() {
                   {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
                   Start 14-day free trial
                 </Button>
-                <p className="text-center text-[13px] text-muted-foreground">No payment needed</p>
+                <p className="text-center text-[12px] text-muted-foreground">No payment needed</p>
               </div>
             )}
 
@@ -205,7 +205,7 @@ function Paywall() {
             <RefreshLink />
 
             {ent.trialEndedAt && (
-              <p className="text-center text-[13px] text-muted-foreground">Your free trial ended on {formatLongDate(ent.trialEndedAt.slice(0, 10))}.</p>
+              <p className="text-center text-[12px] text-muted-foreground">Your free trial ended on {formatLongDate(ent.trialEndedAt.slice(0, 10))}.</p>
             )}
           </div>
         </div>
@@ -224,10 +224,10 @@ function PremiumStatus() {
   return (
     <div className="flex w-full max-w-[560px] flex-col gap-4 md:mx-auto">
       <SubHeader title="Auto Budget Premium" />
-      <section aria-label="Your Premium" className="flex flex-col gap-3 rounded-hero bg-primary p-5 text-primary-foreground">
+      <section aria-label="Your Premium" className="flex flex-col gap-3 hero-card rounded-hero p-5">
         {trial ? (
           <>
-            <span className="self-start rounded-xl bg-hero-chip px-2.5 py-[3px] text-[11px] font-bold text-success-text">
+            <span className="self-start rounded-xl bg-hero-chip px-2.5 py-[3px] text-[10px] font-bold text-hero-link">
               {ent.source === 'trial' ? 'Free trial' : 'Premium'}
             </span>
             <p className="text-2xl leading-tight font-bold">
@@ -237,7 +237,7 @@ function PremiumStatus() {
           </>
         ) : (
           <>
-            <span className="flex items-center gap-1.5 self-start rounded-xl bg-hero-chip px-2.5 py-[3px] text-[11px] font-bold text-success-text">
+            <span className="flex items-center gap-1.5 self-start rounded-xl bg-hero-chip px-2.5 py-[3px] text-[10px] font-bold text-hero-link">
               <BadgeCheck className="size-3.5" aria-hidden="true" />
               Premium unlocked
             </span>
@@ -287,16 +287,16 @@ function PurchaseRecords() {
         {ent.purchases.map((p, i) => (
           <li key={p.id} className={cn('flex min-h-[56px] items-center justify-between gap-3 py-2', i > 0 && 'border-t border-border')}>
             <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[15px] font-semibold">
+              <span className="text-[13px] font-semibold">
                 {p.provider === 'google_play' ? 'Bought through Google Play' : 'Bought'} on {formatLongDate(localDate(p.date))}
               </span>
-              {p.orderId && <span className="truncate text-[13px] text-muted-foreground">Order {p.orderId}</span>}
+              {p.orderId && <span className="truncate text-[12px] text-muted-foreground">Order {p.orderId}</span>}
             </span>
             {p.status === 'refunded' && <span className="flex-none text-xs font-semibold text-warning-text">Refunded</span>}
           </li>
         ))}
       </ul>
-      <p className="text-[13px] leading-snug text-muted-foreground">Refunds are requested through Google Play.</p>
+      <p className="text-[12px] leading-snug text-muted-foreground">Refunds are requested through Google Play.</p>
     </section>
   )
 }

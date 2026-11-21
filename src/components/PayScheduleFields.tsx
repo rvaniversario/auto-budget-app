@@ -107,7 +107,7 @@ export function PayScheduleFields({
               value={field.value}
               onChange={field.onChange}
               options={FREQUENCIES.map((f) => ({ value: f, label: PAY_FREQUENCY_LABEL[f] }))}
-              className="[&>button]:h-[52px] [&>button]:text-[15px]"
+              className="[&>button]:h-[52px] [&>button]:text-[13px]"
             />
           )}
         />
@@ -198,7 +198,7 @@ export function PayScheduleFields({
           />
         )}
       </div>
-      <p className="-mt-2 text-[13px] text-muted-foreground">
+      <p className="-mt-2 text-[12px] text-muted-foreground">
         {frequency === 'monthly' || frequency === 'semimonthly'
           ? 'Your budget month runs from payday to the day before the next. In shorter months we use the last day. You can move a payday for a weekend or holiday later in Settings.'
           : 'Pick the day your budget month starts, for example the 1st. In shorter months we use the last day.'}
@@ -206,10 +206,10 @@ export function PayScheduleFields({
 
       {preview && (
         <div className="flex flex-col gap-1 rounded-lg bg-success-tint p-3.5" aria-live="polite">
-          <span className="text-[13px]">This budget month</span>
+          <span className="text-[12px]">This budget month</span>
           <span className="money text-lg font-bold text-success-text">{formatPeriod(preview.period)}</span>
           {frequency !== 'monthly' && (
-            <span className="text-[13px]">
+            <span className="text-[12px]">
               {preview.paydays} {frequency === 'daily' ? 'paid days' : 'paydays'}
             </span>
           )}

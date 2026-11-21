@@ -23,6 +23,7 @@ const PUSHED = [
   '/add',
   '/breakdown',
   '/settings/',
+  '/accounts/',
   '/account',
   '/account/',
   '/privacy',
@@ -45,7 +46,7 @@ function BottomTabs() {
   return (
     <nav
       aria-label="Main"
-      className="pb-safe fixed inset-x-0 bottom-0 z-40 flex w-full border-t border-border bg-card px-2 pt-1.5 md:hidden"
+      className="pb-safe fixed inset-x-0 bottom-0 z-40 flex w-full border-t border-border bg-card px-2 pt-1.5 backdrop-blur-xl md:hidden"
     >
       {NAV.map(({ to, label, icon: Icon }) => (
         <NavLink
@@ -54,7 +55,7 @@ function BottomTabs() {
           end={to === '/'}
           className={({ isActive }) =>
             cn(
-              'flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-lg pt-2 pb-3 text-[11px] font-semibold',
+              'flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-lg pt-2 pb-3 text-[10px] font-semibold',
               ring,
               isActive ? 'text-link' : 'text-muted-foreground',
             )
@@ -74,7 +75,7 @@ function NavRail() {
   return (
     <nav
       aria-label="Main"
-      className="sticky top-0 hidden h-dvh w-[88px] flex-none flex-col items-center gap-3 border-r border-border bg-card py-6 md:flex lg:hidden"
+      className="sticky top-0 hidden h-dvh w-[88px] flex-none flex-col items-center gap-3 border-r border-border bg-card py-6 backdrop-blur-xl md:flex lg:hidden"
     >
       <Tooltip>
         <TooltipTrigger asChild>
@@ -99,7 +100,7 @@ function NavRail() {
           end={to === '/'}
           className={({ isActive }) =>
             cn(
-              'group flex min-h-14 w-full flex-col items-center justify-center gap-1 py-1.5 text-[11px] font-semibold',
+              'group flex min-h-14 w-full flex-col items-center justify-center gap-1 py-1.5 text-[10px] font-semibold',
               ring,
               isActive ? 'text-link' : 'text-muted-foreground hover:text-foreground',
             )
@@ -130,18 +131,17 @@ function Sidebar() {
   return (
     <nav
       aria-label="Main"
-      className="sticky top-0 hidden h-dvh w-60 flex-none flex-col gap-5 border-r border-border bg-card px-4 py-7 lg:flex"
+      className="sticky top-0 hidden h-dvh w-60 flex-none flex-col gap-5 border-r border-border bg-card px-4 py-7 backdrop-blur-xl lg:flex"
     >
       <div className="mx-3 flex flex-col items-start gap-2">
         <p className="font-heading text-xl font-bold text-link">Auto Budget</p>
-        <WhatsNew />
       </div>
       <button
         type="button"
         onClick={() => openAdd()}
         aria-keyshortcuts="N"
         className={cn(
-          'flex h-12 items-center justify-center gap-2 rounded-lg bg-primary text-[15px] font-semibold text-primary-foreground hover:bg-primary/90',
+          'flex h-12 items-center justify-center gap-2 rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground hover:bg-primary/90',
           ring,
         )}
       >
@@ -156,7 +156,7 @@ function Sidebar() {
             end={to === '/'}
             className={({ isActive }) =>
               cn(
-                'flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[15px] font-semibold',
+                'flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[13px] font-semibold',
                 ring,
                 isActive ? 'bg-success-tint text-success-text' : 'text-foreground hover:bg-muted',
               )
@@ -171,6 +171,10 @@ function Sidebar() {
       <p className="mx-3 text-xs leading-normal text-muted-foreground">
         Press <kbd className="rounded border border-input px-1.5 py-px font-sans text-xs">N</kbd> to add a transaction
       </p>
+      {/* The version sits at the very bottom of the sidebar. */}
+      <div className="mx-3 mt-auto">
+        <WhatsNew />
+      </div>
     </nav>
   )
 }
@@ -191,7 +195,7 @@ function SidebarPremium() {
             to={f.path}
             className={({ isActive }) =>
               cn(
-                'flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[15px] font-semibold',
+                'flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-[13px] font-semibold',
                 ring,
                 isActive ? 'bg-success-tint text-success-text' : 'text-foreground hover:bg-muted',
               )
@@ -226,6 +230,12 @@ export function AppLayout() {
         >
           <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4 md:gap-5 lg:max-w-[1100px] xl:max-w-[1280px]">
             <Outlet />
+            {/* Phones and tablets: the version sits at the very bottom of each tab screen. */}
+            {!pushed && (
+              <div className="flex justify-center pt-2 lg:hidden">
+                <WhatsNew />
+              </div>
+            )}
           </div>
         </main>
         {!pushed && <BottomTabs />}

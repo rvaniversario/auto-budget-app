@@ -79,7 +79,7 @@ export function AccountsScreen() {
                 <span id={headingId}>{g.name}</span>
               </SectionLabel>
               <span
-                className={cn('money text-[15px] font-semibold', (owed || g.total < 0) && 'text-danger-bar')}
+                className={cn('money text-[13px] font-semibold', (owed || g.total < 0) && 'text-danger-bar')}
                 aria-label={`${g.name} ${owed ? 'owed' : 'total'} ${formatMoney(g.total)}`}
               >
                 {owed ? `Owed ${formatMoney(g.total)}` : formatMoney(g.total)}
@@ -93,13 +93,20 @@ export function AccountsScreen() {
                   if (!c) return null
                   return (
                     <section key={a.id} aria-label={a.name} className="flex flex-col gap-3.5 rounded-card bg-card p-4 md:col-span-full md:px-5">
-                      <div className="flex items-start justify-between gap-3">
+                      <Link
+                        to={`/accounts/${a.id}`}
+                        aria-label={`${a.name}, owed ${formatMoney(c.balance)}. See its transactions`}
+                        className="-m-2 flex items-start justify-between gap-3 rounded-lg p-2 outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-[15px] font-semibold">{a.name}</span>
-                          <span className="text-[13px] text-muted-foreground">Credit card · amount owed</span>
+                          <span className="text-[13px] font-semibold">{a.name}</span>
+                          <span className="text-[12px] text-muted-foreground">Credit card · amount owed</span>
                         </div>
-                        <span className="money text-[22px] font-bold">{formatMoney(c.balance)}</span>
-                      </div>
+                        <span className="flex items-center gap-1.5">
+                          <span className="money text-[19px] font-bold">{formatMoney(c.balance)}</span>
+                          <ChevronRight className="size-[18px] text-muted-foreground" aria-hidden="true" />
+                        </span>
+                      </Link>
                       <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-4">
                         <Tile term="Statement date" value={a.statementDay ? `${ordinal(a.statementDay)} of the month` : 'Not set'} />
                         <Tile term="Due date" value={c.nextDueDate ? formatShortDate(c.nextDueDate) : 'Not set'} />
@@ -109,7 +116,7 @@ export function AccountsScreen() {
                       {model.safeEnabled && (
                         <Link
                           to="/breakdown"
-                          className="flex min-h-12 items-center justify-between rounded-lg bg-success-tint px-4 text-[15px] font-semibold text-success-text"
+                          className="flex min-h-12 items-center justify-between rounded-lg bg-success-tint px-4 text-[13px] font-semibold text-success-text"
                         >
                           Safe to pay this month: {formatMoney(c.allocation.amount)}
                           <ChevronRight className="size-[18px]" aria-hidden="true" />
@@ -130,13 +137,20 @@ export function AccountsScreen() {
                   const isDebt = a.type === 'debt'
                   return (
                     <section key={a.id} aria-label={a.name} className="flex flex-col gap-3.5 rounded-card bg-card p-4 md:col-span-full md:px-5">
-                      <div className="flex items-start justify-between gap-3">
+                      <Link
+                        to={`/accounts/${a.id}`}
+                        aria-label={`${a.name}, owed ${formatMoney(balance)}. See its transactions`}
+                        className="-m-2 flex items-start justify-between gap-3 rounded-lg p-2 outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-[15px] font-semibold">{a.name}</span>
-                          <span className="text-[13px] text-muted-foreground">{isDebt ? 'Debt' : 'Loan'} · amount owed</span>
+                          <span className="text-[13px] font-semibold">{a.name}</span>
+                          <span className="text-[12px] text-muted-foreground">{isDebt ? 'Debt' : 'Loan'} · amount owed</span>
                         </div>
-                        <span className="money text-[22px] font-bold">{formatMoney(balance)}</span>
-                      </div>
+                        <span className="flex items-center gap-1.5">
+                          <span className="money text-[19px] font-bold">{formatMoney(balance)}</span>
+                          <ChevronRight className="size-[18px] text-muted-foreground" aria-hidden="true" />
+                        </span>
+                      </Link>
                       <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-3">
                         <Tile term="Monthly payment" value={isDebt && !a.minimumDue ? 'Not set' : formatMoney(a.minimumDue ?? 0)} />
                         <Tile term="Next due" value={a.dueDay ? formatShortDate(nextOccurrence(a.dueDay, todayISO())) : 'Not set'} />
@@ -154,19 +168,21 @@ export function AccountsScreen() {
                   )
                 }
                 return (
-                  <button
+                  <Link
                     key={a.id}
-                    type="button"
-                    onClick={() => setEditing(a)}
-                    aria-label={`${a.name}, ${formatMoney(balance)}. Edit`}
+                    to={`/accounts/${a.id}`}
+                    aria-label={`${a.name}, ${formatMoney(balance)}. See its transactions`}
                     className="flex min-h-[76px] items-center justify-between rounded-card bg-card p-4 text-left outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 md:px-5"
                   >
                     <span className="flex flex-col gap-0.5">
-                      <span className="text-[15px] font-semibold">{a.name}</span>
-                      <span className="text-[13px] text-muted-foreground">{TYPE_LABEL[a.type]}</span>
+                      <span className="text-[13px] font-semibold">{a.name}</span>
+                      <span className="text-[12px] text-muted-foreground">{TYPE_LABEL[a.type]}</span>
                     </span>
-                    <span className={cn('money text-lg font-semibold', balance < 0 && 'text-danger-bar')}>{formatMoney(balance)}</span>
-                  </button>
+                    <span className="flex items-center gap-1.5">
+                      <span className={cn('money text-lg font-semibold', balance < 0 && 'text-danger-bar')}>{formatMoney(balance)}</span>
+                      <ChevronRight className="size-[18px] text-muted-foreground" aria-hidden="true" />
+                    </span>
+                  </Link>
                 )
               })}
             </div>
@@ -192,7 +208,7 @@ function Tile({ term, value }: { term: string; value: string }) {
   return (
     <div className="flex flex-col gap-1 rounded-lg bg-background p-3">
       <dt className="text-xs text-muted-foreground">{term}</dt>
-      <dd className="m-0 text-[15px] font-semibold">{value}</dd>
+      <dd className="m-0 text-[13px] font-semibold">{value}</dd>
     </div>
   )
 }
@@ -239,7 +255,7 @@ const schema = z
   })
 type Values = z.infer<typeof schema>
 
-function AccountDialog({
+export function AccountDialog({
   open,
   account,
   onClose,
@@ -303,7 +319,7 @@ function AccountDialog({
             {label}
           </FieldLabel>
           {input({ id: `acct-${name}`, 'aria-invalid': fieldState.invalid, ...f })}
-          {help && <FieldDescription className="text-[13px]">{help}</FieldDescription>}
+          {help && <FieldDescription className="text-[12px]">{help}</FieldDescription>}
           <FieldError errors={[fieldState.error]} />
         </Field>
       )}

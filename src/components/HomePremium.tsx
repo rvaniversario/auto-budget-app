@@ -45,10 +45,10 @@ export function TrialNotice() {
     <section aria-label="Premium trial" className="flex items-start gap-3 rounded-card bg-warning-tint p-4 text-warning-text">
       <Clock className="mt-0.5 size-5 flex-none" aria-hidden="true" />
       <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-        <p className="text-[15px] leading-snug text-foreground">{message}</p>
+        <p className="text-[13px] leading-snug text-foreground">{message}</p>
         <Link
           to="/premium"
-          className="flex h-11 items-center justify-center self-start rounded-lg bg-ink px-4 text-[15px] font-semibold text-ink-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="flex h-11 items-center justify-center self-start rounded-lg bg-ink px-4 text-[13px] font-semibold text-ink-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           Unlock Premium
         </Link>
@@ -92,7 +92,7 @@ export function LegacySyncNotice() {
   return (
     <section aria-label="Sync stays free" className="flex items-start gap-3 rounded-card bg-success-tint p-4 text-success-text">
       <RefreshCw className="mt-0.5 size-5 flex-none" aria-hidden="true" />
-      <p className="min-w-0 flex-1 text-[15px] leading-snug text-foreground">
+      <p className="min-w-0 flex-1 text-[13px] leading-snug text-foreground">
         Sync is now part of Premium. Because you were already using it, it stays free for you.
       </p>
       <DismissButton onClick={dismiss} />
@@ -135,7 +135,7 @@ export function BackupReminder() {
       <HardDriveDownload className="mt-0.5 size-5 flex-none text-link" aria-hidden="true" />
       <div className="flex min-w-0 flex-1 flex-col gap-2.5">
         <div className="flex flex-col gap-0.5">
-          <h2 id="backup-reminder-title" className="font-sans text-[15px] font-bold">
+          <h2 id="backup-reminder-title" className="font-sans text-[13px] font-bold">
             Back up your data
           </h2>
           <p className="text-sm leading-snug text-muted-foreground">
@@ -146,12 +146,12 @@ export function BackupReminder() {
           <button
             type="button"
             onClick={save}
-            className="flex h-11 items-center justify-center rounded-lg bg-primary px-4 text-[15px] font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="flex h-11 items-center justify-center rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             Save a backup file
           </button>
           {premiumEnabled && (
-            <Link to="/premium?feature=sync" className="min-h-11 py-2.5 text-[15px] font-semibold text-link underline-offset-2 hover:underline">
+            <Link to="/premium?feature=sync" className="min-h-11 py-2.5 text-[13px] font-semibold text-link underline-offset-2 hover:underline">
               Sync across devices with Premium
             </Link>
           )}
@@ -192,7 +192,7 @@ export function PlannedDebtBars({ rows }: { rows: NonNullable<ReturnType<typeof 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[13px] font-semibold text-muted-foreground">Debt plan this month</span>
+        <span className="text-[12px] font-semibold text-muted-foreground">Debt plan this month</span>
         <Link to="/debt-planner" className="flex min-h-11 items-center text-sm font-semibold text-link">
           See plan
         </Link>
@@ -202,8 +202,8 @@ export function PlannedDebtBars({ rows }: { rows: NonNullable<ReturnType<typeof 
         return (
           <div key={r.id} className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="truncate text-[15px] font-semibold">{r.name}</span>
-              <span className={cn('flex-none text-[13px]', done ? 'font-semibold text-success-text' : 'text-muted-foreground')}>
+              <span className="truncate text-[13px] font-semibold">{r.name}</span>
+              <span className={cn('flex-none text-[12px]', done ? 'font-semibold text-success-text' : 'text-muted-foreground')}>
                 {formatMoney(r.paid)} of {formatMoney(r.planned)}
               </span>
             </div>

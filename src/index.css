@@ -13,6 +13,27 @@
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Space Grotesk", "Inter", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Compact type scale (Nov 2026): every step one notch smaller than Tailwind's default. */
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.45;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.125rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.375rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 1.625rem;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 2rem;
+  --text-4xl--line-height: 1.1;
+  --text-5xl: 2.625rem;
+  --text-5xl--line-height: 1;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -63,51 +84,61 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
   --radius-card: 16px;
-  --radius-hero: 20px;
+  --radius-hero: 24px;
 }
 
 :root {
   --radius: 12px;
 
-  --background: #f3f5f4;
-  --foreground: #14201b;
-  --card: #ffffff;
-  --card-foreground: #14201b;
-  --popover: #ffffff;
-  --popover-foreground: #14201b;
+  /* Futuristic theme (Nov 2026): grid background with soft glows, glass cards, neon accents. */
+  --background: #eef3f2;
+  --foreground: #0b1a17;
+  --card: rgba(255, 255, 255, 0.74);
+  --card-foreground: #0b1a17;
+  --popover: #f8fcfb;
+  --popover-foreground: #0b1a17;
   --primary: #0f6b4f;
+  --primary-2: #14a37a;
   --primary-foreground: #ffffff;
+  --primary-glow: 0 8px 24px -8px rgba(20, 163, 122, 0.65);
   --secondary: #e3f1eb;
-  --secondary-foreground: #14201b;
-  --muted: #e9eeeb;
+  --secondary-foreground: #0b1a17;
+  --muted: rgba(15, 107, 79, 0.07);
   --muted-foreground: #55635d;
-  --accent: #e3f1eb;
-  --accent-foreground: #14201b;
+  --accent: rgba(31, 185, 140, 0.14);
+  --accent-foreground: #0b1a17;
   --destructive: #b42318;
-  --border: #e1e6e3;
+  --border: #d8e3df;
   --input: #b9c3be;
   --ring: #0f6b4f;
 
   --link: #0f6b4f;
   --progress: #0f6b4f;
-  --success-tint: #e3f1eb;
+  --progress-2: #1fd19e;
+  --progress-glow: 0 0 8px rgba(31, 209, 158, 0.45);
+  --success-tint: rgba(31, 185, 140, 0.14);
   --warning-tint: #fbefd9;
   --warning-text: #7a4700;
-  --warning-bar: #c77700;
+  --warning-bar: #e08a00;
   --danger-tint: #fbe4e1;
   --danger-text: #8a1c12;
   --danger-bar: #b42318;
   --income: #0f6b4f;
-  --success-text: #0a4f3a;
-  --ink: #14201b;
+  --success-text: #0a5a42;
+  --ink: #0b1a17;
   --ink-foreground: #ffffff;
-  --hero-muted: #d7ebe2;
-  --hero-divider: #3f8a72;
-  --hero-chip: #ffffff;
-  --hero-link: #0f6b4f;
+  --hero-muted: #a9bdb7;
+  --hero-divider: rgba(120, 255, 214, 0.18);
+  --hero-chip: rgba(61, 245, 192, 0.14);
+  --hero-link: #7df9d4;
   --segment-on: #ffffff;
   --step-off: #cbd3cf;
   --dash-line: #7f8c86;
+
+  --card-edge: inset 0 0 0 1px rgba(15, 107, 79, 0.1), 0 10px 28px -14px rgba(10, 40, 32, 0.22);
+  --grid-line: rgba(11, 40, 34, 0.045);
+  --glow-mint: rgba(61, 245, 192, 0.3);
+  --glow-violet: rgba(124, 140, 255, 0.18);
 
   /* Report charts: categorical series (always paired with labels, never colour alone). */
   --chart-1: #0f6b4f;
@@ -120,47 +151,56 @@
 }
 
 .dark {
-  --background: #0e1512;
-  --foreground: #e8efeb;
-  --card: #18221d;
-  --card-foreground: #e8efeb;
-  --popover: #18221d;
-  --popover-foreground: #e8efeb;
-  --primary: #0f6b4f;
-  --primary-foreground: #ffffff;
-  --secondary: #12382c;
-  --secondary-foreground: #e8efeb;
-  --muted: #222e28;
-  --muted-foreground: #a9b8b1;
-  --accent: #12382c;
-  --accent-foreground: #e8efeb;
+  --background: #05090b;
+  --foreground: #e6f1ee;
+  --card: rgba(14, 24, 27, 0.74);
+  --card-foreground: #e6f1ee;
+  --popover: #0c171a;
+  --popover-foreground: #e6f1ee;
+  --primary: #3df5c0;
+  --primary-2: #8fe3ff;
+  --primary-foreground: #03110c;
+  --primary-glow: 0 0 24px rgba(61, 245, 192, 0.4);
+  --secondary: #0f3a33;
+  --secondary-foreground: #e6f1ee;
+  --muted: rgba(120, 255, 214, 0.06);
+  --muted-foreground: #a9bdb7;
+  --accent: rgba(61, 245, 192, 0.12);
+  --accent-foreground: #e6f1ee;
   --destructive: #ff8a7d;
-  --border: #2a3731;
-  --input: #3a4a43;
-  --ring: #5cc6a0;
+  --border: #1d2c2c;
+  --input: #2b3d3c;
+  --ring: #3df5c0;
 
-  --link: #5cc6a0;
-  --progress: #3db389;
-  --success-tint: #12382c;
-  --warning-tint: #3a2a0c;
-  --warning-text: #f2c16b;
-  --warning-bar: #c77700;
+  --link: #7df9d4;
+  --progress: #1fb98c;
+  --progress-2: #3df5c0;
+  --progress-glow: 0 0 10px rgba(61, 245, 192, 0.55);
+  --success-tint: rgba(61, 245, 192, 0.12);
+  --warning-tint: #33260a;
+  --warning-text: #ffc14d;
+  --warning-bar: #ffc14d;
   --danger-tint: #3d1612;
   --danger-text: #ffb4ab;
   --danger-bar: #ff8a7d;
-  --income: #5cc6a0;
-  --success-text: #7fd1b2;
-  --ink: #e8efeb;
-  --ink-foreground: #0e1512;
-  --hero-muted: #d7ebe2;
-  --hero-divider: #3f8a72;
-  --hero-chip: #0e1512;
-  --hero-link: #7fd1b2;
-  --segment-on: #3a4a43;
-  --step-off: #3a4a43;
+  --income: #7df9d4;
+  --success-text: #7df9d4;
+  --ink: #e6f1ee;
+  --ink-foreground: #05090b;
+  --hero-muted: #a9bdb7;
+  --hero-divider: rgba(120, 255, 214, 0.18);
+  --hero-chip: rgba(61, 245, 192, 0.14);
+  --hero-link: #7df9d4;
+  --segment-on: #2b3d3c;
+  --step-off: #2b3d3c;
   --dash-line: #5f7068;
 
-  --chart-1: #3db389;
+  --card-edge: inset 0 0 0 1px rgba(120, 255, 214, 0.1);
+  --grid-line: rgba(255, 255, 255, 0.025);
+  --glow-mint: rgba(31, 185, 140, 0.26);
+  --glow-violet: rgba(124, 140, 255, 0.18);
+
+  --chart-1: #3df5c0;
   --chart-2: #6ea8e8;
   --chart-3: #e0a043;
   --chart-4: #b48ae0;
@@ -173,12 +213,47 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* No visible scrollbars anywhere; scrolling still works with touch, wheel and keyboard. */
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
   html {
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* Faint 32px grid with a mint glow top left and a violet glow on the right. */
+    background-image:
+      radial-gradient(520px 380px at 8% 0%, var(--glow-mint), transparent 70%),
+      radial-gradient(480px 440px at 100% 55%, var(--glow-violet), transparent 70%),
+      repeating-linear-gradient(0deg, var(--grid-line) 0 1px, transparent 1px 32px),
+      repeating-linear-gradient(90deg, var(--grid-line) 0 1px, transparent 1px 32px);
+    background-attachment: fixed;
+  }
+  /* Glass cards: every bg-card surface gets a thin edge and soft shadow. */
+  .bg-card {
+    box-shadow: var(--card-edge);
+  }
+  /* Primary buttons and selected chips: gradient with a glow. */
+  :is(a, button).bg-primary {
+    background-image: linear-gradient(90deg, var(--primary), var(--primary-2));
+    box-shadow: var(--primary-glow);
+  }
+  [data-slot="progress-indicator"] {
+    background-image: linear-gradient(90deg, var(--progress), var(--progress-2));
+    box-shadow: var(--progress-glow);
+  }
+  /* Dialogs and sheets stay solid so text over them is easy to read. */
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"],
+  [data-slot="drawer-content"],
+  [data-slot="sheet-content"] {
+    background-color: var(--popover);
+    box-shadow: 0 -20px 60px -20px rgba(61, 245, 192, 0.35), inset 0 1px 0 rgba(61, 245, 192, 0.4);
   }
   h1,
   h2,
@@ -190,6 +265,52 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+}
+
+/* Small uppercase monospace labels: the period line, summary labels. */
+@utility label-mono {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+/* The dark hero card used in both themes: gradient edge (mint to violet) and a glow. */
+@utility hero-card {
+  color: #ffffff;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgba(8, 18, 20, 0.94), rgba(8, 18, 20, 0.94)) padding-box,
+    linear-gradient(135deg, #3df5c0, rgba(61, 245, 192, 0.05) 40%, rgba(124, 140, 255, 0.1) 60%, #7c8cff) border-box;
+  box-shadow: 0 20px 60px -20px rgba(61, 245, 192, 0.45);
+}
+
+/* Big amount on the hero card: gradient text. */
+@utility hero-amount {
+  background: linear-gradient(90deg, #e9fff8, #7df9d4 55%, #9aa6ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Button on the hero card. */
+@utility hero-cta {
+  background: linear-gradient(90deg, #3df5c0, #8fe3ff);
+  color: #03110c;
+  box-shadow: 0 0 24px rgba(61, 245, 192, 0.45);
+  outline: none;
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* Floating add button: a glowing orb. */
+@utility fab-orb {
+  background: radial-gradient(circle at 30% 30%, #b6ffe9, #3df5c0 45%, #1fb98c);
+  color: #03110c;
+  box-shadow: 0 0 0 6px rgba(61, 245, 192, 0.12), 0 0 32px rgba(61, 245, 192, 0.6);
 }
 
 @utility money {
