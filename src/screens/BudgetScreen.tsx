@@ -14,6 +14,8 @@ import { repo } from '@/data'
 import { useAppData } from '@/hooks/useAppData'
 import { AmountEditDialog } from '@/components/AmountEditDialog'
 import { AmountButton } from '@/components/inputs'
+import { Button } from '@/components/ui/button'
+import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { SectionLabel, TabHeader } from '@/components/layout'
 import { cn } from '@/lib/utils'
 
@@ -64,6 +66,7 @@ function ColumnHeads({ last }: { last: string }) {
 
 export function BudgetScreen() {
   const { model, snapshot } = useAppData()
+  const openAdd = useAddTransaction()
   const navigate = useNavigate()
   const [editing, setEditing] = useState<Editing>(null)
   const { plan } = model
@@ -112,23 +115,36 @@ export function BudgetScreen() {
 
       <div className="grid gap-4 md:gap-5 lg:grid-cols-2 lg:items-start lg:gap-6">
       <div className="flex min-w-0 flex-col gap-4 md:gap-5">
-      <section
-        aria-label="Allocation summary"
-        className={cn('flex items-center justify-between gap-3 rounded-card p-4', u < 0 ? 'bg-danger-tint' : 'bg-success-tint')}
-      >
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[13px]">
-            {INCOME_LABEL.short} {formatMoney(model.income)}
-            {model.carryOver !== 0 && ` ${model.carryOver > 0 ? '+' : '−'} ${formatMoney(Math.abs(model.carryOver))} carried over`}
+      {model.waitingForIncome ? (
+        <section aria-label="Allocation summary" className="flex flex-col gap-3 rounded-card bg-success-tint p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[13px]">{INCOME_LABEL.short} {formatMoney(0)}</span>
+              <span className="text-lg font-bold text-success-text">Add your income to see your plan</span>
+            </div>
+            <span className="rounded-[14px] bg-card px-3 py-1.5 text-[13px] font-bold text-success-text">Waiting</span>
+          </div>
+          <Button className="h-11" onClick={() => openAdd({ type: 'income' })}>Log your income</Button>
+        </section>
+      ) : (
+        <section
+          aria-label="Allocation summary"
+          className={cn('flex items-center justify-between gap-3 rounded-card p-4', u < 0 ? 'bg-danger-tint' : 'bg-success-tint')}
+        >
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[13px]">
+              {INCOME_LABEL.short} {formatMoney(model.income)}
+              {model.carryOver !== 0 && ` ${model.carryOver > 0 ? '+' : '−'} ${formatMoney(Math.abs(model.carryOver))} carried over`}
+            </span>
+            <span className={cn('money text-lg font-bold', u < 0 ? 'text-danger-text' : 'text-success-text')}>
+              {u === 0 ? 'Fully allocated' : u > 0 ? `${formatMoney(u)} left to assign` : `Over by ${formatMoney(-u)}`}
+            </span>
+          </div>
+          <span className={cn('rounded-[14px] bg-card px-3 py-1.5 text-[13px] font-bold', u < 0 ? 'text-danger-text' : 'text-success-text')}>
+            {formatMoney(Math.max(0, u))} unassigned
           </span>
-          <span className={cn('money text-lg font-bold', u < 0 ? 'text-danger-text' : 'text-success-text')}>
-            {u === 0 ? 'Fully allocated' : u > 0 ? `${formatMoney(u)} left to assign` : `Over by ${formatMoney(-u)}`}
-          </span>
-        </div>
-        <span className={cn('rounded-[14px] bg-card px-3 py-1.5 text-[13px] font-bold', u < 0 ? 'text-danger-text' : 'text-success-text')}>
-          {formatMoney(Math.max(0, u))} unassigned
-        </span>
-      </section>
+        </section>
+      )}
       {u > 0 && model.safe.paysInFull && (
         <p className="-mt-2 text-[13px] text-muted-foreground">Your card is paid in full, so the rest is free to save or use.</p>
       )}
@@ -154,9 +170,18 @@ export function BudgetScreen() {
             </Link>
           </Row>
         )}
-        <Row title="Buffer" sub={model.bufferIsOverride ? `For surprises · changed this month` : 'For surprises'}>
+        <Row
+          title="Buffer"
+          sub={
+            model.waitingForIncome
+              ? `${formatMoney(model.buffer)} · counted once income is logged`
+              : model.bufferIsOverride
+                ? `For surprises · changed this month`
+                : 'For surprises'
+          }
+        >
           <AmountButton aria-label="Edit buffer" onClick={() => setEditing({ kind: 'buffer' })}>
-            {formatMoney(model.buffer)}
+            {formatMoney(model.waitingForIncome ? 0 : model.buffer)}
           </AmountButton>
         </Row>
         {oneTimeLine && (

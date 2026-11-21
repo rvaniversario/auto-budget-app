@@ -201,9 +201,10 @@ describe('computeMonthModel', () => {
     expect(m.safe.belowMinimum).toBe(false)
     expect(m.cards).toEqual([])
     expect(m.shortfallOptions).toEqual([])
-    // No income logged yet, so only the buffer is planned and the plan is over by it.
+    // No income logged yet: the buffer is not set aside, so nothing is "over" (1.1.1).
     expect(m.income).toBe(0)
-    expect(m.plan.unassigned).toBe(-pesos(3_000))
+    expect(m.waitingForIncome).toBe(true)
+    expect(m.plan.unassigned).toBe(0)
   })
 
   it('uses last month real spending once it exists, and a card payment never counts as spending', () => {
@@ -374,5 +375,37 @@ describe('transactionsToCSV', () => {
     expect(lines).toHaveLength(3)
     expect(lines[1]).toBe("2026-11-01,expense,1,,,,BDO,,'=cmd(),no")
     expect(lines[2]).toBe('2026-11-02,expense,1234.50,,Groceries,,BDO,,"eggs, ""fresh""",no')
+  })
+})
+
+describe('new user before any income (1.1.1)', () => {
+  it('sets no buffer aside and is not "over" with no income and no bills', () => {
+    const w = world()
+    const m = computeMonthModel(snapshot({ accounts: [w.bank], categories: [w.groceries] }), TODAY)
+    expect(m.waitingForIncome).toBe(true)
+    expect(m.buffer).toBe(pesos(3_000))
+    expect(m.plan.setAsideFirst.find((l) => l.key === 'buffer')?.amount).toBe(0)
+    expect(m.plan.unassigned).toBe(0)
+    expect(m.unpaidBills).toBe(0)
+    expect(m.leftAfterBills).toBe(0)
+  })
+
+  it('still reports unpaid bills when bills exist but no income is logged', () => {
+    const w = world()
+    const m = computeMonthModel(snapshot({ accounts: [w.bank], categories: [w.groceries], fixedBills: [w.rent] }), TODAY)
+    expect(m.waitingForIncome).toBe(true)
+    expect(m.unpaidBills).toBe(pesos(15_000))
+    expect(m.unpaidBills > m.remaining).toBe(true)
+  })
+
+  it('sets the buffer aside from the first income', () => {
+    const w = world()
+    const m = computeMonthModel(
+      snapshot({ accounts: [w.bank], categories: [w.groceries], transactions: [pay(10_000)] }),
+      TODAY,
+    )
+    expect(m.waitingForIncome).toBe(false)
+    expect(m.plan.setAsideFirst.find((l) => l.key === 'buffer')?.amount).toBe(pesos(3_000))
+    expect(m.plan.unassigned).toBe(pesos(7_000))
   })
 })

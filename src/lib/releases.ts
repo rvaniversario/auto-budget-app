@@ -15,6 +15,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '1.1.1',
+    date: '2026-11-21',
+    highlights: [
+      'No more mixed messages on a fresh start: Home no longer says your bills are more than what is left when you have no bills. It says "No bills set up yet" instead.',
+      'Your plan waits for your income: before you log any, Budget asks you to add it instead of saying you are "Over by ₱3,000". Your buffer is set aside once income comes in.',
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2026-11-19',
     highlights: [

@@ -97,6 +97,11 @@ export interface MonthModel {
   carryOverEnabled: boolean
   /** income + carryOver: what this month's plan has to work with. */
   available: Centavos
+  /**
+   * No income logged since payday and nothing carried over. The plan sets no
+   * buffer aside and the Budget screen asks for income instead of showing "Over by".
+   */
+  waitingForIncome: boolean
   hasHistory: boolean
   isEstimate: boolean
   /**
@@ -201,6 +206,9 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
   const debtIds = accounts.filter((a) => isDebtAccount(a.type)).map((a) => a.id)
   const carryOver = carryOverEnabled ? carryOverBefore(transactions, debtIds, period.start) : 0
   const available = income + carryOver
+  const waitingForIncome = income <= 0 && carryOver <= 0
+  // The buffer only comes out of money that exists: none before the first income.
+  const plannedBuffer = waitingForIncome ? 0 : buffer
   const cardInputs = creditCards.map((account) => {
     const balance = getAccountBalance(account, transactions)
     const paid = cardPaymentsInPeriod(account.id, transactions, period)
@@ -221,7 +229,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
     essentialTotal: totalByKind(budgets, 'essential'),
     optionalTotal: totalByKind(budgets, 'optional'),
     oneTimeTotal: oneTime,
-    buffer,
+    buffer: plannedBuffer,
     cardBalance: safeEnabled ? sum(cardInputs.map((c) => c.planBalance)) : 0,
     minimumDue: safeEnabled ? sum(cardInputs.map((c) => Math.min(c.minimumDue, c.planBalance))) : 0,
     isEstimate: budgets.some((b) => b.baseline.isEstimate && !b.isOverride),
@@ -244,7 +252,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
     fixedBills,
     categoryBudgets: budgets,
     safe,
-    buffer,
+    buffer: plannedBuffer,
     oneTimeTotal: oneTime,
     hasCard: safeEnabled && creditCards.length > 0,
   })
@@ -283,6 +291,7 @@ export function computeMonthModel(data: AppSnapshot, today: ISODate): MonthModel
     carryOver,
     carryOverEnabled,
     available,
+    waitingForIncome,
     hasHistory: history,
     isEstimate: safe.isEstimate,
     safeEnabled,

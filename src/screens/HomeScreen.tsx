@@ -243,14 +243,24 @@ function MonthSummary() {
       <SummaryStat label="Remaining" value={model.remaining} highlight />
       <SummaryStat
         label="Left after bills"
-        sub={model.unpaidBills > 0 ? `${formatMoney(model.unpaidBills)} in bills still to pay` : 'All bills paid'}
+        sub={
+          model.unpaidBills > 0
+            ? `${formatMoney(model.unpaidBills)} in bills still to pay`
+            : model.fixedBillsTotal > 0
+              ? 'All bills paid'
+              : 'No bills set up yet'
+        }
         value={model.leftAfterBills}
         highlight
       />
       <p className="col-span-full border-t border-border pt-3 text-[13px] text-muted-foreground">
         {model.leftAfterBills > 0
           ? <>About <strong className="money text-foreground">{formatMoney(model.perDayAfterBills)} a day</strong> for the {model.daysLeft === 1 ? 'last day' : `${model.daysLeft} days`} until payday, with your bills covered.</>
-          : 'Your bills still to pay are more than what is left this month.'}
+          : model.unpaidBills > 0 && model.unpaidBills > model.remaining
+            ? 'Your bills still to pay are more than what is left this month.'
+            : model.waitingForIncome
+              ? 'Log your income to see how much you can spend each day.'
+              : 'Nothing left to spend until payday.'}
       </p>
     </section>
   )

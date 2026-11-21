@@ -100,7 +100,8 @@ If the user has more than one credit card, compute per card in version 1 by spli
 Return up to three options to close the shortfall: use part of the buffer, cut optional spending, or split evenly between both. Each option shows the amount and its effect.
 
 ### Edge cases to test
-- No transactions at all (new user)
+- No transactions at all (new user): no income means no buffer is set aside, Budget shows "Add your income to see your plan" (never "Over by"), and Home shows "No bills set up yet" with no bills warning
+- Bills set up but no income yet: Home warns that bills still to pay are more than what is left (unpaid bills > ₱0 and > remaining)
 - Salary lower than fixed bills (safe payment 0, below minimum)
 - Card balance smaller than the safe amount (pay in full)
 - Payday on the 31st in February
