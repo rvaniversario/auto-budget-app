@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { ChevronRight, Plus, ReceiptText, TriangleAlert } from 'lucide-react'
 import { Link } from 'react-router'
 import {
@@ -191,7 +191,13 @@ function Hero() {
           <span className="flex-none rounded-xl bg-hero-chip px-2.5 py-[3px] text-[10px] font-bold text-hero-link">Estimate</span>
         )}
       </div>
-      <p className="money hero-amount text-5xl leading-none font-bold tracking-[-0.02em] md:text-[38px] lg:text-[46px]">{formatMoney(safe.amount)}</p>
+      <div className="flex items-center gap-4">
+        {safe.cardBalance > 0 && <BillRing amount={safe.amount} bill={safe.cardBalance} />}
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <p className="money hero-amount text-[38px] leading-none font-bold tracking-[-0.02em] lg:text-[46px]">{formatMoney(safe.amount)}</p>
+          <p className="text-sm text-hero-muted">of {formatMoney(safe.cardBalance)} bill</p>
+        </div>
+      </div>
       {safe.isEstimate && (
         <p className="text-sm leading-[1.45] text-hero-muted">
           No spending logged last month yet, so your categories start at ₱0. This gets more accurate as you log transactions.
@@ -206,8 +212,7 @@ function Hero() {
       {safe.paysInFull && !safe.belowMinimum && (
         <p className="text-sm leading-[1.45] text-hero-muted">That clears your whole bill, so you pay no interest.</p>
       )}
-      <div className="grid grid-cols-3 gap-2 border-t border-hero-divider pt-3.5">
-        <HeroStat label="Bill total" value={formatMoney(safe.cardBalance)} />
+      <div className="grid grid-cols-2 gap-2">
         <HeroStat label="Due" value={dueDate ? formatShortDate(dueDate) : 'Not set'} />
         <HeroStat label="Minimum due" value={formatMoney(safe.minimumDue)} />
       </div>
@@ -228,9 +233,52 @@ function Hero() {
   )
 }
 
+/**
+ * Ring showing the safe amount as a share of the card bill (30% of ₱50,000 for
+ * ₱15,000). Purely visual: the same numbers are in the text beside it.
+ */
+function BillRing({ amount, bill }: { amount: number; bill: number }) {
+  const gradientId = `ring-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
+  const percent = Math.max(0, Math.min(100, Math.round((amount / bill) * 100)))
+  const r = 46
+  const circumference = 2 * Math.PI * r
+  return (
+    <div className="relative size-[104px] flex-none" role="img" aria-label={`${percent}% of your bill`}>
+      <svg viewBox="0 0 112 112" className="size-full -rotate-90" aria-hidden="true">
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#3df5c0" />
+            <stop offset="1" stopColor="#7c8cff" />
+          </linearGradient>
+        </defs>
+        <circle cx="56" cy="56" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="8" />
+        <circle cx="56" cy="56" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeDasharray="1 5.02" />
+        {percent > 0 && (
+          <circle
+            cx="56"
+            cy="56"
+            r={r}
+            fill="none"
+            stroke={`url(#${gradientId})`}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={`${(percent / 100) * circumference} ${circumference}`}
+            className="transition-[stroke-dasharray] duration-700 ease-out motion-reduce:transition-none"
+            style={{ filter: 'drop-shadow(0 0 6px rgba(61,245,192,0.8))' }}
+          />
+        )}
+      </svg>
+      <div aria-hidden="true" className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+        <span className="money text-[21px] font-bold">{percent}%</span>
+        <span className="label-mono text-[9px] text-hero-muted">of bill</span>
+      </div>
+    </div>
+  )
+}
+
 function HeroStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
+    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-white/6 bg-white/4 px-3 py-2.5">
       <span className="label-mono text-hero-muted">{label}</span>
       <span className="money truncate text-[13px] font-semibold">{value}</span>
     </div>
