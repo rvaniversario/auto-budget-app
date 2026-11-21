@@ -16,7 +16,7 @@ export function AddTransactionScreen() {
   const [prefill] = useState<AddPrefill>(() => {
     const t = params.get('type')
     const type: TransactionType | undefined = t === 'income' || t === 'transfer' || t === 'expense' ? t : undefined
-    return { type, to: params.get('to'), categoryId: params.get('category') }
+    return { type, to: params.get('to'), categoryId: params.get('category'), from: params.get('from') }
   })
 
   // A deep link to /add on a wide screen: go Home and show the dialog.

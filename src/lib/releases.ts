@@ -15,6 +15,24 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: '1.2.0',
+    date: '2026-11-21',
+    highlights: [
+      'A new look: a dark grid background with soft glows, glass cards and neon highlights, in both light and dark themes, with smaller, tidier text.',
+      'Tap any account to see only its transactions, with money in and out this month. Edit the account from the pencil button, or add a transaction to it with the + button.',
+      'When Safe to pay is off, Home no longer mentions it.',
+      'The version button has moved to the bottom of each screen.',
+    ],
+  },
+  {
+    version: '1.1.1',
+    date: '2026-11-21',
+    highlights: [
+      'No more mixed messages on a fresh start: Home no longer says your bills are more than what is left when you have no bills. It says "No bills set up yet" instead.',
+      'Your plan waits for your income: before you log any, Budget asks you to add it instead of saying you are "Over by ₱3,000". Your buffer is set aside once income comes in.',
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2026-11-19',
     highlights: [

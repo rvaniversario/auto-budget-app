@@ -50,8 +50,8 @@ export function MoveBudgetDialog({ over, open, onOpenChange }: { over: CategoryR
                   className="flex min-h-14 w-full items-center justify-between gap-3 py-2 text-left hover:bg-muted/50"
                 >
                   <span className="flex flex-col">
-                    <span className="text-[15px] font-semibold">{d.name}</span>
-                    <span className="text-[13px] text-muted-foreground">{formatMoney(left)} left</span>
+                    <span className="text-[13px] font-semibold">{d.name}</span>
+                    <span className="text-[12px] text-muted-foreground">{formatMoney(left)} left</span>
                   </span>
                   <span className="text-sm font-semibold text-link">
                     {amount < over.overBy ? `Move ${formatMoney(amount)}` : 'Move'}
@@ -68,8 +68,8 @@ export function MoveBudgetDialog({ over, open, onOpenChange }: { over: CategoryR
                 className="flex min-h-14 w-full items-center justify-between gap-3 py-2 text-left hover:bg-muted/50"
               >
                 <span className="flex flex-col">
-                  <span className="text-[15px] font-semibold">Buffer</span>
-                  <span className="text-[13px] text-muted-foreground">{formatMoney(model.buffer)} set aside for surprises</span>
+                  <span className="text-[13px] font-semibold">Buffer</span>
+                  <span className="text-[12px] text-muted-foreground">{formatMoney(model.buffer)} set aside for surprises</span>
                 </span>
                 <span className="text-sm font-semibold text-link">Use buffer</span>
               </button>

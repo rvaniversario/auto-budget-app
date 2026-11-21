@@ -10,7 +10,7 @@ import { useEntitlement } from './index'
 /** Small dark "Premium" pill. */
 export function PremiumBadge({ className }: { className?: string }) {
   return (
-    <span className={cn('inline-flex flex-none items-center rounded-[10px] bg-ink px-2.5 py-0.5 text-[11px] font-bold text-ink-foreground', className)}>
+    <span className={cn('inline-flex flex-none items-center rounded-[10px] bg-ink px-2.5 py-0.5 text-[10px] font-bold text-ink-foreground', className)}>
       Premium
     </span>
   )
@@ -78,9 +78,9 @@ export function LockedFeature({ feature, header = true }: { feature: PremiumFeat
         <h2 id={`locked-${f.id}`} className="text-2xl leading-tight font-bold">
           {f.name}
         </h2>
-        <p className="text-[15px] leading-normal text-muted-foreground">{f.description}</p>
+        <p className="text-[13px] leading-normal text-muted-foreground">{f.description}</p>
         <Preview feature={feature} />
-        <ul className="flex flex-col gap-2.5 text-[15px]">
+        <ul className="flex flex-col gap-2.5 text-[13px]">
           {f.highlights.map((h) => (
             <li key={h} className="flex items-start gap-2.5">
               <Check className="mt-0.5 size-5 flex-none text-link" strokeWidth={2.4} aria-hidden="true" />
@@ -94,7 +94,7 @@ export function LockedFeature({ feature, header = true }: { feature: PremiumFeat
         >
           See Premium
         </Link>
-        {ent.trialAvailable && <p className="text-center text-[13px] text-muted-foreground">Try it free for 14 days. No payment needed.</p>}
+        {ent.trialAvailable && <p className="text-center text-[12px] text-muted-foreground">Try it free for 14 days. No payment needed.</p>}
       </section>
     </div>
   )
@@ -128,11 +128,11 @@ export function PremiumEntry({
         <Icon className="size-5" aria-hidden="true" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex items-center gap-2 text-[15px] font-semibold">
+        <span className="flex items-center gap-2 text-[13px] font-semibold">
           {title ?? f.name}
           {!ent.isPremium && <PremiumBadge />}
         </span>
-        <span className="text-[13px] text-muted-foreground">{description ?? f.benefit}</span>
+        <span className="text-[12px] text-muted-foreground">{description ?? f.benefit}</span>
       </span>
     </Link>
   )

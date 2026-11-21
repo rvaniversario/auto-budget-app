@@ -93,7 +93,7 @@ export function AmountEditDialog({
             </p>
           )}
           {suggested !== undefined && suggested !== current && (
-            <p className="text-[13px] text-muted-foreground">Suggested from last month: {formatMoney(suggested)}</p>
+            <p className="text-[12px] text-muted-foreground">Suggested from last month: {formatMoney(suggested)}</p>
           )}
           <DialogFooter className="gap-2">
             {onReset && (

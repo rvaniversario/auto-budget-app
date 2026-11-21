@@ -21,7 +21,7 @@ function Row({ label, value, warn, first }: { label: string; value: string; warn
   return (
     <div className={`flex min-h-12 items-center justify-between gap-3 ${first ? '' : 'border-t border-border'}`}>
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={`text-right text-[15px] font-semibold ${warn ? 'text-warning-text' : ''}`}>{value}</span>
+      <span className={`text-right text-[13px] font-semibold ${warn ? 'text-warning-text' : ''}`}>{value}</span>
     </div>
   )
 }
@@ -52,12 +52,12 @@ function SyncLocked({ hadSynced }: { hadSynced: boolean }) {
       {premiumEnabled && (
         <Link
           to="/premium?feature=sync"
-          className="flex h-12 items-center justify-center rounded-lg bg-primary text-[15px] font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="flex h-12 items-center justify-center rounded-lg bg-primary text-[13px] font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           See Premium
         </Link>
       )}
-      <Link to="/backup" className="min-h-11 self-center py-2.5 text-[15px] font-semibold text-link underline-offset-2 hover:underline">
+      <Link to="/backup" className="min-h-11 self-center py-2.5 text-[13px] font-semibold text-link underline-offset-2 hover:underline">
         Save a backup file instead
       </Link>
     </section>
@@ -97,7 +97,7 @@ export function AccountScreen() {
 
       <section aria-label="Account" className="flex flex-col gap-0.5 rounded-card bg-card p-4">
         <span className="text-base font-bold break-all">{sync.user.email}</span>
-        <span className="text-[13px] text-muted-foreground">
+        <span className="text-[12px] text-muted-foreground">
           {sync.user.provider === 'google' ? 'Signed in with Google' : 'Signed in with an email code'}
           {premiumEnabled && !ent.loading && ` · ${planLabel(ent)}`}
         </span>
@@ -121,10 +121,10 @@ export function AccountScreen() {
           {sync.pending > 0 && <Row label="Waiting on this device" value={changes} warn />}
           <Row label="Devices" value={sync.remote ? describeDevices(sync.remote.devices, deviceId) : '…'} />
         </div>
-        <p className="border-t border-border pt-3 text-[13px] leading-normal text-muted-foreground">{note}</p>
+        <p className="border-t border-border pt-3 text-[12px] leading-normal text-muted-foreground">{note}</p>
         <Button
           variant="outline"
-          className="h-12 rounded-lg border-primary bg-card text-[15px] font-semibold text-link disabled:border-input disabled:text-muted-foreground"
+          className="h-12 rounded-lg border-primary bg-card text-[13px] font-semibold text-link disabled:border-input disabled:text-muted-foreground"
           disabled={offline || sync.phase === 'syncing' || !sync.linked}
           onClick={async () => {
             await syncNow()
@@ -148,12 +148,12 @@ export function AccountScreen() {
         >
           Sign out
         </Button>
-        <p className="text-center text-[13px] leading-normal text-muted-foreground">
+        <p className="text-center text-[12px] leading-normal text-muted-foreground">
           Signing out keeps your data on this device. It stops syncing until you sign in again.
         </p>
       </div>
 
-      <Button variant="ghost" className="min-h-11 text-[15px] font-semibold text-danger-bar hover:text-danger-bar" onClick={() => setConfirmDelete(true)}>
+      <Button variant="ghost" className="min-h-11 text-[13px] font-semibold text-danger-bar hover:text-danger-bar" onClick={() => setConfirmDelete(true)}>
         Delete account and online data
       </Button>
 

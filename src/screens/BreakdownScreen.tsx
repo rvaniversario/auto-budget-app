@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils'
 function Line({ label, sub, amount, minus = true, tag }: { label: ReactNode; sub?: string; amount: number; minus?: boolean; tag?: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="flex min-w-0 flex-col gap-0.5 text-[15px]">
+      <span className="flex min-w-0 flex-col gap-0.5 text-[13px]">
         <span className="flex items-center gap-2">
           {label}
           {tag}
@@ -77,7 +77,7 @@ function Breakdown() {
     return (
       <>
         <SubHeader title="Credit card payment" />
-        <p className="text-[15px] text-muted-foreground">
+        <p className="text-[13px] text-muted-foreground">
           You haven't added a credit card. <Link to="/accounts" className="font-semibold text-link underline">Add one on the Accounts tab</Link> to get a safe payment amount.
         </p>
       </>
@@ -117,21 +117,21 @@ function Breakdown() {
             <p className="text-sm font-bold">Below your minimum due</p>
           </div>
           <p className="text-sm font-medium text-foreground">Your budget can cover only</p>
-          <p className="money text-5xl leading-none font-bold tracking-[-0.02em] md:text-[52px]">{formatMoney(safe.amount)}</p>
+          <p className="money text-5xl leading-none font-bold tracking-[-0.02em] md:text-[46px]">{formatMoney(safe.amount)}</p>
           <p className="text-sm leading-[1.45] text-foreground">
             Minimum due is <strong>{formatMoney(safe.effectiveMinimum)}</strong>
             {dueDate ? ` by ${formatShortDate(dueDate)}` : ''}. You are short by <strong>{formatMoney(safe.shortfall)}</strong>. Paying less than the minimum usually adds a late fee on top of interest.
           </p>
         </section>
       ) : (
-        <section aria-label="Recommended payment" className="flex flex-col gap-2 rounded-hero bg-primary p-5 text-primary-foreground">
+        <section aria-label="Recommended payment" className="flex flex-col gap-2 hero-card rounded-hero p-5">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-medium text-hero-muted">Safe to pay on your credit card this month</p>
             {safe.isEstimate && (
-              <span className="flex-none rounded-xl bg-hero-chip px-2.5 py-[3px] text-[11px] font-bold text-success-text">Estimate</span>
+              <span className="flex-none rounded-xl bg-hero-chip px-2.5 py-[3px] text-[10px] font-bold text-hero-link">Estimate</span>
             )}
           </div>
-          <p className="money text-5xl leading-none font-bold tracking-[-0.02em] md:text-[52px]">{formatMoney(safe.amount)}</p>
+          <p className="money text-5xl leading-none font-bold tracking-[-0.02em] md:text-[46px]">{formatMoney(safe.amount)}</p>
           <p className="text-sm leading-[1.45] text-hero-muted">
             of your {formatMoney(safe.cardBalance)} bill{dueDate ? ` · due ${formatShortDate(dueDate)}` : ''} · minimum due {formatMoney(safe.minimumDue)}
           </p>
@@ -177,19 +177,19 @@ function Breakdown() {
         {safe.unclamped > safe.cardBalance && (
           <>
             <Line label="Available for your card" amount={safe.unclamped} minus={false} />
-            <p className="text-[13px] leading-[1.45] text-muted-foreground">
+            <p className="text-[12px] leading-[1.45] text-muted-foreground">
               Your bill is only {formatMoney(safe.cardBalance)}, so you can pay it in full. The other{' '}
               {formatMoney(safe.unclamped - safe.cardBalance)} stays unassigned.
             </p>
           </>
         )}
         {safe.unclamped < 0 && (
-          <p className="text-[13px] leading-[1.45] text-danger-text">
+          <p className="text-[12px] leading-[1.45] text-danger-text">
             Your plan needs {formatMoney(-safe.unclamped)} more than your income, so nothing is left for the card.
           </p>
         )}
         <div className="flex items-baseline justify-between border-t-2 border-foreground pt-3">
-          <span className="text-[15px] font-bold">{safe.belowMinimum ? 'Left for the card' : 'Safe card payment'}</span>
+          <span className="text-[13px] font-bold">{safe.belowMinimum ? 'Left for the card' : 'Safe card payment'}</span>
           <span className={cn('money text-xl font-bold', safe.belowMinimum ? 'text-danger-bar' : 'text-link')}>{formatMoney(safe.amount)}</span>
         </div>
       </section>
@@ -200,8 +200,8 @@ function Breakdown() {
           {model.shortfallOptions.map((o, i) => (
             <div key={o.id} className={cn('flex min-h-16 items-center justify-between gap-3 py-2', i > 0 && 'border-t border-border')}>
               <div className="flex flex-col gap-0.5">
-                <span className="text-[15px] font-semibold">{o.title}</span>
-                <span className="text-[13px] text-muted-foreground">{o.effect}</span>
+                <span className="text-[13px] font-semibold">{o.title}</span>
+                <span className="text-[12px] text-muted-foreground">{o.effect}</span>
               </div>
               <button
                 type="button"
@@ -219,10 +219,10 @@ function Breakdown() {
       {cards.length > 1 && (
         <section aria-label="Split across cards" className="flex flex-col gap-3 rounded-card bg-card px-4 py-[18px] md:px-5">
           <h2 className="font-sans text-base font-bold">How to split it</h2>
-          <p className="text-[13px] text-muted-foreground">Minimums first, then the card with the highest interest.</p>
+          <p className="text-[12px] text-muted-foreground">Minimums first, then the card with the highest interest.</p>
           {cards.map((c) => (
             <div key={c.account.id} className="flex items-baseline justify-between gap-3">
-              <span className="flex flex-col gap-0.5 text-[15px]">
+              <span className="flex flex-col gap-0.5 text-[13px]">
                 {c.account.name}
                 <span className="text-xs text-muted-foreground">
                   {formatMoney(c.planBalance)} owed · {c.monthlyInterestRate}% a month
@@ -320,7 +320,7 @@ function Breakdown() {
               {whatIfCompare(scenario)}
             </span>
             {scenario.cut < pesos(cutPesos) && (
-              <span className="text-[13px] text-muted-foreground">Your optional budgets only total {formatMoney(scenario.cut)}.</span>
+              <span className="text-[12px] text-muted-foreground">Your optional budgets only total {formatMoney(scenario.cut)}.</span>
             )}
           </div>
         </section>

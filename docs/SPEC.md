@@ -100,7 +100,8 @@ If the user has more than one credit card, compute per card in version 1 by spli
 Return up to three options to close the shortfall: use part of the buffer, cut optional spending, or split evenly between both. Each option shows the amount and its effect.
 
 ### Edge cases to test
-- No transactions at all (new user)
+- No transactions at all (new user): no income means no buffer is set aside, Budget shows "Add your income to see your plan" (never "Over by"), and Home shows "No bills set up yet" with no bills warning
+- Bills set up but no income yet: Home warns that bills still to pay are more than what is left (unpaid bills > ₱0 and > remaining)
 - Salary lower than fixed bills (safe payment 0, below minimum)
 - Card balance smaller than the safe amount (pay in full)
 - Payday on the 31st in February
@@ -259,3 +260,12 @@ Work in this order and keep the app runnable after each step:
 ## Out of scope for version 1
 
 User accounts, cloud sync, payments and subscriptions, bank connections, notifications, multiple currencies, twice-a-month pay, ads.
+
+## Version 1.2.0 changes (Nov 2026)
+
+- **Look:** futuristic theme. Faint 32px grid background with a mint glow (top left) and a violet glow (right); glass cards (`--card` is translucent, with a thin edge); the hero card is dark in both themes with a mint-to-violet gradient edge, gradient amount text and a neon button; primary buttons and progress bars use gradients with a glow; the add button is a glowing orb; dialogs stay solid. JetBrains Mono, uppercase, for small labels (the period line, summary labels, section labels).
+- **Type:** one step smaller across the app (Tailwind text scale overridden in `index.css`; fixed sizes reduced by 1px up to 14px and by 12.5% above).
+- **Scrollbars:** hidden everywhere; scrolling still works by touch, wheel and keyboard.
+- **Safe to pay off:** Home says nothing about it. The hero shows what is not yet given a job, with "Open budget plan" (or "Log your income" when there is no income yet).
+- **Account transactions (`/accounts/:id`):** every account on Accounts opens its own transactions (paid from it, paid into it, transfers either way, fees included), with balance, in and out this month, "This budget month" / "All time", a pencil button in the header to edit the account, and a + button that opens Add transaction with that account selected (`?from=<id>`).
+- **Version button:** at the very bottom of each tab screen on phones and tablets, and at the bottom of the sidebar on laptops.

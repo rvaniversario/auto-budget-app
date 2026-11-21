@@ -48,11 +48,11 @@ function DebtPlanner() {
       <>
         <SubHeader title="Debt planner" />
         <section className="flex flex-col items-center gap-3 rounded-card border border-dashed border-dash-line px-5 py-8 text-center">
-          <h2 className="font-sans text-[17px] font-bold">Nothing to plan yet</h2>
+          <h2 className="font-sans text-[15px] font-bold">Nothing to plan yet</h2>
           <p className="max-w-prose text-sm text-muted-foreground">
             Add a credit card or a loan with a balance on the Accounts tab, and the planner will work out when you can be debt-free.
           </p>
-          <Link to="/accounts" className="flex h-12 items-center rounded-[14px] bg-primary px-5 text-[15px] font-semibold text-primary-foreground">
+          <Link to="/accounts" className="flex h-12 items-center rounded-[14px] bg-primary px-5 text-[13px] font-semibold text-primary-foreground">
             Go to Accounts
           </Link>
         </section>
@@ -67,9 +67,9 @@ function DebtPlanner() {
       <SubHeader title="Debt planner" />
       <div className="grid gap-4 md:gap-5 lg:grid-cols-2 lg:items-start">
         <div className="flex min-w-0 flex-col gap-4 md:gap-5">
-          <section aria-label="Your debt-free date" className="flex flex-col gap-3 rounded-hero bg-primary p-5 text-primary-foreground">
+          <section aria-label="Your debt-free date" className="flex flex-col gap-3 hero-card rounded-hero p-5">
             <p className="text-sm font-medium text-hero-muted">{debtFree ? 'Debt-free by' : 'At this amount'}</p>
-            <p className="text-[34px] leading-tight font-bold tracking-[-0.01em]">
+            <p className="text-[30px] leading-tight font-bold tracking-[-0.01em]">
               {debtFree ? formatYearMonth(debtFree) : "Your debts won't be paid off"}
             </p>
             <p className="text-sm leading-[1.45] text-hero-muted">
@@ -96,8 +96,8 @@ function DebtPlanner() {
           <section className={cn(card, 'gap-2')}>
             <div className="flex min-h-11 items-center justify-between gap-3">
               <Label htmlFor="plan-home" className="flex flex-col items-start gap-0.5">
-                <span className="text-[15px] font-semibold">Show this plan on Home</span>
-                <span className="text-[13px] font-normal text-muted-foreground">This month's payment for each debt, instead of the single card payment</span>
+                <span className="text-[13px] font-semibold">Show this plan on Home</span>
+                <span className="text-[12px] font-normal text-muted-foreground">This month's payment for each debt, instead of the single card payment</span>
               </Label>
               <Switch id="plan-home" checked={p.plan.inUse} onCheckedChange={(v) => void save({ inUse: v })} />
             </div>
@@ -124,7 +124,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
       <span className="text-xs text-hero-muted">{label}</span>
-      <span className="money text-[15px] font-semibold">{value}</span>
+      <span className="money text-[13px] font-semibold">{value}</span>
     </div>
   )
 }
@@ -161,7 +161,7 @@ function MonthlyAmount({ p, onSave }: { p: Plan; onSave: Save }) {
           <h2 id="amount-title" className={h2}>
             Monthly amount for debts
           </h2>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-[12px] text-muted-foreground">
             {p.usingSafeAmount ? 'Your safe credit card payment this month' : `Your safe card payment is ${formatMoney(p.safeAmount)}`}
           </p>
         </div>
@@ -174,7 +174,7 @@ function MonthlyAmount({ p, onSave }: { p: Plan; onSave: Save }) {
       )}
       {editing ? (
         <form noValidate onSubmit={submit} className="flex flex-col gap-2">
-          <Label htmlFor="debt-amount" className="text-[13px] font-semibold text-muted-foreground">
+          <Label htmlFor="debt-amount" className="text-[12px] font-semibold text-muted-foreground">
             Amount each month (₱)
           </Label>
           <MoneyInput
@@ -193,7 +193,7 @@ function MonthlyAmount({ p, onSave }: { p: Plan; onSave: Save }) {
               {error}
             </p>
           )}
-          <p className="text-[13px] text-muted-foreground">At least {formatMoney(p.minimums)}, the total of your minimum payments.</p>
+          <p className="text-[12px] text-muted-foreground">At least {formatMoney(p.minimums)}, the total of your minimum payments.</p>
           <div className="flex gap-2">
             <Button type="button" variant="outline" className="flex-1" onClick={() => setEditing(false)}>
               Cancel
@@ -266,7 +266,7 @@ function Strategy({ p, onSave }: { p: Plan; onSave: Save }) {
           { value: 'custom', label: 'My order' },
         ]}
       />
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-[12px] text-muted-foreground">
         Every debt gets its minimum; the rest goes to the first one, and when it's cleared its payment rolls to the next. {STRATEGY_HELP[p.plan.strategy]}
       </p>
       {p.plan.strategy === 'custom' && (
@@ -286,7 +286,7 @@ function Strategy({ p, onSave }: { p: Plan; onSave: Save }) {
             >
               <GripVertical className="size-5 flex-none cursor-grab text-muted-foreground" aria-hidden="true" />
               <span className="w-5 text-sm font-bold text-muted-foreground">{i + 1}</span>
-              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{d.name}</span>
+              <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{d.name}</span>
               <Button variant="ghost" size="icon" aria-label={`Move ${d.name} up`} disabled={i === 0} onClick={() => move(i, i - 1)}>
                 <ArrowUp aria-hidden="true" />
               </Button>
@@ -327,13 +327,13 @@ function Extras({ p, onSave }: { p: Plan; onSave: Save }) {
         <h2 id="extras-title" className={h2}>
           One-off extra payments
         </h2>
-        <p className="text-[13px] text-muted-foreground">For example, your 13th-month pay in December.</p>
+        <p className="text-[12px] text-muted-foreground">For example, your 13th-month pay in December.</p>
       </div>
       {upcoming.length > 0 && (
         <ul className="flex flex-col">
           {upcoming.map((e, i) => (
             <li key={e.id} className={cn('flex min-h-12 items-center justify-between gap-3', i > 0 && 'border-t border-border')}>
-              <span className="text-[15px]">
+              <span className="text-[13px]">
                 <span className="font-semibold">{formatYearMonth(e.month)}</span>
                 {monthsBetween(p.startMonth, e.month) < 0 && <span className="text-muted-foreground"> (past)</span>}
               </span>
@@ -354,13 +354,13 @@ function Extras({ p, onSave }: { p: Plan; onSave: Save }) {
       )}
       <form noValidate onSubmit={add} className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="extra-month" className="text-[13px] font-semibold text-muted-foreground">
+          <Label htmlFor="extra-month" className="text-[12px] font-semibold text-muted-foreground">
             Month
           </Label>
           <TextInput id="extra-month" type="month" min={p.startMonth} value={month} onChange={(e) => setMonth(e.target.value)} className="h-[46px]" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="extra-amount" className="text-[13px] font-semibold text-muted-foreground">
+          <Label htmlFor="extra-amount" className="text-[12px] font-semibold text-muted-foreground">
             Amount (₱)
           </Label>
           <MoneyInput
@@ -404,11 +404,11 @@ function Goal({ p, onSave }: { p: Plan; onSave: Save }) {
         <h2 id="goal-title" className={h2}>
           Pick a debt-free date
         </h2>
-        <p className="text-[13px] text-muted-foreground">See what you'd need to pay each month to get there.</p>
+        <p className="text-[12px] text-muted-foreground">See what you'd need to pay each month to get there.</p>
       </div>
       <div className="flex items-end gap-2">
         <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="goal-month" className="text-[13px] font-semibold text-muted-foreground">
+          <Label htmlFor="goal-month" className="text-[12px] font-semibold text-muted-foreground">
             Debt-free by
           </Label>
           <TextInput
@@ -462,16 +462,16 @@ function PerDebt({ p }: { p: Plan }) {
           return (
             <li key={d.id} className={cn('flex min-h-[60px] items-center justify-between gap-3 py-2', i > 0 && 'border-t border-border')}>
               <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="truncate text-[15px] font-semibold">
+                <span className="truncate text-[13px] font-semibold">
                   {i + 1}. {d.name}
                 </span>
-                <span className="text-[13px] text-muted-foreground">
+                <span className="text-[12px] text-muted-foreground">
                   {formatMoney(d.balance)} owed · {d.monthlyRate}% a month · min {formatMoney(d.minimumPayment)}
                 </span>
               </span>
               <span className="flex flex-none flex-col items-end gap-0.5">
-                <span className="text-[15px] font-semibold">{month ? formatYearMonth(month) : 'Not paid off'}</span>
-                <span className="money text-[13px] text-warning-text">{money0(r?.interest ?? 0)} interest</span>
+                <span className="text-[13px] font-semibold">{month ? formatYearMonth(month) : 'Not paid off'}</span>
+                <span className="money text-[12px] text-warning-text">{money0(r?.interest ?? 0)} interest</span>
               </span>
             </li>
           )

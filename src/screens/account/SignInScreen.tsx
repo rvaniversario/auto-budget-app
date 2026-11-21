@@ -53,8 +53,8 @@ export function SignInScreen() {
     <div className="flex w-full max-w-[560px] flex-col gap-5 md:mx-auto">
       <SubHeader title="" />
       <div className="flex flex-col gap-2">
-        <h1 className="text-[28px] leading-[1.15] font-bold tracking-[-0.01em]">Sync across your devices</h1>
-        <p className="text-[15px] leading-normal text-muted-foreground">
+        <h1 className="text-[24px] leading-[1.15] font-bold tracking-[-0.01em]">Sync across your devices</h1>
+        <p className="text-[13px] leading-normal text-muted-foreground">
           {nav.message ??
             (premiumEnabled
               ? 'Sync is part of Premium. Sign in so your Premium and your data are saved to your account. Without signing in, everything stays on this device and all free features work the same.'
@@ -64,7 +64,7 @@ export function SignInScreen() {
 
       <ul className="flex flex-col gap-2.5 rounded-card bg-card p-4">
         {BENEFITS.map((b) => (
-          <li key={b} className="flex items-center gap-2.5 text-[15px]">
+          <li key={b} className="flex items-center gap-2.5 text-[13px]">
             <Check className="size-5 flex-none text-link" strokeWidth={2.4} aria-hidden="true" />
             {b}
           </li>
@@ -77,7 +77,7 @@ export function SignInScreen() {
             <Button type="button" variant="outline" className="h-[54px] rounded-[14px] bg-card text-base font-semibold" onClick={google}>
               Continue with Google
             </Button>
-            <div className="flex items-center gap-3 text-[13px] text-muted-foreground" aria-hidden="true">
+            <div className="flex items-center gap-3 text-[12px] text-muted-foreground" aria-hidden="true">
               <span className="h-px flex-1 bg-input" />
               or
               <span className="h-px flex-1 bg-input" />
@@ -105,10 +105,10 @@ export function SignInScreen() {
         <Button type="submit" className="h-[54px] rounded-[14px] text-base font-semibold" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? 'Sending…' : 'Email me a sign-in code'}
         </Button>
-        <p className="text-[13px] leading-normal text-muted-foreground">No password needed. We email you a {SIGN_IN_CODE_LENGTH}-digit code each time you sign in.</p>
+        <p className="text-[12px] leading-normal text-muted-foreground">No password needed. We email you a {SIGN_IN_CODE_LENGTH}-digit code each time you sign in.</p>
       </form>
 
-      <Button type="button" variant="ghost" className="min-h-11 text-[15px] font-semibold text-link" onClick={() => navigate(-1)}>
+      <Button type="button" variant="ghost" className="min-h-11 text-[13px] font-semibold text-link" onClick={() => navigate(-1)}>
         Not now
       </Button>
       <p className="text-center text-xs leading-normal text-muted-foreground">

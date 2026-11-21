@@ -26,6 +26,8 @@ export interface AddPrefill {
   /** Transfer destination account id. */
   to?: string | null
   categoryId?: string | null
+  /** The account paid with (or transferred from), when opened from an account's screen. */
+  from?: string | null
 }
 
 type RepeatChoice = 'none' | 'monthly' | 'every2weeks' | 'weekly'
@@ -48,11 +50,16 @@ export function AddTransactionPanel({ prefill, onDone }: { prefill?: AddPrefill;
   const [repeat, setRepeat] = useState<RepeatChoice>('none')
   // Defaults are computed once, when the panel opens.
   const [initial] = useState(() =>
-    defaultValues(accounts, { type: prefill?.type, toAccountId: prefill?.to ?? null, categoryId: prefill?.categoryId ?? null }),
+    defaultValues(accounts, {
+      type: prefill?.type,
+      toAccountId: prefill?.to ?? null,
+      categoryId: prefill?.categoryId ?? null,
+      accountId: prefill?.from ?? null,
+    }),
   )
 
   if (accounts.length === 0) {
-    return <p className="text-[15px] text-muted-foreground">Add an account first, such as Cash or your bank, on the Accounts tab.</p>
+    return <p className="text-[13px] text-muted-foreground">Add an account first, such as Cash or your bank, on the Accounts tab.</p>
   }
 
   const canRepeat = premiumEnabled && ent.isPremium
@@ -135,7 +142,7 @@ function RepeatRow({
         className="flex min-h-11 items-center gap-3 rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <Repeat className="size-5 flex-none text-muted-foreground" aria-hidden="true" />
-        <span className="flex flex-1 items-center gap-2 text-[15px] font-semibold">
+        <span className="flex flex-1 items-center gap-2 text-[13px] font-semibold">
           Repeat
           <PremiumBadge />
         </span>
@@ -145,7 +152,7 @@ function RepeatRow({
   }
   return (
     <div className="flex min-h-11 items-center justify-between gap-3">
-      <span id="repeat-label" className="flex items-center gap-3 text-[15px] font-semibold">
+      <span id="repeat-label" className="flex items-center gap-3 text-[13px] font-semibold">
         <Repeat className="size-5 flex-none text-muted-foreground" aria-hidden="true" />
         Repeat
       </span>

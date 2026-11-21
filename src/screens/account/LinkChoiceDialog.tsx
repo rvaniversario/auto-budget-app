@@ -43,8 +43,8 @@ export function LinkChoiceDialog() {
         </AlertDialogHeader>
         <div className="flex flex-col gap-2">
           <Button className="h-auto min-h-12 flex-col items-start gap-0.5 py-2.5 text-left" disabled={busy} onClick={() => pick('online')}>
-            <span className="text-[15px] font-semibold">Keep the online budget</span>
-            <span className="text-[13px] font-normal opacity-90">{plural(choice.remoteTransactions)}, replaces this device</span>
+            <span className="text-[13px] font-semibold">Keep the online budget</span>
+            <span className="text-[12px] font-normal opacity-90">{plural(choice.remoteTransactions)}, replaces this device</span>
           </Button>
           <Button
             variant="outline"
@@ -52,8 +52,8 @@ export function LinkChoiceDialog() {
             disabled={busy}
             onClick={() => pick('device')}
           >
-            <span className="text-[15px] font-semibold">Keep this device’s budget</span>
-            <span className="text-[13px] font-normal text-muted-foreground">{plural(choice.localTransactions)}, replaces the online copy</span>
+            <span className="text-[13px] font-semibold">Keep this device’s budget</span>
+            <span className="text-[12px] font-normal text-muted-foreground">{plural(choice.localTransactions)}, replaces the online copy</span>
           </Button>
         </div>
         <AlertDialogFooter>

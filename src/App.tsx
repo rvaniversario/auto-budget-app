@@ -14,6 +14,7 @@ import { LinkChoiceDialog } from '@/screens/account/LinkChoiceDialog'
 import { SignInScreen } from '@/screens/account/SignInScreen'
 import { VerifyCodeScreen } from '@/screens/account/VerifyCodeScreen'
 import { AccountsScreen } from '@/screens/AccountsScreen'
+import { AccountTransactionsScreen } from '@/screens/AccountTransactionsScreen'
 import { AddTransactionScreen } from '@/screens/AddTransactionScreen'
 import { BreakdownScreen } from '@/screens/BreakdownScreen'
 import { BudgetScreen } from '@/screens/BudgetScreen'
@@ -88,6 +89,7 @@ export default function App() {
             <Route path="transactions" element={<TransactionsScreen />} />
             <Route path="budget" element={<BudgetScreen />} />
             <Route path="accounts" element={<AccountsScreen />} />
+            <Route path="accounts/:id" element={<AccountTransactionsScreen />} />
             <Route path="settings" element={<SettingsScreen />} />
             <Route path="add" element={<AddTransactionScreen />} />
             <Route path="breakdown" element={<BreakdownScreen />} />

@@ -5,7 +5,7 @@ import { safeStorage } from '@/lib/browser'
 /** Mirrors the saved theme so index.html can apply it before React loads (no flash). */
 export const THEME_STORAGE_KEY = 'auto-budget:theme'
 
-const THEME_COLORS = { light: '#F3F5F4', dark: '#0E1512' }
+const THEME_COLORS = { light: '#EEF3F2', dark: '#05090B' }
 const media = () => window.matchMedia('(prefers-color-scheme: dark)')
 
 function subscribeSystem(callback: () => void) {

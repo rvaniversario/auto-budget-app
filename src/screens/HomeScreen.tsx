@@ -24,7 +24,6 @@ import { useAppData } from '@/hooks/useAppData'
 import { Money } from '@/components/Money'
 import { MoveBudgetDialog, useCoverOverspend } from '@/components/MoveBudgetDialog'
 import { TabHeader, Tag } from '@/components/layout'
-import { WhatsNew } from '@/components/WhatsNew'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
@@ -40,8 +39,6 @@ export function HomeScreen() {
       <TabHeader
         eyebrow={`${formatPeriodDash(model.period)} · Day ${model.period.dayIndex} of ${model.period.totalDays}`}
         title={hasAnyTransaction ? `Your ${month} budget` : 'Your first budget is ready'}
-        // Laptops and up show it in the sidebar instead.
-        action={<WhatsNew className="lg:hidden" />}
       />
       <TrialNotice />
       <LegacySyncNotice />
@@ -67,7 +64,7 @@ export function HomeScreen() {
           type="button"
           onClick={() => openAdd()}
           aria-label="Add transaction"
-          className="pointer-events-auto flex size-[60px] items-center justify-center rounded-full bg-ink text-ink-foreground shadow-[0_6px_16px_rgba(20,32,27,0.28)] outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-95"
+          className="fab-orb pointer-events-auto flex size-[60px] items-center justify-center rounded-full outline-none transition-transform focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-95"
         >
           <Plus className="size-[26px]" strokeWidth={2.4} aria-hidden="true" />
         </button>
@@ -115,7 +112,7 @@ function OverspendAlerts() {
                   amount: fix.amount,
                 })
               }
-              className="h-12 rounded-lg bg-ink text-[15px] font-semibold text-ink-foreground"
+              className="h-12 rounded-lg bg-ink text-[13px] font-semibold text-ink-foreground"
             >
               Move {formatMoney(fix.amount)} from {fix.fromName}
             </button>
@@ -124,7 +121,7 @@ function OverspendAlerts() {
               <button
                 type="button"
                 onClick={() => cover(row, { type: 'buffer', amount: fix.amount })}
-                className="h-12 rounded-lg bg-ink text-[15px] font-semibold text-ink-foreground"
+                className="h-12 rounded-lg bg-ink text-[13px] font-semibold text-ink-foreground"
               >
                 Use {formatMoney(fix.amount)} of your buffer
               </button>
@@ -133,7 +130,7 @@ function OverspendAlerts() {
           <button
             type="button"
             onClick={() => setChoosing(row)}
-            className="h-11 rounded-lg border border-danger-text bg-transparent text-[15px] font-semibold text-danger-text"
+            className="h-11 rounded-lg border border-danger-text bg-transparent text-[13px] font-semibold text-danger-text"
           >
             Choose another category
           </button>
@@ -148,27 +145,35 @@ function OverspendAlerts() {
 
 function Hero() {
   const { model } = useAppData()
+  const openAdd = useAddTransaction()
   const { safe, cards } = model
 
   if (!model.safeEnabled || cards.length === 0) {
+    // With Safe to pay off, Home says nothing about it: no card, no prompt to turn it on.
+    const noIncome = model.income === 0
+    const ctaClass = 'hero-cta flex min-h-11 items-center justify-between rounded-lg px-4 text-[13px] font-semibold'
     return (
-      <section aria-label="Your plan" className="flex flex-col gap-3.5 rounded-hero bg-primary p-5 text-primary-foreground">
-        <p className="text-sm font-medium text-hero-muted">Not yet given a job this month</p>
-        <p className="money text-5xl leading-none font-bold tracking-[-0.02em]">{formatMoney(Math.max(0, model.plan.unassigned))}</p>
+      <section aria-label="Your plan" className="hero-card flex flex-col gap-3.5 rounded-hero p-5">
+        <p className="label-mono text-hero-muted">Not yet given a job this month</p>
+        <p className="money hero-amount text-5xl leading-none font-bold tracking-[-0.02em]">{formatMoney(Math.max(0, model.plan.unassigned))}</p>
         <p className="text-sm leading-[1.45] text-hero-muted">
-          {model.income === 0
+          {noIncome
             ? 'No income logged since payday yet. Add the income you receive and your plan fills in from it.'
             : model.safeEnabled
-            ? 'You have no credit card added. Add one to see how much you can safely pay on it each month.'
-            : 'Turn on Safe to pay in Settings to see how much you can safely pay on your credit card each month.'}
+              ? 'You have no credit card added. Add one to see how much you can safely pay on it each month.'
+              : 'Income you have not budgeted yet. Give it a job in your plan, or keep it for the rest of the month.'}
         </p>
-        <Link
-          to={model.safeEnabled ? '/accounts' : '/settings'}
-          className="flex min-h-11 items-center justify-between rounded-lg bg-hero-chip px-4 text-[15px] font-semibold text-hero-link"
-        >
-          {model.safeEnabled ? 'Add a credit card' : 'Open Settings'}
-          <ChevronRight className="size-[18px]" aria-hidden="true" />
-        </Link>
+        {noIncome ? (
+          <button type="button" onClick={() => openAdd({ type: 'income' })} className={ctaClass}>
+            Log your income
+            <ChevronRight className="size-[18px]" aria-hidden="true" />
+          </button>
+        ) : (
+          <Link to={model.safeEnabled ? '/accounts' : '/budget'} className={ctaClass}>
+            {model.safeEnabled ? 'Add a credit card' : 'Open budget plan'}
+            <ChevronRight className="size-[18px]" aria-hidden="true" />
+          </Link>
+        )}
       </section>
     )
   }
@@ -179,14 +184,14 @@ function Hero() {
     .sort()[0]
 
   return (
-    <section aria-label="Credit card recommendation" className="flex flex-col gap-3.5 rounded-hero bg-primary p-5 text-primary-foreground">
+    <section aria-label="Credit card recommendation" className="hero-card flex flex-col gap-3.5 rounded-hero p-5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-hero-muted">Safe to pay on your credit card this month</p>
+        <p className="label-mono text-hero-muted">Safe to pay on your credit card this month</p>
         {safe.isEstimate && (
-          <span className="flex-none rounded-xl bg-hero-chip px-2.5 py-[3px] text-[11px] font-bold text-success-text">Estimate</span>
+          <span className="flex-none rounded-xl bg-hero-chip px-2.5 py-[3px] text-[10px] font-bold text-hero-link">Estimate</span>
         )}
       </div>
-      <p className="money text-5xl leading-none font-bold tracking-[-0.02em] md:text-[44px] lg:text-[56px]">{formatMoney(safe.amount)}</p>
+      <p className="money hero-amount text-5xl leading-none font-bold tracking-[-0.02em] md:text-[38px] lg:text-[46px]">{formatMoney(safe.amount)}</p>
       {safe.isEstimate && (
         <p className="text-sm leading-[1.45] text-hero-muted">
           No spending logged last month yet, so your categories start at ₱0. This gets more accurate as you log transactions.
@@ -214,7 +219,7 @@ function Hero() {
       )}
       <Link
         to="/breakdown"
-        className="flex min-h-11 items-center justify-between rounded-lg bg-hero-chip px-4 text-[15px] font-semibold text-hero-link"
+        className="hero-cta flex min-h-11 items-center justify-between rounded-lg px-4 text-[13px] font-semibold"
       >
         Why this amount?
         <ChevronRight className="size-[18px]" aria-hidden="true" />
@@ -226,8 +231,8 @@ function Hero() {
 function HeroStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <span className="text-xs text-hero-muted">{label}</span>
-      <span className="money truncate text-[15px] font-semibold">{value}</span>
+      <span className="label-mono text-hero-muted">{label}</span>
+      <span className="money truncate text-[13px] font-semibold">{value}</span>
     </div>
   )
 }
@@ -243,14 +248,24 @@ function MonthSummary() {
       <SummaryStat label="Remaining" value={model.remaining} highlight />
       <SummaryStat
         label="Left after bills"
-        sub={model.unpaidBills > 0 ? `${formatMoney(model.unpaidBills)} in bills still to pay` : 'All bills paid'}
+        sub={
+          model.unpaidBills > 0
+            ? `${formatMoney(model.unpaidBills)} in bills still to pay`
+            : model.fixedBillsTotal > 0
+              ? 'All bills paid'
+              : 'No bills set up yet'
+        }
         value={model.leftAfterBills}
         highlight
       />
-      <p className="col-span-full border-t border-border pt-3 text-[13px] text-muted-foreground">
+      <p className="col-span-full border-t border-border pt-3 text-[12px] text-muted-foreground">
         {model.leftAfterBills > 0
           ? <>About <strong className="money text-foreground">{formatMoney(model.perDayAfterBills)} a day</strong> for the {model.daysLeft === 1 ? 'last day' : `${model.daysLeft} days`} until payday, with your bills covered.</>
-          : 'Your bills still to pay are more than what is left this month.'}
+          : model.unpaidBills > 0 && model.unpaidBills > model.remaining
+            ? 'Your bills still to pay are more than what is left this month.'
+            : model.waitingForIncome
+              ? 'Log your income to see how much you can spend each day.'
+              : 'Nothing left to spend until payday.'}
       </p>
     </section>
   )
@@ -259,7 +274,7 @@ function MonthSummary() {
 function SummaryStat({ label, sub, value, highlight }: { label: string; sub?: string; value: number; highlight?: boolean }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="label-mono text-muted-foreground">{label}</span>
       <Money
         value={value}
         className={cn('truncate text-lg font-semibold', highlight && (value < 0 ? 'text-danger-bar' : 'text-link'))}
@@ -338,12 +353,12 @@ function BudgetBar({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-2 text-[15px] font-semibold">
+        <span className="flex min-w-0 items-center gap-2 text-[13px] font-semibold">
           <span className="truncate">{label}</span>
           {over && <Tag tone="danger">Over by {formatMoney(spent - budget)}</Tag>}
           {near && <Tag tone="warning">Near limit</Tag>}
         </span>
-        <span className={cn('flex-none text-[13px]', over ? 'font-semibold text-danger-bar' : 'text-muted-foreground')}>{amounts}</span>
+        <span className={cn('flex-none text-[12px]', over ? 'font-semibold text-danger-bar' : 'text-muted-foreground')}>{amounts}</span>
       </div>
       <Progress
         value={over ? 100 : percent}
@@ -362,7 +377,7 @@ function EmptyTransactions() {
       className="flex flex-col items-center gap-3 rounded-card border border-dashed border-dash-line px-5 pt-7 pb-5 text-center"
     >
       <ReceiptText className="size-10 text-link" strokeWidth={1.6} aria-hidden="true" />
-      <h2 className="font-sans text-[17px] font-bold">No transactions yet</h2>
+      <h2 className="font-sans text-[15px] font-bold">No transactions yet</h2>
       <p className="text-sm leading-normal text-muted-foreground">
         Log what you spend as you go. Each entry takes a few taps, and your category budgets will fill in here.
       </p>
@@ -447,8 +462,8 @@ function BillsDueCard() {
         {rows.map((r, i) => (
           <li key={r.key} className={cn('flex min-h-[52px] items-center justify-between gap-3', i > 0 && 'border-t border-border')}>
             <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="truncate text-[15px] font-semibold">{r.name}</span>
-              <span className="text-[13px] text-muted-foreground">Due {formatShortDate(r.dueDate)}</span>
+              <span className="truncate text-[13px] font-semibold">{r.name}</span>
+              <span className="text-[12px] text-muted-foreground">Due {formatShortDate(r.dueDate)}</span>
             </span>
             <span className="flex flex-none items-center gap-2.5">
               {r.tag}
@@ -485,8 +500,8 @@ function RecentTransactions({ onSelect }: { onSelect: (t: Transaction) => void }
                 className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-lg px-2 text-left outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="truncate text-[15px] font-semibold">{d.title}</span>
-                  <span className="truncate text-[13px] text-muted-foreground">
+                  <span className="truncate text-[13px] font-semibold">{d.title}</span>
+                  <span className="truncate text-[12px] text-muted-foreground">
                     {formatShortDate(t.date)} · {d.meta}
                   </span>
                 </span>

@@ -17,9 +17,9 @@ const components: Components = {
   h1: () => null, // the page header shows the title
   h2: ({ children }) => <h2 className="mt-6 text-xl font-bold tracking-[-0.01em]">{children}</h2>,
   h3: ({ children }) => <h3 className="mt-4 font-sans text-base font-bold">{children}</h3>,
-  p: ({ children }) => <p className="text-[15px] leading-relaxed">{children}</p>,
-  ul: ({ children }) => <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[15px] leading-relaxed">{children}</ul>,
-  ol: ({ children }) => <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-[15px] leading-relaxed">{children}</ol>,
+  p: ({ children }) => <p className="text-[13px] leading-relaxed">{children}</p>,
+  ul: ({ children }) => <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13px] leading-relaxed">{children}</ul>,
+  ol: ({ children }) => <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-[13px] leading-relaxed">{children}</ol>,
   a: ({ href, children }) =>
     href?.startsWith('/') ? (
       <Link to={href} className="text-link underline underline-offset-2">

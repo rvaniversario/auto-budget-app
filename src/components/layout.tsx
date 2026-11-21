@@ -8,9 +8,9 @@ export function TabHeader({ title, eyebrow, description, action }: { title: stri
   return (
     <header className="flex items-start justify-between gap-3">
       <div className="flex flex-col gap-1">
-        {eyebrow && <p className="text-[13px] font-medium text-muted-foreground">{eyebrow}</p>}
-        <h1 className="text-[26px] font-bold tracking-[-0.01em] md:text-[28px]">{title}</h1>
-        {description && <p className="max-w-prose text-[13px] leading-[1.45] text-muted-foreground">{description}</p>}
+        {eyebrow && <p className="label-mono text-[10px] text-link">{eyebrow}</p>}
+        <h1 className="text-[23px] font-bold tracking-[-0.01em] md:text-[24px]">{title}</h1>
+        {description && <p className="max-w-prose text-[12px] leading-[1.45] text-muted-foreground">{description}</p>}
       </div>
       {action}
     </header>
@@ -36,7 +36,7 @@ export function SubHeader({ title, close = false, to, action }: { title: string;
         >
           {close ? <X className="size-6" /> : <ChevronLeft className="size-6" />}
         </button>
-        {title && <h1 className="font-sans text-[17px] font-bold md:font-heading md:text-[26px] md:tracking-[-0.01em]">{title}</h1>}
+        {title && <h1 className="font-sans text-[15px] font-bold md:font-heading md:text-[23px] md:tracking-[-0.01em]">{title}</h1>}
       </div>
       {action ?? <span className="w-11" />}
     </header>
@@ -54,7 +54,7 @@ export function Card16({ className, children, ...props }: React.ComponentProps<'
 /** Uppercase section label: "SET ASIDE FIRST". */
 export function SectionLabel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <h2 className={cn('mb-1 font-sans text-[13px] font-bold tracking-[0.04em] text-muted-foreground uppercase', className)}>
+    <h2 className={cn('label-mono mb-1 text-[10px] font-semibold text-muted-foreground', className)}>
       {children}
     </h2>
   )
@@ -83,14 +83,14 @@ export function RowButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex min-h-[52px] w-full items-center justify-between gap-3 rounded-md py-2 text-left text-[15px] outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+        'flex min-h-[52px] w-full items-center justify-between gap-3 rounded-md py-2 text-left text-[13px] outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
         !first && 'border-t border-border',
         danger ? 'font-semibold text-danger-bar' : 'text-foreground',
       )}
     >
       <span className="flex flex-col gap-0.5">
         <span className="font-semibold">{label}</span>
-        {description && <span className="text-[13px] font-normal text-muted-foreground">{description}</span>}
+        {description && <span className="text-[12px] font-normal text-muted-foreground">{description}</span>}
       </span>
       {trailing ?? (value !== undefined && <span className="shrink-0 text-right whitespace-nowrap text-muted-foreground">{value}</span>)}
     </button>
@@ -103,7 +103,7 @@ export function DashedButton({ children, onClick }: { children: ReactNode; onCli
     <button
       type="button"
       onClick={onClick}
-      className="h-[52px] w-full rounded-[14px] border border-dashed border-dash-line bg-transparent text-[15px] font-semibold text-foreground hover:bg-card/60 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="h-[52px] w-full rounded-[14px] border border-dashed border-dash-line bg-transparent text-[13px] font-semibold text-foreground hover:bg-card/60 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       {children}
     </button>
@@ -115,7 +115,7 @@ export function Tag({ tone, children }: { tone: 'warning' | 'danger' | 'success'
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center rounded-[10px] px-2 py-0.5 text-[11px] font-bold',
+        'inline-flex shrink-0 items-center rounded-[10px] px-2 py-0.5 text-[10px] font-bold',
         tone === 'warning' && 'bg-warning-tint text-warning-text',
         tone === 'danger' && 'bg-danger-tint text-danger-text',
         tone === 'success' && 'bg-success-tint text-success-text',

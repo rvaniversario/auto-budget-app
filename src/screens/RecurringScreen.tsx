@@ -73,13 +73,13 @@ function RecurringList() {
   return (
     <>
       <SubHeader title="Recurring" action={<Button onClick={() => setEditing('new')} className="hidden md:inline-flex"><Plus aria-hidden="true" /> Add recurring</Button>} />
-      <p className="max-w-prose text-[13px] leading-normal text-muted-foreground">
+      <p className="max-w-prose text-[12px] leading-normal text-muted-foreground">
         These are added to your transactions on schedule, each time you open the app. Created transactions are marked "Recurring" and can be edited one by one.
       </p>
       {templates.length === 0 ? (
         <section className="flex flex-col items-center gap-3 rounded-card border border-dashed border-dash-line px-5 py-8 text-center">
           <Repeat className="size-10 text-link" strokeWidth={1.6} aria-hidden="true" />
-          <h2 className="font-sans text-[17px] font-bold">Nothing repeating yet</h2>
+          <h2 className="font-sans text-[15px] font-bold">Nothing repeating yet</h2>
           <p className="max-w-prose text-sm text-muted-foreground">Add rent, subscriptions or your salary once, and they'll log themselves.</p>
           <Button className="h-12 rounded-[14px] px-5" onClick={() => setEditing('new')}>
             Add a recurring transaction
@@ -94,12 +94,12 @@ function RecurringList() {
               return (
                 <li key={t.id} className={cn('flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between', i > 0 && 'border-t border-border')}>
                   <div className="flex min-w-0 flex-col gap-0.5">
-                    <span className="flex items-center gap-2 text-[15px] font-semibold">
+                    <span className="flex items-center gap-2 text-[13px] font-semibold">
                       <span className="truncate">{describe(t)}</span>
                       {t.paused && <Tag tone="warning">Paused</Tag>}
                       {ended && <Tag tone="success">Ended</Tag>}
                     </span>
-                    <span className="text-[13px] text-muted-foreground">
+                    <span className="text-[12px] text-muted-foreground">
                       {describeSchedule(t.schedule)}
                       {next ? ` · next ${formatShortDate(next)}` : ''}
                       {t.endDate ? ` · until ${formatShortDate(t.endDate)}` : ''}
@@ -220,7 +220,7 @@ function draftFrom(t: RecurringTemplate | null, accountId: string): Draft {
   }
 }
 
-const label = 'text-[13px] font-semibold text-muted-foreground'
+const label = 'text-[12px] font-semibold text-muted-foreground'
 
 function dayValue(v: string): number | null {
   const n = Number(v)
@@ -385,7 +385,7 @@ export function RecurringDialog({
                 Transfer fee (optional)
               </Label>
               <MoneyInput id="rec-fee" value={d.fee} placeholder="0" onChange={(e) => set('fee', e.target.value)} className="h-[46px]" />
-              <p className="text-[13px] text-muted-foreground">Charged on top each time, from the &ldquo;From&rdquo; account.</p>
+              <p className="text-[12px] text-muted-foreground">Charged on top each time, from the &ldquo;From&rdquo; account.</p>
             </div>
           )}
 
@@ -416,10 +416,10 @@ export function RecurringDialog({
                   Every how many weeks? (1 = every week)
                 </Label>
                 <TextInput id="rec-every" inputMode="numeric" value={d.every} onChange={(e) => set('every', e.target.value)} className="h-[46px]" />
-                <p className="text-[13px] text-muted-foreground">On the same weekday as the start date.</p>
+                <p className="text-[12px] text-muted-foreground">On the same weekday as the start date.</p>
               </div>
             )}
-            {(d.kind === 'monthly' || d.kind === 'twiceMonthly') && <p className="text-[13px] text-muted-foreground">In shorter months, the 31st becomes the last day.</p>}
+            {(d.kind === 'monthly' || d.kind === 'twiceMonthly') && <p className="text-[12px] text-muted-foreground">In shorter months, the 31st becomes the last day.</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-2">

@@ -125,8 +125,8 @@ export function SettingsScreen() {
       <RowButton label="Buffer amount" value={formatMoney(settings.bufferAmount)} onClick={() => setOpen('buffer')} />
       <div className="flex min-h-[52px] items-center justify-between gap-3 border-t border-border py-2">
         <Label htmlFor="safe-to-pay" className="flex flex-col items-start gap-0.5">
-          <span className="text-[15px] font-semibold">Safe to pay on your credit card</span>
-          <span className="text-[13px] font-normal text-muted-foreground">
+          <span className="text-[13px] font-semibold">Safe to pay on your credit card</span>
+          <span className="text-[12px] font-normal text-muted-foreground">
             Each month, set aside what you can safely pay on your cards and show it on Home
           </span>
         </Label>
@@ -138,8 +138,8 @@ export function SettingsScreen() {
       </div>
       <div className="flex min-h-[52px] items-center justify-between gap-3 border-t border-border py-2">
         <Label htmlFor="carry-over" className="flex flex-col items-start gap-0.5">
-          <span className="text-[15px] font-semibold">Carry-over</span>
-          <span className="text-[13px] font-normal text-muted-foreground">
+          <span className="text-[13px] font-semibold">Carry-over</span>
+          <span className="text-[12px] font-normal text-muted-foreground">
             Add what was left from earlier months to this month, or take away what was overspent
           </span>
         </Label>
@@ -181,7 +181,7 @@ export function SettingsScreen() {
   const appSection = (
     <section aria-label="App settings" className="flex flex-col gap-3 rounded-card bg-card px-4 py-3 md:px-5">
       <div className="flex flex-col gap-2 pt-1">
-        <span id="appearance-label" className="text-[15px] font-semibold">
+        <span id="appearance-label" className="text-[13px] font-semibold">
           Appearance
         </span>
         <Segmented
@@ -214,7 +214,7 @@ export function SettingsScreen() {
                 aria-current={section === sec.id ? 'page' : undefined}
                 onClick={() => go(sec.id)}
                 className={cn(
-                  'flex min-h-11 items-center rounded-[10px] px-3 text-left text-[15px] font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                  'flex min-h-11 items-center rounded-[10px] px-3 text-left text-[13px] font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                   section === sec.id ? 'bg-success-tint text-success-text' : 'hover:bg-muted',
                 )}
               >
@@ -332,7 +332,7 @@ function PremiumCard() {
   return (
     <Link
       to="/premium"
-      className="flex min-h-[76px] items-center gap-3.5 rounded-card bg-primary p-4 lg:max-w-[920px] text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 md:px-5"
+      className="flex min-h-[76px] items-center gap-3.5 hero-card rounded-card p-4 lg:max-w-[920px] outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:px-5"
     >
       <span className="flex size-11 flex-none items-center justify-center rounded-lg bg-hero-chip text-hero-link">
         <Sparkles className="size-[22px]" aria-hidden="true" />
@@ -499,15 +499,15 @@ function PaydayDatesDialog({ open, onClose }: { open: boolean; onClose: () => vo
                 className={cn('flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3', i > 0 && 'border-t border-border')}
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
-                  <label htmlFor={id} className="text-[15px] font-semibold">
+                  <label htmlFor={id} className="text-[13px] font-semibold">
                     {name} payday
-                    {i + DATES_FROM === 0 && <span className="ml-2 text-[13px] font-medium text-success-text">This month</span>}
+                    {i + DATES_FROM === 0 && <span className="ml-2 text-[12px] font-medium text-success-text">This month</span>}
                   </label>
-                  <span className="text-[13px] text-muted-foreground">
+                  <span className="text-[12px] text-muted-foreground">
                     Usually {formatDayHeading(m.regular)}
                     {isWeekend(m.regular) && ' · a weekend'}
                   </span>
-                  {error && <span className="text-[13px] font-medium text-danger-text">{error}</span>}
+                  {error && <span className="text-[12px] font-medium text-danger-text">{error}</span>}
                 </div>
                 <div className="flex items-center gap-1">
                   <TextInput

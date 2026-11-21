@@ -71,7 +71,7 @@ export interface ChartSeries {
 
 function Legend({ series }: { series: { name: string; color: string; dashed?: boolean }[] }) {
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[13px]">
+    <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[12px]">
       {series.map((s) => (
         <li key={s.name} className="flex items-center gap-1.5">
           <span
@@ -90,7 +90,7 @@ function Legend({ series }: { series: { name: string; color: string; dashed?: bo
 function DataTable({ labels, series, open }: { labels: string[]; series: { name: string; values: Centavos[] }[]; open: boolean }) {
   return (
     <div className={cn('overflow-x-auto', !open && 'sr-only')}>
-      <table className="w-full border-collapse text-[13px]">
+      <table className="w-full border-collapse text-[12px]">
         <thead>
           <tr>
             <th scope="col" className="border-b border-border py-1.5 pr-3 text-left font-semibold text-muted-foreground">
@@ -152,7 +152,7 @@ function ChartFrame({
         type="button"
         aria-expanded={showTable}
         onClick={() => setShowTable((v) => !v)}
-        className="print-hidden self-start text-[13px] font-semibold text-link underline-offset-2 hover:underline"
+        className="print-hidden self-start text-[12px] font-semibold text-link underline-offset-2 hover:underline"
       >
         {showTable ? 'Hide figures' : 'Show figures as a table'}
       </button>

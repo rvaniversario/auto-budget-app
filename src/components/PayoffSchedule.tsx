@@ -28,7 +28,7 @@ export function PayoffSchedule({
   return (
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full border-collapse">
-        <caption className="pb-1 text-left text-[13px] font-bold">Payoff schedule</caption>
+        <caption className="pb-1 text-left text-[12px] font-bold">Payoff schedule</caption>
         <thead>
           <tr>
             <th scope="col" className={cn(th, 'text-left')}>Payment</th>
@@ -41,15 +41,15 @@ export function PayoffSchedule({
           {shown.map((r) => (
             <tr key={r.date}>
               <td className={cn(td, 'font-sans text-sm')}>{formatShortDate(r.date)}</td>
-              <td className={cn(td, 'text-right text-[15px] font-medium')}>{money(r.payment)}</td>
-              <td className={cn(td, 'text-right text-[15px] font-medium text-warning-text')}>{money(r.interest)}</td>
-              <td className={cn(td, 'text-right text-[15px] font-semibold')}>{money(r.owed)}</td>
+              <td className={cn(td, 'text-right text-[13px] font-medium')}>{money(r.payment)}</td>
+              <td className={cn(td, 'text-right text-[13px] font-medium text-warning-text')}>{money(r.interest)}</td>
+              <td className={cn(td, 'text-right text-[13px] font-semibold')}>{money(r.owed)}</td>
             </tr>
           ))}
         </tbody>
       </table>
       {(rows.length > MAX_ROWS || neverClears) && (
-        <p className="pt-2 text-[13px] text-muted-foreground">
+        <p className="pt-2 text-[12px] text-muted-foreground">
           {neverClears
             ? 'At this amount the balance is still not cleared after 10 years.'
             : `…and ${rows.length - MAX_ROWS} more month${rows.length - MAX_ROWS === 1 ? '' : 's'} until it is cleared.`}
